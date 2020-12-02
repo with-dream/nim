@@ -1,7 +1,6 @@
 import com.google.gson.Gson;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
-import user.LoginModel;
 
 import java.io.IOException;
 
@@ -22,10 +21,15 @@ public class Main {
 
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 String res = response.body().string();
-                LoginModel loginModel = gson.fromJson(res, LoginModel.class);
-                String url = loginModel.imUrl[0];
-                String[] ip = url.split(":");
-                startNetty(ip[0], Integer.parseInt(ip[1]));
+                System.err.println("resModel  1111==>" + res);
+
+                UserResultModel resModel = gson.fromJson(res, UserResultModel.class);
+                System.err.println("resModel==>" + resModel.toString());
+                if (resModel.code == 0) {
+                    String url = resModel.imUrl[0];
+                    String[] ip = url.split(":");
+                    startNetty(ip[0], Integer.parseInt(ip[1]));
+                }
             }
         });
     }

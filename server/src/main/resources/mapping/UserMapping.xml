@@ -6,14 +6,19 @@
         <result column="name" jdbcType="VARCHAR" property="name"/>
         <result column="pwd" jdbcType="VARCHAR" property="pwd"/>
         <result column="uuid" jdbcType="BIGINT" property="uuid"/>
+        <result column="registTime" jdbcType="TIMESTAMP" property="registTime"/>
     </resultMap>
 
     <insert id="regist" parameterType="com.example.server.entity.UserModel">
-        insert into user(name, pwd, uuid) values (#{name}, #{pwd}, #{uuid});
+        insert into user(name, pwd, uuid, registTime) values (#{name}, #{pwd}, #{uuid}, #{registTime});
     </insert>
 
-    <select id="sel" resultMap="userModel">
-        SELECT * FROM user;
+    <select id="checkUser" resultType="int">
+        SELECT count(*) FROM user where uuid = #{uuid};
+    </select>
+
+    <select id="login" resultType="com.example.server.entity.UserResultModel">
+        SELECT * FROM user where name = #{name} and pwd = #{pwd};
     </select>
 </mapper>
 

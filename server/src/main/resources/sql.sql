@@ -6,5 +6,10 @@ CREATE TABLE IF NOT EXISTS `user` (
   `name` varchar(40) NOT NULL default '',
   `pwd` varchar(40) NOT NULL default '',
   `uuid` int NOT NULL,
-  `registTime` DATE NOT NULL
+  `registTime` TIMESTAMP NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `sys` (
+  `id` int NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  `uuid` bigint NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

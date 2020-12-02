@@ -1,3 +1,15 @@
+问题:
+1、注册 插入时间registTime字段没有时分秒
+
+
+
+
+
+
+
+
+
+
 ### 1、redis命令
 redis-server  启动
 

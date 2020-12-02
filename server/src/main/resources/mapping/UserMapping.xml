@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.server.mapper.UserMapper">
+
+    <resultMap id="userModel" type="com.example.server.entity.UserModel">
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="pwd" jdbcType="VARCHAR" property="pwd"/>
+        <result column="uuid" jdbcType="BIGINT" property="uuid"/>
+    </resultMap>
+
+    <insert id="regist" parameterType="com.example.server.entity.UserModel">
+        insert into user(name, pwd, uuid) values (#{name}, #{pwd}, #{uuid});
+    </insert>
+
+    <select id="sel" resultMap="userModel">
+        SELECT * FROM user;
+    </select>
+</mapper>
+
+

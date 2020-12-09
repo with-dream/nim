@@ -4,6 +4,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SysMapper {
-    int saveUuid(int uuid);
-    int getUuid();
+    long saveUuid(long uuid);
+    long getUuid();
 }

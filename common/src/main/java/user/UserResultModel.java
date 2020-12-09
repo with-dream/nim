@@ -3,12 +3,11 @@ package user;
 import java.sql.Date;
 import java.util.Arrays;
 
-public class UserResultModel {
+public class UserResultModel extends BaseModel {
     public String[] imUrl;
     public String name;
     public long uuid;
     public Date registTime;
-    public int code;
 
     @Override
     public String toString() {

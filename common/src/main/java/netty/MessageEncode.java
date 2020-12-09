@@ -18,7 +18,7 @@ public class MessageEncode extends MessageToByteEncoder<BaseMsgModel> {
             System.err.println("e==>" + e.toString());
         }
         byte[] str = ss.getBytes();
-        System.err.println("str==>" + o.toString());
+//        System.err.println("str==>" + o.toString());
         byteBuf.writeInt(str.length);
         byteBuf.writeInt(o.type);
         byteBuf.writeBytes(str);

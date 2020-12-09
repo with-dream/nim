@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.server.mapper.UserMapper">
-
     <resultMap id="userModel" type="com.example.server.entity.UserModel">
         <result column="name" jdbcType="VARCHAR" property="name"/>
         <result column="pwd" jdbcType="VARCHAR" property="pwd"/>
@@ -9,16 +8,82 @@
         <result column="registTime" jdbcType="TIMESTAMP" property="registTime"/>
     </resultMap>
 
-    <insert id="regist" parameterType="com.example.server.entity.UserModel">
+    <resultMap id="userResModel" type="com.example.server.entity.UserResultModel">
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="uuid" jdbcType="BIGINT" property="uuid"/>
+        <result column="registTime" jdbcType="TIMESTAMP" property="registTime"/>
+    </resultMap>
+
+    <resultMap id="friendModel" type="user.FriendModel">
+        <result column="user_id" jdbcType="BIGINT" property="userId"/>
+        <result column="friend_id" jdbcType="BIGINT" property="friendId"/>
+        <result column="status" jdbcType="INTEGER" property="status"/>
+        <result column="friend_info" jdbcType="VARCHAR" property="userInfo"/>
+        <result column="user_info" jdbcType="VARCHAR" property="friendInfo"/>
+    </resultMap>
+
+    <resultMap id="groupModel" type="user.GroupModel">
+        <result column="user_id" jdbcType="BIGINT" property="userId"/>
+        <result column="group_id" jdbcType="BIGINT" property="groupId"/>
+        <result column="members" jdbcType="CLOB" property="members"/>
+        <result column="groupName" jdbcType="VARCHAR" property="groupName"/>
+    </resultMap>
+
+    <insert id="regist" parameterType="userModel">
         insert into user(name, pwd, uuid, registTime) values (#{name}, #{pwd}, #{uuid}, #{registTime});
     </insert>
+
+    <select id="login" resultMap="userResModel" parameterType="userModel">
+        SELECT name,uuid,registTime FROM user where name = #{name} and pwd = #{pwd};
+    </select>
 
     <select id="checkUser" resultType="int">
         SELECT count(*) FROM user where uuid = #{uuid};
     </select>
 
-    <select id="login" resultType="com.example.server.entity.UserResultModel">
-        SELECT * FROM user where name = #{name} and pwd = #{pwd};
+    <select id="checkFriend" resultMap="friendModel">
+        SELECT * FROM friend where user_id = #{userId} and friend_id = #{friendId};
+    </select>
+
+    <insert id="addFriend" parameterType="user.FriendModel">
+        insert into friend(user_id, friend_id, status, user_info, friend_info)
+        values(#{userId}, #{friendId}, #{status}, #{userInfo}, #{friendInfo});
+    </insert>
+
+    <update id="delFriend" parameterType="user.FriendModel">
+        update friend set status=#{status} where user_id = #{userId} and friend_id = #{friendId};
+    </update>
+
+    <select id="getAllFriend" resultMap="friendModel" parameterType="long">
+        SELECT * FROM friend where user_id = #{userId} or friend_id = #{userId};
+    </select>
+
+    <update id="updateGroupMember" parameterType="user.GroupModel">
+        update group_info set members=#{members} where group_id=#{groupId};
+    </update>
+
+    <select id="getGroupInfo" resultMap="groupModel" parameterType="long">
+        SELECT * FROM group_info where group_id = #{groupId};
+    </select>
+
+    <insert id="createGroup" parameterType="user.GroupModel">
+        insert into group_info(user_id, group_id, members, groupName) values(#{userId}, #{groupId}, #{members}, #{groupName});
+    </insert>
+
+    <delete id="delGroup" parameterType="user.GroupModel">
+        delete from group_info where group_id=#{groupId};
+    </delete>
+
+    <insert id="addMapGroup" parameterType="user.GroupMapModel">
+        insert into group_map(user_id, group_id) values(#{userId}, #{groupId});
+    </insert>
+
+    <delete id="delMapGroup" parameterType="long">
+        delete from group_map where user_id=#{userId};
+    </delete>
+
+    <select id="getAllGroup" resultMap="groupModel" parameterType="long">
+        SELECT * FROM group_map where user_id = #{userId};
     </select>
 </mapper>
 

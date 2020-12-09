@@ -7,6 +7,16 @@ public class MsgType {
     public static final int CMD_MSG = 0;
 
     /**
+     * 请求的命令消息
+     */
+    public static final int REQ_CMD_MSG = 5;
+
+    /**
+     * 请求的命令消息
+     */
+    public static final int REQ_GROUP_MSG = 6;
+
+    /**
      * 普通消息
      */
     public static final int MSG_PERSON = 1;

@@ -25,7 +25,7 @@ public class BaseMsgModel {
     //消息队列号 个人聊天 使用两个人的uuid 且合成规则为小+大 群组用群号
     public long timeLine;
     //消息id 保证唯一 规则
-    public int msgId;
+    public String msgId;
     //设备token 用于标记平台的客户端
     public int device;
     //发送者uuid

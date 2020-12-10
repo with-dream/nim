@@ -9,13 +9,15 @@ public class CmdMsgModel extends BaseMsgModel {
     public static final int READED = 11;
 
     public int cmd;
+    public String loginTag;
 
-    public static CmdMsgModel create(long from, long to) {
+    public static CmdMsgModel create(long from, long to, String receiptTag) {
         CmdMsgModel cmdMsgModel = new CmdMsgModel();
+        cmdMsgModel.createMsgid();
         cmdMsgModel.type = MsgType.CMD_MSG;
         cmdMsgModel.from = from;
         cmdMsgModel.to = to;
-
+        cmdMsgModel.receiptTag = receiptTag;
         return cmdMsgModel;
     }
 

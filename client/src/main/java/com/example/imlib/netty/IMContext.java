@@ -2,7 +2,12 @@ package com.example.imlib.netty;
 
 import com.example.imlib.Context;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import netty.model.BaseMsgModel;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 public class IMContext {
     public long uuid;
@@ -11,14 +16,29 @@ public class IMContext {
     public Context context;
     private IMConnCallback callback;
     private IMMsgCallback msgCallback;
+    public String clientTag;
     private NettyClient nettyClient = new NettyClient();
+    public ConcurrentHashMap<String, BaseMsgModel> receiptMsg = new ConcurrentHashMap<>();
 
     public void setIpList(String[] ipList) {
         this.ipList = ipList;
     }
 
     public void sendMsg(BaseMsgModel msg) {
-        channel.writeAndFlush(msg);
+        this.sendMsg(msg, false);
+    }
+
+    public void sendMsg(BaseMsgModel msg, boolean receipt) {
+        if (receipt)
+            receiptMsg.put(msg.msgId, msg);
+
+        ChannelFuture future = channel.writeAndFlush(msg);
+        future.addListener(new GenericFutureListener<Future<? super Void>>() {
+            @Override
+            public void operationComplete(Future<? super Void> future) throws Exception {
+
+            }
+        });
     }
 
     public void init(Context context) {

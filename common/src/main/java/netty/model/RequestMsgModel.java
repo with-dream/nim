@@ -22,12 +22,13 @@ public class RequestMsgModel extends BaseMsgModel {
     public int status;
     public long groupId;
 
-    public static RequestMsgModel create(long from, long to) {
+    public static RequestMsgModel create(long from, long to, String receiptTag) {
         RequestMsgModel reqMsgModel = new RequestMsgModel();
+        reqMsgModel.createMsgid();
         reqMsgModel.type = MsgType.REQ_CMD_MSG;
         reqMsgModel.from = from;
         reqMsgModel.to = to;
-
+        reqMsgModel.receiptTag = receiptTag;
         return reqMsgModel;
     }
 

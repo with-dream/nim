@@ -1,5 +1,6 @@
 package com.example.imlib.netty;
 
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import com.example.imlib.utils.L;
@@ -74,9 +75,12 @@ public class NettyClient {
     }
 
     private void login() {
-        CmdMsgModel cmdMsgModel = CmdMsgModel.create(IMContext.getInstance().uuid, 0);
+        CmdMsgModel cmdMsgModel = CmdMsgModel.create(IMContext.getInstance().uuid, 0, IMContext.getInstance().clientTag);
         cmdMsgModel.cmd = CmdMsgModel.LOGIN;
         cmdMsgModel.timestamp = System.currentTimeMillis();
+        cmdMsgModel.loginTag = UUID.randomUUID().toString();
+        IMContext.getInstance().clientTag = cmdMsgModel.loginTag;
+
         ChannelFuture cmdFuture = IMContext.getInstance().channel.writeAndFlush(cmdMsgModel);
         cmdFuture.addListener(new GenericFutureListener<Future<? super Void>>() {
             @Override

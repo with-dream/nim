@@ -9,12 +9,16 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import netty.model.*;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * @author Gjing
  * <p>
  * 客户端处理器
  **/
 public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel> {
+    private static final int TRY_COUNT_MAX = 5;
+
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         super.channelInactive(ctx);
@@ -22,6 +26,25 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
         ctx.channel().close();
 
         IMContext.getInstance().connect();
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        super.channelActive(ctx);
+
+        ctx.executor().scheduleAtFixedRate(() -> {
+            if (!IMContext.getInstance().receiptMsg.isEmpty()) {
+                IMContext.getInstance().receiptMsg.forEach((k, v) -> {
+                    IMContext.getInstance().channel.writeAndFlush(v);
+                    v.tryCount++;
+
+                    if (v.tryCount >= TRY_COUNT_MAX) {
+                        L.e("重发失败==>" + v.toString());
+                        IMContext.getInstance().receiptMsg.remove(k);
+                    }
+                });
+            }
+        }, 5, 5, TimeUnit.SECONDS);
     }
 
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, BaseMsgModel baseMsgModel) throws Exception {
@@ -64,38 +87,25 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
                             IMContext.getInstance().getMsgCallback().receive(reqMsg);
                         break;
                 }
+                receiptMsg(baseMsgModel);
                 break;
             case MsgType.MSG_PERSON:
                 MsgModel person = (MsgModel) baseMsgModel;
                 if (IMContext.getInstance().getMsgCallback() != null)
                     IMContext.getInstance().getMsgCallback().receive(person);
-
-                //消息回执
-                ReceiptMsgModel receiptModel = new ReceiptMsgModel();
-                receiptModel.type = MsgType.RECEIPT_MSG;
-                receiptModel.cmd = CmdMsgModel.RECEIVED;
-                receiptModel.from = baseMsgModel.to;
-                receiptModel.to = baseMsgModel.from;
-                receiptModel.timestamp = System.currentTimeMillis();
-                receiptModel.receipt = baseMsgModel.msgId;
-                ChannelFuture msgFuture = channelHandlerContext.channel().writeAndFlush(receiptModel);
-                msgFuture.addListener(new GenericFutureListener<Future<? super Void>>() {
-                    public void operationComplete(Future<? super Void> future) throws Exception {
-//                System.err.println("client msg send succ");
-                    }
-                });
+                receiptMsg(baseMsgModel);
                 break;
             case MsgType.MSG_GROUP:
-                String groupLine = "msg_group:" + baseMsgModel.to;
                 if (IMContext.getInstance().getMsgCallback() != null)
                     IMContext.getInstance().getMsgCallback().receive(baseMsgModel);
-
+                receiptMsg(baseMsgModel);
                 break;
             case MsgType.RECEIPT_MSG:
                 //将回执消息存储
-                L.p("消息已送达==>" + baseMsgModel.toString());
+                ReceiptMsgModel receiptMsgModel = (ReceiptMsgModel) baseMsgModel;
+                IMContext.getInstance().receiptMsg.remove(receiptMsgModel.receipt);
+                L.p("消息已送达==>"+receiptMsgModel.seq);
                 break;
-
         }
     }
 
@@ -114,7 +124,7 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
 
                     break;
                 case ALL_IDLE:
-                    CmdMsgModel heart = CmdMsgModel.create(IMContext.getInstance().uuid, 0);
+                    CmdMsgModel heart = CmdMsgModel.create(IMContext.getInstance().uuid, 0, IMContext.getInstance().clientTag);
                     heart.cmd = CmdMsgModel.HEART;
                     IMContext.getInstance().sendMsg(heart);
                     break;
@@ -126,5 +136,25 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         cause.printStackTrace();
         ctx.close();
+    }
+
+    public void receiptMsg(BaseMsgModel baseMsgModel, int type) {
+        //消息回执
+        ReceiptMsgModel receiptModel = ReceiptMsgModel.create(baseMsgModel.to, baseMsgModel.from, baseMsgModel.msgId);
+        receiptModel.cmd = type;
+        receiptModel.receiptTag = baseMsgModel.receiptTag;
+        receiptModel.timestamp = System.currentTimeMillis();
+        ChannelFuture msgFuture = IMContext.getInstance().channel.writeAndFlush(receiptModel);
+        msgFuture.addListener(new GenericFutureListener<Future<? super Void>>() {
+            public void operationComplete(Future<? super Void> future) throws Exception {
+                if (!future.isSuccess()) {
+
+                }
+            }
+        });
+    }
+
+    public void receiptMsg(BaseMsgModel baseMsgModel) {
+        this.receiptMsg(baseMsgModel, CmdMsgModel.RECEIVED);
     }
 }

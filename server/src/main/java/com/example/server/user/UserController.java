@@ -7,9 +7,7 @@ import com.example.server.netty.SessionHolder;
 import com.example.server.netty.SessionModel;
 import com.example.server.service.UserService;
 import com.google.gson.Gson;
-import netty.model.CmdMsgModel;
-import netty.model.GroupMember;
-import netty.model.RequestMsgModel;
+import netty.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Isolation;
@@ -23,6 +21,7 @@ import user.*;
 import utils.L;
 
 import javax.annotation.Resource;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -171,10 +170,15 @@ public class UserController {
                 }
 
                 for (SessionModel ses : users) {
-                    RequestMsgModel msgModel = RequestMsgModel.create(0, mem.userId);
+                    RequestMsgModel msgModel = RequestMsgModel.create(0, mem.userId, ses.deviceTag);
                     msgModel.groupId = groupId;
                     msgModel.cmd = RequestMsgModel.GROUP_DEL;
                     ses.channel.writeAndFlush(msgModel);
+
+                    ReceiptModel receiptMsgModel = new ReceiptModel();
+                    receiptMsgModel.channel = new WeakReference<>(ses.channel);
+                    receiptMsgModel.msgModel = msgModel;
+                    SessionHolder.receiptMsg.put(msgModel.msgId + ses.deviceTag, receiptMsgModel);
                 }
             }
         }

@@ -2,7 +2,6 @@ package com.example.server.netty;
 
 import com.example.server.service.UserService;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -11,14 +10,17 @@ import io.netty.handler.timeout.IdleStateEvent;
 import netty.model.*;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
-import user.FriendModel;
-import user.GroupMapModel;
-import user.GroupModel;
+import user.*;
 import utils.L;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import java.lang.ref.WeakReference;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Gjing
@@ -27,6 +29,7 @@ import java.util.List;
  **/
 @Component
 public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel> {
+    private static final int TRY_COUNT_MAX = 5;
     private Gson gson = new Gson();
 
     @Resource
@@ -36,6 +39,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
     private UserService userService;
 
     private static NettyServerHandler that;
+    private ConcurrentHashMap<String, List<CacheModel>> cacheMsg = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
@@ -50,9 +54,34 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
     }
 
     @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        super.channelActive(ctx);
+
+        ctx.executor().scheduleAtFixedRate(() -> {
+            if (!SessionHolder.receiptMsg.isEmpty()) {
+                SessionHolder.receiptMsg.forEach((k, v) -> {
+                    if (v.channel != null && v.channel.get() != null) {
+                        v.channel.get().writeAndFlush(v);
+                        v.msgModel.tryCount++;
+
+                        if (v.msgModel.tryCount >= TRY_COUNT_MAX) {
+                            L.e("重发失败==>" + v.toString());
+                            SessionHolder.receiptMsg.remove(k);
+                        }
+                    } else {
+                        L.e("重发失败 channel为空==>" + v.toString());
+                        SessionHolder.receiptMsg.remove(k);
+                    }
+
+                });
+            }
+        }, 5, 8, TimeUnit.SECONDS);
+    }
+
+    @Override
     protected void channelRead0(ChannelHandlerContext ctx, BaseMsgModel baseMsgModel) throws Exception {
         if (!(baseMsgModel instanceof CmdMsgModel) || ((CmdMsgModel) baseMsgModel).cmd != CmdMsgModel.HEART)
-            System.err.println("channelRead0==>" + baseMsgModel.toString());
+            L.p("channelRead0==>" + baseMsgModel.toString());
         switch (baseMsgModel.type) {
             case MsgType.CMD_MSG:
                 CmdMsgModel cmdMsg = (CmdMsgModel) baseMsgModel;
@@ -155,14 +184,29 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 List<SessionModel> sessionModelSelf = SessionHolder.sessionMap.get(person.from);
 
                 //缓存消息
-                String timeLineID = "msg_person:" + Math.min(person.from, person.to) + ":" + Math.max(person.from, person.to);
-                that.redisTemplate.opsForList().rightPush(timeLineID, gson.toJson(person));
-                System.err.println("timeLineID==>" + that.redisTemplate.opsForList().leftPop(timeLineID));
+                String timeLineID = "msg_p:" + Math.min(person.from, person.to) + ":" + Math.max(person.from, person.to);
+
+                CacheModel cacheModel = new CacheModel();
+                cacheModel.baseMsgModel = baseMsgModel;
+                cacheModel(timeLineID, cacheModel);
+
+//                that.redisTemplate.opsForList().rightPush(timeLineID, gson.toJson(person));
+//                System.err.println("timeLineID==>" + that.redisTemplate.opsForList().leftPop(timeLineID));
                 //对各个端推送消息
-                if (sessionModel != null)
+                if (sessionModel != null) {
                     for (SessionModel session : sessionModel)
-                        if (session != null && session.channel != null)
-                            session.channel.writeAndFlush(person);
+                        if (session != null && session.channel != null) {
+                            BaseMsgModel tmpModel = baseMsgModel.clone();
+                            tmpModel.receiptTag = session.deviceTag;
+                            session.channel.writeAndFlush(tmpModel);
+
+                            ReceiptModel recModel = new ReceiptModel();
+                            recModel.channel = new WeakReference<>(session.channel);
+                            recModel.msgModel = baseMsgModel;
+                            //加入回执缓存
+                            SessionHolder.receiptMsg.put(baseMsgModel.msgId + session.deviceTag, recModel);
+                        }
+                }
                 //对于自己的非当前客户端 也要推送消息
                 if (sessionModelSelf.size() > 1)
                     for (SessionModel session : sessionModelSelf)
@@ -177,8 +221,16 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                     List<SessionModel> seses = SessionHolder.sessionMap.get(m.userId);
                     for (SessionModel s : seses) {
                         msgModel.to = m.userId;
-                        if (s.channel != ctx.channel())
-                            s.channel.writeAndFlush(msgModel);
+                        if (s.channel != ctx.channel()) {
+                            BaseMsgModel tmpModel = baseMsgModel.clone();
+                            tmpModel.receiptTag = s.deviceTag;
+                            s.channel.writeAndFlush(tmpModel);
+
+                            ReceiptModel recModel = new ReceiptModel();
+                            recModel.channel = new WeakReference<>(s.channel);
+                            recModel.msgModel = baseMsgModel;
+                            SessionHolder.receiptMsg.put(baseMsgModel.msgId + s.deviceTag, recModel);
+                        }
                     }
                 }
 
@@ -186,15 +238,20 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 that.redisTemplate.opsForList().rightPush(groupLine, gson.toJson(baseMsgModel));
                 break;
             case MsgType.RECEIPT_MSG:
+                ReceiptMsgModel recModel = (ReceiptMsgModel) baseMsgModel;
                 //将回执消息存储
-                String receiptLine = "msg_receipt:" + Math.min(baseMsgModel.from, baseMsgModel.to) + ":" + Math.max(baseMsgModel.from, baseMsgModel.to);
-                that.redisTemplate.opsForList().rightPush(receiptLine, gson.toJson(baseMsgModel));
+//                String receiptLine = "msg_receipt:" + Math.min(baseMsgModel.from, baseMsgModel.to) + ":" + Math.max(baseMsgModel.from, baseMsgModel.to);
+//                that.redisTemplate.opsForList().rightPush(receiptLine, gson.toJson(baseMsgModel));
                 //分发回执消息
                 //需要区分群消息 个人消息等
                 List<SessionModel> sessionModelSelfReceipt = SessionHolder.sessionMap.get(baseMsgModel.to);
                 for (SessionModel session : sessionModelSelfReceipt)
                     if (session != null && session.channel != null && session.channel != ctx.channel())
                         session.channel.writeAndFlush(baseMsgModel);
+
+//                L.p("RECEIPT_MSG==>" + SessionHolder.receiptMsg.toString());
+//                L.p("RECEIPT_MSG 111==>" + (recModel.receipt + baseMsgModel.receiptTag));
+                SessionHolder.receiptMsg.remove(recModel.receipt + baseMsgModel.receiptTag);
                 break;
         }
     }
@@ -286,5 +343,32 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 session.channel.writeAndFlush(msgModel);
             }
         }
+    }
+
+    private boolean cacheModel(String timeLineID, CacheModel cacheModel) {
+        List<CacheModel> cacheList = cacheMsg.get(timeLineID);
+        if (cacheList == null) {
+            synchronized (timeLineID.intern()) {
+                if (cacheList == null) {
+                    cacheList = Collections.synchronizedList(new LinkedList<>());
+                    cacheMsg.put(timeLineID, cacheList);
+                }
+
+                return cacheList.add(cacheModel);
+            }
+        }
+
+        return cacheList.add(cacheModel);
+    }
+
+    //删除缓存消息 可以删除超过7天的消息
+    private boolean delCacheModel(String timeLineID) {
+        List<CacheModel> cacheList = cacheMsg.get(timeLineID);
+        if (cacheList == null) {
+            return true;
+        }
+
+
+        return true;
     }
 }

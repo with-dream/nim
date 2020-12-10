@@ -1,4 +1,5 @@
 import com.example.imlib.Config;
+import com.example.imlib.Test;
 import com.example.imlib.netty.IMContext;
 import com.example.imlib.netty.IMMsgCallback;
 import com.example.imlib.user.RegistModel;
@@ -14,12 +15,17 @@ import user.UserResultModel;
 
 import java.io.IOException;
 import java.util.Scanner;
+import java.util.UUID;
 
 public class Main {
     private OkHttpClient okHttpClient = new OkHttpClient();
     private Gson gson = new Gson();
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws CloneNotSupportedException {
+        m();
+    }
+
+    private static void m() {
         Main client = new Main();
         final Scanner input = new Scanner(System.in);
         IMContext.getInstance().setMsgCallback(new IMMsgCallback() {
@@ -36,19 +42,19 @@ public class Main {
                                 L.p("是否同意好友请求:" + reqMsg.from + "  Y/N");
 //                                String friendAgree = input.next();
 //                                if (friendAgree.equals("Y"))
-                                    reqMsg.cmd = RequestMsgModel.REQUEST_FRIEND_AGREE;
+                                reqMsg.cmd = RequestMsgModel.REQUEST_FRIEND_AGREE;
 //                                else
 //                                    reqMsg.cmd = RequestMsgModel.REQUEST_FRIEND_REFUSE;
                                 long tmp = reqMsg.from;
                                 reqMsg.from = reqMsg.to;
                                 reqMsg.to = tmp;
-                                IMContext.getInstance().channel.writeAndFlush(reqMsg);
+                                IMContext.getInstance().sendMsg(reqMsg);
                                 break;
                             case RequestMsgModel.GROUP_ADD:
                                 L.p("是否同意入群请求:" + reqMsg.from + "Y/N");
 //                                String groupAgree = input.next();
 //                                if (groupAgree.equals("Y"))
-                                    reqMsg.cmd = RequestMsgModel.GROUP_ADD_AGREE;
+                                reqMsg.cmd = RequestMsgModel.GROUP_ADD_AGREE;
 //                                else
 //                                    reqMsg.cmd = RequestMsgModel.GROUP_ADD_REFUSE;
                                 long tmpGA = reqMsg.from;
@@ -108,7 +114,7 @@ public class Main {
                     String strsp = input.next();
                     String[] p = strsp.split("/");
 
-                    MsgModel msgModel = MsgModel.createP(IMContext.getInstance().uuid, Long.parseLong(p[0]));
+                    MsgModel msgModel = MsgModel.createP(IMContext.getInstance().uuid, Long.parseLong(p[0]), IMContext.getInstance().clientTag);
                     msgModel.info = p[1];
                     IMContext.getInstance().sendMsg(msgModel);
                     break;
@@ -119,7 +125,7 @@ public class Main {
 
                     int count = Integer.parseInt(pl[1]);
                     for (int i = 0; i < count; i++) {
-                        MsgModel msgModelL = MsgModel.createP(IMContext.getInstance().uuid, Long.parseLong(pl[0]));
+                        MsgModel msgModelL = MsgModel.createP(IMContext.getInstance().uuid, Long.parseLong(pl[0]), IMContext.getInstance().clientTag);
                         msgModelL.info = i + "==>" + pl[2];
                         IMContext.getInstance().sendMsg(msgModelL);
 
@@ -135,7 +141,7 @@ public class Main {
                     String strg = input.next();
 
                     long groupId = Long.parseLong(strg);
-                    RequestMsgModel gModel = RequestMsgModel.create(IMContext.getInstance().uuid, 0);
+                    RequestMsgModel gModel = RequestMsgModel.create(IMContext.getInstance().uuid, 0, IMContext.getInstance().clientTag);
                     gModel.groupId = groupId;
                     gModel.cmd = RequestMsgModel.GROUP_ADD;
 
@@ -146,7 +152,7 @@ public class Main {
                     String strge = input.next();
 
                     long groupIdE = Long.parseLong(strge);
-                    RequestMsgModel eModel = RequestMsgModel.create(IMContext.getInstance().uuid, 0);
+                    RequestMsgModel eModel = RequestMsgModel.create(IMContext.getInstance().uuid, 0, IMContext.getInstance().clientTag);
                     eModel.groupId = groupIdE;
                     eModel.cmd = RequestMsgModel.GROUP_EXIT;
 
@@ -158,7 +164,7 @@ public class Main {
                     String[] gsp = strgs.split("/");
                     long groupIds = Long.parseLong(gsp[0]);
 
-                    MsgModel msgModelG = MsgModel.createP(IMContext.getInstance().uuid, groupIds);
+                    MsgModel msgModelG = MsgModel.createP(IMContext.getInstance().uuid, groupIds, IMContext.getInstance().clientTag);
                     msgModelG.type = MsgType.MSG_GROUP;
                     msgModelG.info = gsp[1];
                     IMContext.getInstance().sendMsg(msgModelG);
@@ -175,6 +181,7 @@ public class Main {
                     break;
             }
         }
+
     }
 
     private void login(String name, String pwd) {
@@ -331,7 +338,7 @@ public class Main {
     }
 
     private void reqFriend(long uuid) {
-        RequestMsgModel msgModel = RequestMsgModel.create(IMContext.getInstance().uuid, uuid);
+        RequestMsgModel msgModel = RequestMsgModel.create(IMContext.getInstance().uuid, uuid, IMContext.getInstance().clientTag);
         msgModel.cmd = RequestMsgModel.REQUEST_FRIEND;
 
         IMContext.getInstance().sendMsg(msgModel);
@@ -341,7 +348,7 @@ public class Main {
      * 删除好友
      */
     private void delFriend(long uuid, int cmd) {
-        RequestMsgModel reqModel = RequestMsgModel.create(IMContext.getInstance().uuid, uuid);
+        RequestMsgModel reqModel = RequestMsgModel.create(IMContext.getInstance().uuid, uuid, IMContext.getInstance().clientTag);
         reqModel.cmd = cmd;
         IMContext.getInstance().sendMsg(reqModel);
     }

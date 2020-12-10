@@ -208,12 +208,7 @@ public class Main {
                 IMContext.getInstance().uuid = resModel.uuid;
 
                 if (resModel.code == 0) {
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            IMContext.getInstance().connect();
-                        }
-                    }).start();
+                    new Thread(() -> IMContext.getInstance().connect()).start();
                 }
             }
         });

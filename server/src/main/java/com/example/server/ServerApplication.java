@@ -21,7 +21,7 @@ public class ServerApplication {
 //        UuidManager.getInstance().init();
 
         NettyServer nettyServer = new NettyServer();
-        nettyServer.start(new InetSocketAddress("192.168.20.220", 8090));
+        nettyServer.start(new InetSocketAddress(Config.LOCAL_IP, 8090));
     }
 
     @PreDestroy

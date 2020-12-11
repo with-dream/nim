@@ -15,13 +15,12 @@ import user.UserResultModel;
 
 import java.io.IOException;
 import java.util.Scanner;
-import java.util.UUID;
 
 public class Main {
     private OkHttpClient okHttpClient = new OkHttpClient();
     private Gson gson = new Gson();
 
-    public static void main(String[] args) throws CloneNotSupportedException {
+    public static void main(String[] args) {
         m();
     }
 
@@ -48,7 +47,7 @@ public class Main {
                                 long tmp = reqMsg.from;
                                 reqMsg.from = reqMsg.to;
                                 reqMsg.to = tmp;
-                                IMContext.getInstance().sendMsg(reqMsg);
+                                IMContext.getInstance().sendMsg(reqMsg, true);
                                 break;
                             case RequestMsgModel.GROUP_ADD:
                                 L.p("是否同意入群请求:" + reqMsg.from + "Y/N");
@@ -116,7 +115,7 @@ public class Main {
 
                     MsgModel msgModel = MsgModel.createP(IMContext.getInstance().uuid, Long.parseLong(p[0]), IMContext.getInstance().clientTag);
                     msgModel.info = p[1];
-                    IMContext.getInstance().sendMsg(msgModel);
+                    IMContext.getInstance().sendMsg(msgModel, true);
                     break;
                 case "sendPL":
                     L.p("发送消息 uuid/循环次数/内容");
@@ -127,7 +126,7 @@ public class Main {
                     for (int i = 0; i < count; i++) {
                         MsgModel msgModelL = MsgModel.createP(IMContext.getInstance().uuid, Long.parseLong(pl[0]), IMContext.getInstance().clientTag);
                         msgModelL.info = i + "==>" + pl[2];
-                        IMContext.getInstance().sendMsg(msgModelL);
+                        IMContext.getInstance().sendMsg(msgModelL, true);
 
                         try {
                             Thread.currentThread().sleep(100);
@@ -145,7 +144,7 @@ public class Main {
                     gModel.groupId = groupId;
                     gModel.cmd = RequestMsgModel.GROUP_ADD;
 
-                    IMContext.getInstance().sendMsg(gModel);
+                    IMContext.getInstance().sendMsg(gModel, true);
                     break;
                 case "exitG":
                     L.p("退出群 群id");
@@ -156,7 +155,7 @@ public class Main {
                     eModel.groupId = groupIdE;
                     eModel.cmd = RequestMsgModel.GROUP_EXIT;
 
-                    IMContext.getInstance().sendMsg(eModel);
+                    IMContext.getInstance().sendMsg(eModel, true);
                     break;
                 case "sendG":
                     L.p("发送群消息 uuid/内容");
@@ -167,7 +166,7 @@ public class Main {
                     MsgModel msgModelG = MsgModel.createP(IMContext.getInstance().uuid, groupIds, IMContext.getInstance().clientTag);
                     msgModelG.type = MsgType.MSG_GROUP;
                     msgModelG.info = gsp[1];
-                    IMContext.getInstance().sendMsg(msgModelG);
+                    IMContext.getInstance().sendMsg(msgModelG, true);
                     break;
                 case "createG":
                     L.p("创建群 群名称");
@@ -336,7 +335,7 @@ public class Main {
         RequestMsgModel msgModel = RequestMsgModel.create(IMContext.getInstance().uuid, uuid, IMContext.getInstance().clientTag);
         msgModel.cmd = RequestMsgModel.REQUEST_FRIEND;
 
-        IMContext.getInstance().sendMsg(msgModel);
+        IMContext.getInstance().sendMsg(msgModel, true);
     }
 
     /**
@@ -345,6 +344,6 @@ public class Main {
     private void delFriend(long uuid, int cmd) {
         RequestMsgModel reqModel = RequestMsgModel.create(IMContext.getInstance().uuid, uuid, IMContext.getInstance().clientTag);
         reqModel.cmd = cmd;
-        IMContext.getInstance().sendMsg(reqModel);
+        IMContext.getInstance().sendMsg(reqModel, true);
     }
 }

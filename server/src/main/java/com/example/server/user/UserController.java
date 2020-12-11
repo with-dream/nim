@@ -10,9 +10,6 @@ import com.google.gson.Gson;
 import netty.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -158,7 +155,6 @@ public class UserController {
         return "删除成功==>" + res;
     }
 
-    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.DEFAULT)
     public void delMembers(long groupId, List<GroupMember> members) {
         for (GroupMember mem : members) {
             int res = userService.delMapGroup(mem.userId);
@@ -180,6 +176,8 @@ public class UserController {
                     receiptMsgModel.msgModel = msgModel;
                     SessionHolder.receiptMsg.put(msgModel.msgId + ses.deviceTag, receiptMsgModel);
                 }
+            } else {
+                L.e("删除群成员失败==>uid " + mem.userId + "  groupid=>" + groupId);
             }
         }
     }

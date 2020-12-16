@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8089
 
 spring:
   datasource:
@@ -10,6 +10,12 @@ spring:
     host: 127.0.0.1
     port: 6379
     timeout: 3000
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
+    publisher-confirm-type: correlated
 
 mybatis:
   mapper-locations: classpath:mapping/*.xml
@@ -20,5 +26,5 @@ logging:
   level:
     com:
       example:
-        mapper : debug
+        mapper: debug
 

@@ -37,6 +37,12 @@ public class UserController {
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
+//
+//    @RequestMapping(value = "/test")
+//    public String test() {
+//        sender.send();
+//        return "==>";
+//    }
 
     @RequestMapping(value = "/login")
     public String login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd) {
@@ -181,4 +187,5 @@ public class UserController {
             }
         }
     }
+
 }

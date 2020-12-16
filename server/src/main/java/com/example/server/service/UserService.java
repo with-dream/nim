@@ -131,4 +131,8 @@ public class UserService {
         return userMapper.delMapGroup(userId);
     }
 
+    //TODO 检查群是否存在
+    public int checkGroup(long groupId) {
+        return 1;
+    }
 }

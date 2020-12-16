@@ -1,5 +1,8 @@
 package com.example.server.netty;
 
+import com.example.server.ApplicationRunnerImpl;
+import com.example.server.entity.MQMapModel;
+import com.example.server.redis.RedissonUtil;
 import com.example.server.service.UserService;
 import com.google.gson.Gson;
 import io.netty.channel.Channel;
@@ -8,6 +11,10 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import netty.model.*;
+import org.redisson.api.RLock;
+import org.redisson.api.RReadWriteLock;
+import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import user.*;
@@ -16,9 +23,7 @@ import utils.L;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.lang.ref.WeakReference;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -38,8 +43,14 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
     @Resource
     private UserService userService;
 
+    @Resource
+    RedissonUtil redissonUtil;
+
     private static NettyServerHandler that;
     private ConcurrentHashMap<String, List<CacheModel>> cacheMsg = new ConcurrentHashMap<>();
+
+    @Autowired
+    private AmqpTemplate rabbit;
 
     @PostConstruct
     public void init() {
@@ -89,10 +100,14 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                     case CmdMsgModel.LOGIN:
                         SessionHolder.login(ctx.channel(), baseMsgModel);
                         System.err.println("login==>" + baseMsgModel.toString());
+
+                        sendRabbitLogin(cmdMsg);
                         break;
                     case CmdMsgModel.LOGOUT:
                         SessionHolder.unlogin(ctx.channel());
                         ctx.channel().close();
+
+                        sendRabbitLogin(cmdMsg);
                         break;
                     case CmdMsgModel.HEART:
                         cmdMsg.to = cmdMsg.from;
@@ -101,142 +116,52 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                         break;
                 }
                 break;
-            case MsgType.REQ_CMD_MSG:
-                RequestMsgModel reqMsg = (RequestMsgModel) baseMsgModel;
-                switch (reqMsg.cmd) {
-                    case RequestMsgModel.REQUEST_FRIEND:
-                        requestFriend(reqMsg, ctx.channel());
-                        break;
-                    case RequestMsgModel.GROUP_ADD:
-                        GroupModel group = that.userService.getGroupInfo(reqMsg.groupId);
-                        //申请群 将目标群指向为群拥有者
-                        reqMsg.to = group.userId;
-                        writeReqMsg(reqMsg, ctx.channel());
-                        break;
-                    case RequestMsgModel.GROUP_EXIT:
-                        delGroupMember(reqMsg, ctx.channel());
-                        break;
-                    case RequestMsgModel.GROUP_ADD_AGREE:
-                        addGroupMember(reqMsg, ctx.channel());
-                        break;
-                    case RequestMsgModel.REQUEST_FRIEND_AGREE:
-                        FriendModel friendModel = new FriendModel();
-                        friendModel.userId = Math.min(reqMsg.from, reqMsg.to);
-                        friendModel.friendId = Math.max(reqMsg.from, reqMsg.to);
-                        friendModel.status = 1;
-                        int res = that.userService.addFriend(friendModel);
-                        if (res > 0) {
-                            writeReqMsg(reqMsg, ctx.channel());
-                        }
-                        break;
-                    case RequestMsgModel.DEL_FRIEND:
-                    case RequestMsgModel.DEL_FRIEND_EACH:
-                    case RequestMsgModel.DEL_FRIEND_BLOCK:
-                    case RequestMsgModel.DEL_FRIEND_UNBLOCK:
-                        FriendModel delModel = new FriendModel();
-                        delModel.userId = Math.min(reqMsg.from, reqMsg.to);
-                        delModel.friendId = Math.max(reqMsg.from, reqMsg.to);
-                        FriendModel resCheck = that.userService.checkFriend(delModel.userId, delModel.friendId);
-                        //如果是双向好友
-                        if (resCheck.status == FriendModel.FRIEND_NORMAL) {
-                            if (RequestMsgModel.DEL_FRIEND == reqMsg.cmd)
-                                delModel.status = FriendModel.FRIEND_OTHER;
-                            else if (RequestMsgModel.DEL_FRIEND_EACH == reqMsg.cmd)
-                                delModel.status = FriendModel.FRIEND_DEL;
-                            //如果是单向好友
-                        } else if (resCheck.status == FriendModel.FRIEND_SELF)
-                            delModel.status = FriendModel.FRIEND_DEL;
-                            //拉黑操作
-                        else if (RequestMsgModel.DEL_FRIEND_BLOCK == reqMsg.cmd) {
-                            if (resCheck.status == FriendModel.FRIEND_BLOCK_OTHER)
-                                delModel.status = FriendModel.FRIEND_BLOCK;
-                            else if (resCheck.status != FriendModel.FRIEND_BLOCK)
-                                delModel.status = FriendModel.FRIEND_SELF;
-                            //解除拉黑 解除拉黑后 为删除好友的状态
-                        } else if (RequestMsgModel.DEL_FRIEND_UNBLOCK == reqMsg.cmd) {
-                            if (resCheck.status == FriendModel.FRIEND_BLOCK)
-                                delModel.status = FriendModel.FRIEND_OTHER;
-                            else if (resCheck.status == FriendModel.FRIEND_BLOCK_SELF)
-                                delModel.status = FriendModel.FRIEND_DEL;
-                        }
-
-                        int delRes = that.userService.delFriend(delModel);
-                        if (delRes > 0) {
-                            reqMsg.status = delModel.status;
-                            writeReqMsg(reqMsg, ctx.channel());
-                        }
-                        break;
-                }
-                break;
             case MsgType.MSG_PERSON:
                 MsgModel person = (MsgModel) baseMsgModel;
-                List<SessionModel> sessionModel = SessionHolder.sessionMap.get(person.to);
-                //为null表示未登录
-                if (sessionModel == null) {
+                Map<String, MQMapModel> mapPModel = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, person.to);
+                if (mapPModel == null) {
                     int check = that.userService.checkUser(person.to);
                     if (check == 0) {
-                        //TODO 如果uuid不存在 则丢弃
+                        //TODO 如果uuid不存在 则丢弃 否则缓存
                         System.err.println("不存在的uuid==>" + person.to);
                         break;
                     }
                 }
 
-                List<SessionModel> sessionModelSelf = SessionHolder.sessionMap.get(person.from);
+                for (MQMapModel value : mapPModel.values()) {
+                    that.rabbit.convertAndSend(value.queueName, gson.toJson(person));
+                }
 
                 //缓存消息
                 String timeLineID = "msg_p:" + Math.min(person.from, person.to) + ":" + Math.max(person.from, person.to);
-
-                CacheModel cacheModel = new CacheModel();
-                cacheModel.baseMsgModel = baseMsgModel;
-                cacheModel(timeLineID, cacheModel);
-
-//                that.redisTemplate.opsForList().rightPush(timeLineID, gson.toJson(person));
+                that.redisTemplate.opsForList().rightPush(timeLineID, gson.toJson(person));
 //                System.err.println("timeLineID==>" + that.redisTemplate.opsForList().leftPop(timeLineID));
-                //对各个端推送消息
-                if (sessionModel != null) {
-                    for (SessionModel session : sessionModel)
-                        if (session != null && session.channel != null) {
-                            BaseMsgModel tmpModel = baseMsgModel.clone();
-                            tmpModel.receiptTag = session.deviceTag;
-                            session.channel.writeAndFlush(tmpModel);
-
-                            ReceiptModel recModel = new ReceiptModel();
-                            recModel.channel = new WeakReference<>(session.channel);
-                            recModel.msgModel = baseMsgModel;
-                            //加入回执缓存
-                            SessionHolder.receiptMsg.put(baseMsgModel.msgId + session.deviceTag, recModel);
-                        }
-                }
-                //对于自己的非当前客户端 也要推送消息
-                if (sessionModelSelf.size() > 1)
-                    for (SessionModel session : sessionModelSelf)
-                        if (session != null && session.channel != null && session.channel != ctx.channel())
-                            session.channel.writeAndFlush(person);
                 break;
             case MsgType.MSG_GROUP:
                 MsgModel msgModel = (MsgModel) baseMsgModel;
                 GroupModel groupModel = that.userService.getGroupInfo(msgModel.to);
                 List<GroupMember> members = groupModel.getMembers(gson);
                 for (GroupMember m : members) {
-                    List<SessionModel> seses = SessionHolder.sessionMap.get(m.userId);
-                    for (SessionModel s : seses) {
-                        msgModel.to = m.userId;
-                        if (s.channel != ctx.channel()) {
-                            BaseMsgModel tmpModel = baseMsgModel.clone();
-                            tmpModel.receiptTag = s.deviceTag;
-                            s.channel.writeAndFlush(tmpModel);
 
-                            ReceiptModel recModel = new ReceiptModel();
-                            recModel.channel = new WeakReference<>(s.channel);
-                            recModel.msgModel = baseMsgModel;
-                            SessionHolder.receiptMsg.put(baseMsgModel.msgId + s.deviceTag, recModel);
+                    Map<String, MQMapModel> mapGModel = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, m.userId);
+                    if (mapGModel == null) {
+                        int check = that.userService.checkGroup(m.userId);
+                        if (check == 0) {
+                            //TODO 如果groupId不存在 则丢弃 否则缓存
+                            System.err.println("不存在的uuid==>" + m.userId);
+                            break;
                         }
+                    }
+
+                    for (MQMapModel value : mapGModel.values()) {
+                        that.rabbit.convertAndSend(value.queueName, gson.toJson(msgModel));
                     }
                 }
 
                 String groupLine = "msg_group:" + baseMsgModel.to;
                 that.redisTemplate.opsForList().rightPush(groupLine, gson.toJson(baseMsgModel));
                 break;
+            //TODO 需要写入mq中
             case MsgType.RECEIPT_MSG:
                 ReceiptMsgModel recModel = (ReceiptMsgModel) baseMsgModel;
                 //将回执消息存储
@@ -254,6 +179,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 SessionHolder.receiptMsg.remove(recModel.receipt + baseMsgModel.receiptTag);
                 break;
         }
+
     }
 
     @Override
@@ -283,92 +209,26 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
         ctx.close();
     }
 
-    private void requestFriend(RequestMsgModel msgModel, Channel channel) {
-        FriendModel friendModel = that.userService.checkFriend(msgModel.from, msgModel.to);
-        //如果已经是好友 则直接返回好友信息
-        if (friendModel != null) {
-            msgModel.cmd = RequestMsgModel.REQUEST_FRIEND_FRIEND;
-            channel.writeAndFlush(msgModel);
-            return;
-        }
-
-        writeReqMsg(msgModel, channel);
-    }
-
-    //加入群
-    private void addGroupMember(RequestMsgModel msgModel, Channel channel) {
-        int res = that.userService.addGroupMember(msgModel);
-        if (res == 0) {
-            GroupMapModel groupModel = new GroupMapModel();
-            groupModel.userId = msgModel.to;
-            groupModel.groupId = msgModel.groupId;
-            L.p("member==>" + groupModel.toString());
-            res = that.userService.addMapGroup(groupModel);
-            if (res != 1)
-                L.e("addGroupMember==>失败");
-            writeReqMsg(msgModel, channel);
-        } else
-            L.e("加入群错误");
-    }
-
-    //退群
-    private void delGroupMember(RequestMsgModel msgModel, Channel channel) {
-        GroupModel res = that.userService.delGroupMember(msgModel);
-        if (res != null) {
-
-            int resDel = that.userService.delMapGroup(msgModel.from);
-            if (resDel != 1)
-                L.e("delGroupMember==>失败");
-
-            msgModel.to = res.userId;
-            writeReqMsg(msgModel, channel);
-        } else
-            L.e("退群错误");
-    }
-
-    private void writeReqMsg(RequestMsgModel msgModel, Channel channel) {
-        List<SessionModel> sessionModel = SessionHolder.sessionMap.get(msgModel.to);
-        if (sessionModel == null) {
-            int res = that.userService.checkUser(msgModel.to);
-            if (res == 0) {
-                System.err.println("==>requestFriend res 好友的uid为空");
-                msgModel.cmd = RequestMsgModel.REQUEST_FRIEND_NOBODY;
-                channel.writeAndFlush(msgModel);
+    //TODO 修改redis中的对象 不知道是否需要重新设置回去
+    private void sendRabbitLogin(CmdMsgModel cmdMsg) {
+        RLock lock = that.redissonUtil.getLock(cmdMsg.from + "");
+        lock.lock();
+        Map<String, MQMapModel> map = (Map) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, cmdMsg.from);
+        if (cmdMsg.cmd == CmdMsgModel.LOGIN) {
+            if (map == null) {
+                map = new HashMap<>();
+                that.redisTemplate.opsForHash().put(ApplicationRunnerImpl.MQ_TAG, cmdMsg.from, map);
             }
-
-            //加入缓存 用户登录时 直接拉取数据
-            redisTemplate.opsForList().rightPush(String.valueOf(msgModel.to), msgModel);
-        } else {
-            for (SessionModel session : sessionModel) {
-                session.channel.writeAndFlush(msgModel);
+            MQMapModel mapModel = new MQMapModel();
+            mapModel.uuid = cmdMsg.from + "";
+            mapModel.queueName = ApplicationRunnerImpl.MQ_NAME;
+            mapModel.deviceToken = cmdMsg.loginTag;
+            map.put(mapModel.deviceToken, mapModel);
+        } else if (cmdMsg.cmd == CmdMsgModel.LOGOUT) {
+            if (map != null) {
+                map.remove(cmdMsg.loginTag);
             }
         }
-    }
-
-    private boolean cacheModel(String timeLineID, CacheModel cacheModel) {
-        List<CacheModel> cacheList = cacheMsg.get(timeLineID);
-        if (cacheList == null) {
-            synchronized (timeLineID.intern()) {
-                if (cacheList == null) {
-                    cacheList = Collections.synchronizedList(new LinkedList<>());
-                    cacheMsg.put(timeLineID, cacheList);
-                }
-
-                return cacheList.add(cacheModel);
-            }
-        }
-
-        return cacheList.add(cacheModel);
-    }
-
-    //删除缓存消息 可以删除超过7天的消息
-    private boolean delCacheModel(String timeLineID) {
-        List<CacheModel> cacheList = cacheMsg.get(timeLineID);
-        if (cacheList == null) {
-            return true;
-        }
-
-
-        return true;
+        lock.unlock();
     }
 }

@@ -3,13 +3,18 @@
 4、uuid保存有问题
 
 需要做
-3、集群
 
-12.9：
+12.16：
+重新定义model类 目前整理完架构 混混乱
+路由的一些优化
 
 
+1、集群netty的channel路由
+用户登录时 将uuid和channel在本地做一个映射
+然后再将uuid和rabbitMQ做一个映射 并存放在主服务器上
 
-
+转发消息时 如果能在本地服务器找到uuid 直接转发
+如果找不到 则将消息发到主服务器 由主服务器通过rabbitMQ转发到具体服务器
 
 
 
@@ -18,3 +23,15 @@ redis-server  启动
 
 ### 2、mysql命令
 mysql.server start 启动
+
+### 3、rabbitmq
+rabbitmq-server
+后台地址:http://localhost:15672/#/
+
+### 4、zookeeper
+zkServer start
+zkServer stop
+配置文件:/usr/local/etc/zookeeper/
+
+https://blog.csdn.net/leiyu231/article/details/52292373?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromBaidu-1.control&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromBaidu-1.control
+集群:https://blog.csdn.net/happywran/article/details/104712611/

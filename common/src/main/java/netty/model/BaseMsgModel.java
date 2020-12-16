@@ -41,6 +41,8 @@ public class BaseMsgModel implements Cloneable {
     //重发计数
     public int tryCount;
 
+    public String queueName;
+
     public void clear() {
 
     }

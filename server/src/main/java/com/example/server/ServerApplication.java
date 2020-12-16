@@ -7,9 +7,11 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import utils.L;
 
 import javax.annotation.PreDestroy;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 
 @MapperScan("com.example.server.mapper")
 @SpringBootApplication
@@ -22,10 +24,5 @@ public class ServerApplication {
 
         NettyServer nettyServer = new NettyServer();
         nettyServer.start(new InetSocketAddress(Config.LOCAL_IP, 8090));
-    }
-
-    @PreDestroy
-    public void destory() {
-//        manager.destory();
     }
 }

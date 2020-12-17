@@ -17,6 +17,9 @@
 如果找不到 则将消息发到主服务器 由主服务器通过rabbitMQ转发到具体服务器
 
 
+架构设计:
+https://mp.weixin.qq.com/s?__biz=MzI1ODY0NjAwMA==&mid=2247483756&idx=1&sn=a8e3303bc573b1acaf9ef3862ef89bdd&chksm=ea044bf3dd73c2e5dcf2c10202c66d6143ec866205e9230f974fbc0b0be587926699230b6b18&scene=21#wechat_redirect
+
 
 ### 1、redis命令
 redis-server  启动

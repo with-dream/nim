@@ -1,6 +1,9 @@
 package netty.model;
 
-import java.util.UUID;
+import utils.UUIDUtil;
+
+import java.io.Serializable;
+
 
 /**
  * 1、服务器只处理命令
@@ -19,23 +22,21 @@ import java.util.UUID;
  * 3、需要支持websocket
  */
 
-public class BaseMsgModel implements Cloneable {
+public class BaseMsgModel implements Cloneable, Serializable {
     public int type;
-
     //消息的序列号
     public long seq = 0;
     //消息队列号 个人聊天 使用两个人的uuid 且合成规则为小+大 群组用群号
     public long timeLine;
     //消息id 保证唯一 规则
-    public String msgId;
+    public long msgId;
     //设备token 用于标记平台的客户端
-    public int device;
-    //客户端的标记 用于区分同一个用户的消息
-    public String receiptTag;
+    public int fromToken;
+    public int toToken;
     //发送者uuid
-    public long from;
+    public String from;
     //接收者uuid
-    public long to;
+    public String to;
     //时间戳 毫秒 统一为服务器的时间
     public long timestamp;
     //重发计数
@@ -50,7 +51,6 @@ public class BaseMsgModel implements Cloneable {
     public BaseMsgModel clone() {
         try {
             BaseMsgModel model = (BaseMsgModel) super.clone();
-            model.receiptTag = new String();
             return model;
         } catch (CloneNotSupportedException e) {
             e.printStackTrace();
@@ -58,8 +58,8 @@ public class BaseMsgModel implements Cloneable {
         return null;
     }
 
-    public void createMsgid() {
-        this.msgId = UUID.randomUUID().toString();
+    public void createMsgId() {
+        this.msgId = UUIDUtil.getMsgId();
     }
 
     @Override
@@ -68,13 +68,14 @@ public class BaseMsgModel implements Cloneable {
                 "type=" + type +
                 ", seq=" + seq +
                 ", timeLine=" + timeLine +
-                ", msgId='" + msgId + '\'' +
-                ", device=" + device +
-                ", receiptTag='" + receiptTag + '\'' +
-                ", from=" + from +
-                ", to=" + to +
+                ", msgId=" + msgId +
+                ", fromToken=" + fromToken +
+                ", toToken=" + toToken +
+                ", from='" + from + '\'' +
+                ", to='" + to + '\'' +
                 ", timestamp=" + timestamp +
                 ", tryCount=" + tryCount +
+                ", queueName='" + queueName + '\'' +
                 '}';
     }
 }

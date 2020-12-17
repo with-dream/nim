@@ -1,13 +1,15 @@
 package com.example.server.user;
 
+import com.example.server.ApplicationRunnerImpl;
 import com.example.server.ServerList;
+import com.example.server.entity.MQMapModel;
 import com.example.server.entity.UserModel;
 import com.example.server.entity.UserResultModel;
-import com.example.server.netty.SessionHolder;
-import com.example.server.netty.SessionModel;
 import com.example.server.service.UserService;
 import com.google.gson.Gson;
+import netty.MQWrapper;
 import netty.model.*;
+import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,14 +17,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import user.*;
+import utils.Constant;
 import utils.L;
+import utils.UUIDUtil;
 
 import javax.annotation.Resource;
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Vector;
+import java.util.*;
 
 @RestController
 @RequestMapping("/user")
@@ -35,6 +35,9 @@ public class UserController {
     @Autowired
     UuidManager uuidManager;
 
+    @Autowired
+    private AmqpTemplate rabbit;
+
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
 //
@@ -45,7 +48,8 @@ public class UserController {
 //    }
 
     @RequestMapping(value = "/login")
-    public String login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd) {
+    public String login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
+            , @RequestParam(value = "deviceType") int deviceType) {
         UserModel userModel = new UserModel();
         userModel.name = name;
         userModel.pwd = pwd;
@@ -56,6 +60,17 @@ public class UserController {
             result.code = -1;
         } else {
             result.imUrl = ServerList.SERVER_LIST;
+            result.clientToken = UUIDUtil.getClientToken();
+
+            Map<Integer, MQMapModel> map = (Map) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, result.uuid);
+            if (map != null && !map.isEmpty()) {
+                for (MQMapModel mapModel : map.values()) {
+                    if (mapModel.deviceType == deviceType) {
+                        //TODO 踢下线操作
+                        break;
+                    }
+                }
+            }
         }
 
         result.code = 0;
@@ -95,7 +110,7 @@ public class UserController {
 
     @RequestMapping(value = "/getAllFriend")
     @ResponseBody
-    public String getAllFriend(@RequestParam(value = "uuid") long uuid) {
+    public String getAllFriend(@RequestParam(value = "uuid") String uuid) {
         FriendResModel friendResModel = new FriendResModel();
         friendResModel.friends = userService.getAllFriend(uuid);
         friendResModel.code = 0;
@@ -106,7 +121,7 @@ public class UserController {
 
     @RequestMapping(value = "/getAllGroup")
     @ResponseBody
-    public String getAllGroup(@RequestParam(value = "uuid") long uuid) {
+    public String getAllGroup(@RequestParam(value = "uuid") String uuid) {
         GroupResModel resModel = new GroupResModel();
         resModel.groups = userService.getAllGroup(uuid);
         resModel.code = 0;
@@ -117,12 +132,12 @@ public class UserController {
 
     @RequestMapping(value = "/createGroup")
     @ResponseBody
-    public String createGroup(@RequestParam(value = "uuid") long uuid, @RequestParam(value = "groupName") String groupName) {
+    public String createGroup(@RequestParam(value = "uuid") String uuid, @RequestParam(value = "groupName") String groupName) {
         GroupModel groupModel = new GroupModel();
         groupModel.userId = uuid;
         groupModel.groupName = groupName;
         //TODO 创建uuid
-        groupModel.groupId = System.currentTimeMillis() & 0xFFF;
+        groupModel.groupId = UUIDUtil.getUid();
 
         List<GroupMember> m = new ArrayList<>();
         GroupMember member = new GroupMember();
@@ -138,7 +153,7 @@ public class UserController {
 
     @RequestMapping(value = "/delGroup")
     @ResponseBody
-    public String delGroup(@RequestParam(value = "uuid") long uuid, @RequestParam(value = "groupId") long groupId) {
+    public String delGroup(@RequestParam(value = "uuid") String uuid, @RequestParam(value = "groupId") String groupId) {
         boolean res = false;
         GroupModel groupModel = userService.getGroupInfo(groupId);
         int resDel = userService.delGroup(groupModel);
@@ -161,31 +176,34 @@ public class UserController {
         return "删除成功==>" + res;
     }
 
-    public void delMembers(long groupId, List<GroupMember> members) {
+    public void delMembers(String groupId, List<GroupMember> members) {
         for (GroupMember mem : members) {
             int res = userService.delMapGroup(mem.userId);
             if (res == 1) {
-                Vector<SessionModel> users = SessionHolder.sessionMap.get(mem.userId);
-                if (users == null || users.isEmpty()) {
-                    L.e("delMembers 用户不在线 " + mem.userId);
-                    continue;
+                RequestMsgModel msgModel = RequestMsgModel.create(Constant.SERVER_UID, mem.userId, 0);
+                msgModel.cmd = RequestMsgModel.GROUP_DEL;
+
+                Map<String, MQMapModel> reqMap = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, mem.userId);
+                if (reqMap == null) {
+                    int check = userService.checkUser(mem.userId);
+                    if (check == 0) {
+                        //TODO 如果uuid不存在 则丢弃 否则缓存
+                        System.err.println("不存在的uuid==>" + mem.userId);
+                        break;
+                    }
                 }
 
-                for (SessionModel ses : users) {
-                    RequestMsgModel msgModel = RequestMsgModel.create(0, mem.userId, ses.deviceTag);
-                    msgModel.groupId = groupId;
-                    msgModel.cmd = RequestMsgModel.GROUP_DEL;
-                    ses.channel.writeAndFlush(msgModel);
+                Set<String> queueSet = new HashSet<>();
+                for (MQMapModel value : reqMap.values()) {
+                    if (queueSet.contains(value.queueName))
+                        break;
+                    queueSet.add(value.queueName);
 
-                    ReceiptModel receiptMsgModel = new ReceiptModel();
-                    receiptMsgModel.channel = new WeakReference<>(ses.channel);
-                    receiptMsgModel.msgModel = msgModel;
-                    SessionHolder.receiptMsg.put(msgModel.msgId + ses.deviceTag, receiptMsgModel);
+                    rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(MsgType.REQ_CMD_MSG, gson.toJson(msgModel))));
                 }
             } else {
                 L.e("删除群成员失败==>uid " + mem.userId + "  groupid=>" + groupId);
             }
         }
     }
-
 }

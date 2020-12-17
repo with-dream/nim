@@ -10,8 +10,8 @@ public class FriendModel {
     public static final int FRIEND_BLOCK_OTHER = 6;
     public static final int FRIEND_BLOCK = 7;
 
-    public long userId;
-    public long friendId;
+    public String userId;
+    public String friendId;
     public int status;
     public String userInfo;
     public String friendInfo;

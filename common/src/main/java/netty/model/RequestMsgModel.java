@@ -1,6 +1,8 @@
 package netty.model;
 
-public class RequestMsgModel extends BaseMsgModel {
+import java.io.Serializable;
+
+public class RequestMsgModel extends BaseMsgModel implements Serializable {
     public static final int REQUEST_FRIEND = 2;
     public static final int REQUEST_FRIEND_AGREE = 4;
     public static final int REQUEST_FRIEND_REFUSE = 5;
@@ -20,15 +22,15 @@ public class RequestMsgModel extends BaseMsgModel {
 
     public int cmd;
     public int status;
-    public long groupId;
+    public String groupId;
 
-    public static RequestMsgModel create(long from, long to, String receiptTag) {
+    public static RequestMsgModel create(String from, String to, int clientToken) {
         RequestMsgModel reqMsgModel = new RequestMsgModel();
-        reqMsgModel.createMsgid();
+        reqMsgModel.createMsgId();
         reqMsgModel.type = MsgType.REQ_CMD_MSG;
         reqMsgModel.from = from;
         reqMsgModel.to = to;
-        reqMsgModel.receiptTag = receiptTag;
+        reqMsgModel.fromToken = clientToken;
         return reqMsgModel;
     }
 
@@ -37,14 +39,18 @@ public class RequestMsgModel extends BaseMsgModel {
         return "RequestMsgModel{" +
                 "cmd=" + cmd +
                 ", status=" + status +
+                ", groupId='" + groupId + '\'' +
                 ", type=" + type +
                 ", seq=" + seq +
                 ", timeLine=" + timeLine +
-                ", msgId='" + msgId + '\'' +
-                ", device=" + device +
-                ", from=" + from +
-                ", to=" + to +
+                ", msgId=" + msgId +
+                ", fromToken=" + fromToken +
+                ", toToken=" + toToken +
+                ", from='" + from + '\'' +
+                ", to='" + to + '\'' +
                 ", timestamp=" + timestamp +
+                ", tryCount=" + tryCount +
+                ", queueName='" + queueName + '\'' +
                 '}';
     }
 }

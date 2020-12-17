@@ -10,15 +10,15 @@ import netty.model.BaseMsgModel;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class IMContext {
-    public long uuid;
+    public String uuid;
     private String[] ipList;
     public Channel channel;
     public Context context;
     private IMConnCallback callback;
     private IMMsgCallback msgCallback;
-    public String clientTag;
+    public int clientToken;
     private NettyClient nettyClient = new NettyClient();
-    public ConcurrentHashMap<String, BaseMsgModel> receiptMsg = new ConcurrentHashMap<>();
+    public ConcurrentHashMap<Long, BaseMsgModel> receiptMsg = new ConcurrentHashMap<>();
 
     public void setIpList(String[] ipList) {
         this.ipList = ipList;

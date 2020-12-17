@@ -4,27 +4,27 @@
     <resultMap id="userModel" type="com.example.server.entity.UserModel">
         <result column="name" jdbcType="VARCHAR" property="name"/>
         <result column="pwd" jdbcType="VARCHAR" property="pwd"/>
-        <result column="uuid" jdbcType="BIGINT" property="uuid"/>
+        <result column="uuid" jdbcType="VARCHAR" property="uuid"/>
         <result column="registTime" jdbcType="TIMESTAMP" property="registTime"/>
     </resultMap>
 
     <resultMap id="userResModel" type="com.example.server.entity.UserResultModel">
         <result column="name" jdbcType="VARCHAR" property="name"/>
-        <result column="uuid" jdbcType="BIGINT" property="uuid"/>
+        <result column="uuid" jdbcType="VARCHAR" property="uuid"/>
         <result column="registTime" jdbcType="TIMESTAMP" property="registTime"/>
     </resultMap>
 
     <resultMap id="friendModel" type="user.FriendModel">
-        <result column="user_id" jdbcType="BIGINT" property="userId"/>
-        <result column="friend_id" jdbcType="BIGINT" property="friendId"/>
+        <result column="user_id" jdbcType="VARCHAR" property="userId"/>
+        <result column="friend_id" jdbcType="VARCHAR" property="friendId"/>
         <result column="status" jdbcType="INTEGER" property="status"/>
         <result column="friend_info" jdbcType="VARCHAR" property="userInfo"/>
         <result column="user_info" jdbcType="VARCHAR" property="friendInfo"/>
     </resultMap>
 
     <resultMap id="groupModel" type="user.GroupModel">
-        <result column="user_id" jdbcType="BIGINT" property="userId"/>
-        <result column="group_id" jdbcType="BIGINT" property="groupId"/>
+        <result column="user_id" jdbcType="VARCHAR" property="userId"/>
+        <result column="group_id" jdbcType="VARCHAR" property="groupId"/>
         <result column="members" jdbcType="CLOB" property="members"/>
         <result column="groupName" jdbcType="VARCHAR" property="groupName"/>
     </resultMap>

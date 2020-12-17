@@ -12,6 +12,8 @@ import org.jetbrains.annotations.NotNull;
 import user.FriendResModel;
 import user.GroupResModel;
 import user.UserResultModel;
+import utils.Constant;
+import utils.UUIDUtil;
 
 import java.io.IOException;
 import java.util.Scanner;
@@ -44,7 +46,7 @@ public class Main {
                                 reqMsg.cmd = RequestMsgModel.REQUEST_FRIEND_AGREE;
 //                                else
 //                                    reqMsg.cmd = RequestMsgModel.REQUEST_FRIEND_REFUSE;
-                                long tmp = reqMsg.from;
+                                String tmp = reqMsg.from;
                                 reqMsg.from = reqMsg.to;
                                 reqMsg.to = tmp;
                                 IMContext.getInstance().sendMsg(reqMsg, true);
@@ -56,7 +58,7 @@ public class Main {
                                 reqMsg.cmd = RequestMsgModel.GROUP_ADD_AGREE;
 //                                else
 //                                    reqMsg.cmd = RequestMsgModel.GROUP_ADD_REFUSE;
-                                long tmpGA = reqMsg.from;
+                                String tmpGA = reqMsg.from;
                                 reqMsg.from = reqMsg.to;
                                 reqMsg.to = tmpGA;
                                 IMContext.getInstance().channel.writeAndFlush(reqMsg);
@@ -88,7 +90,7 @@ public class Main {
                 case "req_friend":   //申请好友
                     L.p("申请好友 对方uuid");
                     String reqUuid = input.next();
-                    client.reqFriend(Long.parseLong(reqUuid));
+                    client.reqFriend(reqUuid);
                     break;
                 case "del_friend":   //删除好友
                     L.p("删除好友 对方uuid/指令   1单方删除 2同时删除");
@@ -97,7 +99,7 @@ public class Main {
                     int del = RequestMsgModel.DEL_FRIEND;
                     if ("2".equals(dc[1]))
                         del = RequestMsgModel.DEL_FRIEND_EACH;
-                    client.delFriend(Long.parseLong(dc[0]), del);
+                    client.delFriend(dc[0], del);
                     break;
                 case "friendList":   //获取所有朋友
                     client.getFriedList(IMContext.getInstance().uuid);
@@ -113,7 +115,7 @@ public class Main {
                     String strsp = input.next();
                     String[] p = strsp.split("/");
 
-                    MsgModel msgModel = MsgModel.createP(IMContext.getInstance().uuid, Long.parseLong(p[0]), IMContext.getInstance().clientTag);
+                    MsgModel msgModel = MsgModel.createP(IMContext.getInstance().uuid, p[0], IMContext.getInstance().clientToken);
                     msgModel.info = p[1];
                     IMContext.getInstance().sendMsg(msgModel, true);
                     break;
@@ -124,7 +126,7 @@ public class Main {
 
                     int count = Integer.parseInt(pl[1]);
                     for (int i = 0; i < count; i++) {
-                        MsgModel msgModelL = MsgModel.createP(IMContext.getInstance().uuid, Long.parseLong(pl[0]), IMContext.getInstance().clientTag);
+                        MsgModel msgModelL = MsgModel.createP(IMContext.getInstance().uuid, pl[0], IMContext.getInstance().clientToken);
                         msgModelL.info = i + "==>" + pl[2];
                         IMContext.getInstance().sendMsg(msgModelL, true);
 
@@ -139,9 +141,8 @@ public class Main {
                     L.p("申请群 群id");
                     String strg = input.next();
 
-                    long groupId = Long.parseLong(strg);
-                    RequestMsgModel gModel = RequestMsgModel.create(IMContext.getInstance().uuid, 0, IMContext.getInstance().clientTag);
-                    gModel.groupId = groupId;
+                    RequestMsgModel gModel = RequestMsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
+                    gModel.groupId = strg;
                     gModel.cmd = RequestMsgModel.GROUP_ADD;
 
                     IMContext.getInstance().sendMsg(gModel, true);
@@ -150,9 +151,8 @@ public class Main {
                     L.p("退出群 群id");
                     String strge = input.next();
 
-                    long groupIdE = Long.parseLong(strge);
-                    RequestMsgModel eModel = RequestMsgModel.create(IMContext.getInstance().uuid, 0, IMContext.getInstance().clientTag);
-                    eModel.groupId = groupIdE;
+                    RequestMsgModel eModel = RequestMsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
+                    eModel.groupId = strge;
                     eModel.cmd = RequestMsgModel.GROUP_EXIT;
 
                     IMContext.getInstance().sendMsg(eModel, true);
@@ -161,9 +161,8 @@ public class Main {
                     L.p("发送群消息 uuid/内容");
                     String strgs = input.next();
                     String[] gsp = strgs.split("/");
-                    long groupIds = Long.parseLong(gsp[0]);
 
-                    MsgModel msgModelG = MsgModel.createP(IMContext.getInstance().uuid, groupIds, IMContext.getInstance().clientTag);
+                    MsgModel msgModelG = MsgModel.createP(IMContext.getInstance().uuid, gsp[0], IMContext.getInstance().clientToken);
                     msgModelG.type = MsgType.MSG_GROUP;
                     msgModelG.info = gsp[1];
                     IMContext.getInstance().sendMsg(msgModelG, true);
@@ -188,7 +187,7 @@ public class Main {
         final Gson gson = new Gson();
 
         Request request = new Request.Builder()
-                .url(String.format("http://%s:8080/user/login?name=%s&pwd=%s", Conf.LOCAL_IP, name, pwd))
+                .url(String.format("http://%s:8080/user/login?name=%s&pwd=%s&deviceType=%d", Conf.LOCAL_IP, name, pwd, 1))
                 .get()
                 .build();
 
@@ -205,6 +204,7 @@ public class Main {
                 System.err.println("resModel==>" + resModel.toString());
                 IMContext.getInstance().setIpList(resModel.imUrl);
                 IMContext.getInstance().uuid = resModel.uuid;
+                IMContext.getInstance().clientToken = resModel.clientToken;
 
                 if (resModel.code == 0) {
                     new Thread(() -> IMContext.getInstance().connect()).start();
@@ -213,9 +213,9 @@ public class Main {
         });
     }
 
-    private void getFriedList(long uuid) {
+    private void getFriedList(String uuid) {
         Request request = new Request.Builder()
-                .url(String.format("http://%s:8080/user/getAllFriend?uuid=%d", Conf.LOCAL_IP, uuid))
+                .url(String.format("http://%s:8080/user/getAllFriend?uuid=%s", Conf.LOCAL_IP, uuid))
                 .get()
                 .build();
 
@@ -277,9 +277,9 @@ public class Main {
         });
     }
 
-    private void getGroupList(long uuid) {
+    private void getGroupList(String uuid) {
         Request request = new Request.Builder()
-                .url(String.format("http://%s:8080/user/getAllGroup?uuid=%d", Conf.LOCAL_IP, uuid))
+                .url(String.format("http://%s:8080/user/getAllGroup?uuid=%s", Conf.LOCAL_IP, uuid))
                 .get()
                 .build();
 
@@ -331,8 +331,8 @@ public class Main {
         });
     }
 
-    private void reqFriend(long uuid) {
-        RequestMsgModel msgModel = RequestMsgModel.create(IMContext.getInstance().uuid, uuid, IMContext.getInstance().clientTag);
+    private void reqFriend(String uuid) {
+        RequestMsgModel msgModel = RequestMsgModel.create(IMContext.getInstance().uuid, uuid, IMContext.getInstance().clientToken);
         msgModel.cmd = RequestMsgModel.REQUEST_FRIEND;
 
         IMContext.getInstance().sendMsg(msgModel, true);
@@ -341,8 +341,8 @@ public class Main {
     /**
      * 删除好友
      */
-    private void delFriend(long uuid, int cmd) {
-        RequestMsgModel reqModel = RequestMsgModel.create(IMContext.getInstance().uuid, uuid, IMContext.getInstance().clientTag);
+    private void delFriend(String uuid, int cmd) {
+        RequestMsgModel reqModel = RequestMsgModel.create(IMContext.getInstance().uuid, uuid, IMContext.getInstance().clientToken);
         reqModel.cmd = cmd;
         IMContext.getInstance().sendMsg(reqModel, true);
     }

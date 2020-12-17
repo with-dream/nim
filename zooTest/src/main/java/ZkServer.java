@@ -12,15 +12,20 @@ public class ZkServer {
     public static final String HOST = "127.0.0.1";
 
     public static void main(String[] args) throws IOException, KeeperException, InterruptedException {
+        A a = new A();
+        a.aaa = 2;
+        System.out.println("a==>" + a.aaa);
+        a.aaa = 3;
+        System.out.println("a==>" + a.aaa);
         // 1.连接zkServer
-        ZkServer zkServer = new ZkServer();
-        zkServer.getConnect();
-
-        // 2.注册节点信息 服务器ip添加到zk中
-        zkServer.regist(HOST);
-
-        // 3.业务逻辑处理
-        zkServer.build(HOST);
+//        ZkServer zkServer = new ZkServer();
+//        zkServer.getConnect();
+//
+//        // 2.注册节点信息 服务器ip添加到zk中
+//        zkServer.regist(HOST);
+//
+//        // 3.业务逻辑处理
+//        zkServer.build(HOST);
     }
 
     private String connectString = "127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183";
@@ -52,4 +57,8 @@ public class ZkServer {
         System.out.println(hostname + ":服务器上线了！");
         Thread.sleep(Long.MAX_VALUE);
     }
+}
+
+class A {
+    int aaa = 1;
 }

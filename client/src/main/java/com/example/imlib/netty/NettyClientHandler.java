@@ -8,6 +8,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import netty.model.*;
+import utils.Constant;
 
 import java.util.concurrent.TimeUnit;
 
@@ -66,7 +67,7 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
                         //请求好友 默认同意
                         reqMsg.cmd = RequestMsgModel.REQUEST_FRIEND_AGREE;
 
-                        long tmp = reqMsg.from;
+                        String tmp = reqMsg.from;
                         reqMsg.from = reqMsg.to;
                         reqMsg.to = tmp;
                         channelHandlerContext.channel().writeAndFlush(reqMsg);
@@ -103,8 +104,8 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
             case MsgType.RECEIPT_MSG:
                 //将回执消息存储
                 ReceiptMsgModel receiptMsgModel = (ReceiptMsgModel) baseMsgModel;
-                IMContext.getInstance().receiptMsg.remove(receiptMsgModel.receipt);
-                L.p("消息已送达==>"+receiptMsgModel.seq);
+                IMContext.getInstance().receiptMsg.remove(receiptMsgModel.sendMsgId);
+                L.p("消息已送达==>" + receiptMsgModel.seq);
                 break;
         }
     }
@@ -124,7 +125,7 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
 
                     break;
                 case ALL_IDLE:
-                    CmdMsgModel heart = CmdMsgModel.create(IMContext.getInstance().uuid, 0, IMContext.getInstance().clientTag);
+                    CmdMsgModel heart = CmdMsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
                     heart.cmd = CmdMsgModel.HEART;
                     IMContext.getInstance().sendMsg(heart);
                     break;
@@ -140,10 +141,9 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
 
     public void receiptMsg(BaseMsgModel baseMsgModel, int type) {
         //消息回执
-        ReceiptMsgModel receiptModel = ReceiptMsgModel.create(baseMsgModel.to, baseMsgModel.from, baseMsgModel.msgId);
+        ReceiptMsgModel receiptModel = ReceiptMsgModel.create(baseMsgModel.to, baseMsgModel.from, baseMsgModel.msgId, IMContext.getInstance().clientToken);
         receiptModel.cmd = type;
-        receiptModel.receiptTag = baseMsgModel.receiptTag;
-        receiptModel.timestamp = System.currentTimeMillis();
+        receiptModel.toToken = baseMsgModel.fromToken;
         ChannelFuture msgFuture = IMContext.getInstance().channel.writeAndFlush(receiptModel);
         msgFuture.addListener(new GenericFutureListener<Future<? super Void>>() {
             public void operationComplete(Future<? super Void> future) throws Exception {

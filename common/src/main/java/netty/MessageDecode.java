@@ -36,6 +36,10 @@ public class MessageDecode extends ByteToMessageDecoder {
         byte[] body = new byte[dataLength];
         byteBuf.readBytes(body);
 
+        list.add(getModel(gson, msgType, new String(body)));
+    }
+
+    public static final BaseMsgModel getModel(Gson gson, int msgType, String body) {
         Class cls = null;
         switch (msgType) {
             case MsgType.CMD_MSG:
@@ -53,7 +57,6 @@ public class MessageDecode extends ByteToMessageDecoder {
                 break;
         }
 
-        BaseMsgModel baseMsgModel = (BaseMsgModel) gson.fromJson(new String(body), cls);
-        list.add(baseMsgModel);
+        return (BaseMsgModel) gson.fromJson(body, cls);
     }
 }

@@ -10,6 +10,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import netty.MQWrapper;
 import netty.model.*;
 import org.redisson.api.RLock;
 import org.redisson.api.RReadWriteLock;
@@ -19,6 +20,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import user.*;
 import utils.L;
+import utils.StrUtil;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
@@ -111,15 +113,44 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                         break;
                     case CmdMsgModel.HEART:
                         cmdMsg.to = cmdMsg.from;
-                        cmdMsg.from = 0;
+                        cmdMsg.from = "";
                         ctx.channel().writeAndFlush(cmdMsg);
+                        break;
+                    default:
+                        Map<String, MQMapModel> reqMap = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, cmdMsg.to);
+                        if (reqMap == null) {
+                            int check = that.userService.checkUser(cmdMsg.to);
+                            if (check == 0) {
+                                //TODO 如果uuid不存在 则丢弃 否则缓存
+                                System.err.println("不存在的uuid==>" + cmdMsg.to);
+                                break;
+                            }
+                        }
+
+                        sendMQ(reqMap, MsgType.CMD_MSG, cmdMsg);
                         break;
                 }
                 break;
+            case MsgType.REQ_CMD_MSG:
+                RequestMsgModel reqMsg = (RequestMsgModel) baseMsgModel;
+                Map<String, MQMapModel> reqMap = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, reqMsg.to);
+                if (reqMap == null) {
+                    int check = that.userService.checkUser(reqMsg.to);
+                    if (check == 0) {
+                        //TODO 如果uuid不存在 则丢弃 否则缓存
+                        System.err.println("不存在的uuid==>" + reqMsg.to);
+                        break;
+                    }
+                }
+
+                sendMQ(reqMap, MsgType.REQ_CMD_MSG, reqMsg);
+                break;
             case MsgType.MSG_PERSON:
+                baseMsgModel.timestamp = System.currentTimeMillis();
                 MsgModel person = (MsgModel) baseMsgModel;
-                Map<String, MQMapModel> mapPModel = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, person.to);
-                if (mapPModel == null) {
+                Map<String, MQMapModel> mapPModelTo = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, person.to);
+                Map<String, MQMapModel> mapPModelFrom = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, person.from);
+                if (mapPModelTo == null) {
                     int check = that.userService.checkUser(person.to);
                     if (check == 0) {
                         //TODO 如果uuid不存在 则丢弃 否则缓存
@@ -128,21 +159,30 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                     }
                 }
 
-                for (MQMapModel value : mapPModel.values()) {
-                    that.rabbit.convertAndSend(value.queueName, gson.toJson(person));
-                }
+                sendMQ(mapPModelTo, MsgType.MSG_PERSON, person);
 
+                Set<String> tmpPSet = new HashSet();
+                for (MQMapModel value : mapPModelFrom.values()) {
+                    if (tmpPSet.contains(value.queueName))
+                        continue;
+                    tmpPSet.add(value.queueName);
+
+                    if (value.clientToken != baseMsgModel.fromToken)
+                        that.rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(MsgType.MSG_PERSON, gson.toJson(person), MQWrapper.SELF)));
+                }
                 //缓存消息
-                String timeLineID = "msg_p:" + Math.min(person.from, person.to) + ":" + Math.max(person.from, person.to);
+                String timeLineID = StrUtil.getTimeLine(person.from, person.to, "msg_p");
                 that.redisTemplate.opsForList().rightPush(timeLineID, gson.toJson(person));
 //                System.err.println("timeLineID==>" + that.redisTemplate.opsForList().leftPop(timeLineID));
                 break;
             case MsgType.MSG_GROUP:
+                baseMsgModel.timestamp = System.currentTimeMillis();
                 MsgModel msgModel = (MsgModel) baseMsgModel;
-                GroupModel groupModel = that.userService.getGroupInfo(msgModel.to);
+                GroupModel groupModel = that.userService.getGroupInfo(msgModel.groupId);
                 List<GroupMember> members = groupModel.getMembers(gson);
-                for (GroupMember m : members) {
+                Set<String> tmpGSet = new HashSet();
 
+                for (GroupMember m : members) {
                     Map<String, MQMapModel> mapGModel = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, m.userId);
                     if (mapGModel == null) {
                         int check = that.userService.checkGroup(m.userId);
@@ -153,30 +193,41 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                         }
                     }
 
+                    boolean self = m.userId.equals(baseMsgModel.from);
                     for (MQMapModel value : mapGModel.values()) {
-                        that.rabbit.convertAndSend(value.queueName, gson.toJson(msgModel));
+                        if (self && value.clientToken == baseMsgModel.fromToken)
+                            continue;
+                        if (tmpGSet.contains(value.queueName))
+                            continue;
+                        tmpGSet.add(value.queueName);
+
+                        //指向目标uuid
+                        msgModel.to = value.uuid;
+                        that.rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(MsgType.MSG_GROUP, gson.toJson(msgModel), self ? 1 : 0)));
+                    }
+
+                    mapGModel.clear();
+                }
+
+                String groupLine = "msg_g:" + baseMsgModel.to;
+                that.redisTemplate.opsForList().rightPush(groupLine, gson.toJson(baseMsgModel));
+                break;
+            case MsgType.RECEIPT_MSG:
+                ReceiptMsgModel recModel = (ReceiptMsgModel) baseMsgModel;
+                Map<String, MQMapModel> recMap = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, recModel.to);
+                if (recMap == null) {
+                    int check = that.userService.checkUser(recModel.to);
+                    if (check == 0) {
+                        //TODO 如果uuid不存在 则丢弃 否则缓存
+                        System.err.println("不存在的uuid==>" + recModel.to);
+                        break;
                     }
                 }
 
-                String groupLine = "msg_group:" + baseMsgModel.to;
-                that.redisTemplate.opsForList().rightPush(groupLine, gson.toJson(baseMsgModel));
+                sendMQ(recMap, MsgType.RECEIPT_MSG, recModel);
                 break;
-            //TODO 需要写入mq中
-            case MsgType.RECEIPT_MSG:
-                ReceiptMsgModel recModel = (ReceiptMsgModel) baseMsgModel;
-                //将回执消息存储
-//                String receiptLine = "msg_receipt:" + Math.min(baseMsgModel.from, baseMsgModel.to) + ":" + Math.max(baseMsgModel.from, baseMsgModel.to);
-//                that.redisTemplate.opsForList().rightPush(receiptLine, gson.toJson(baseMsgModel));
-                //分发回执消息
-                //需要区分群消息 个人消息等
-                List<SessionModel> sessionModelSelfReceipt = SessionHolder.sessionMap.get(baseMsgModel.to);
-                for (SessionModel session : sessionModelSelfReceipt)
-                    if (session != null && session.channel != null && session.channel != ctx.channel())
-                        session.channel.writeAndFlush(baseMsgModel);
-
-//                L.p("RECEIPT_MSG==>" + SessionHolder.receiptMsg.toString());
-//                L.p("RECEIPT_MSG 111==>" + (recModel.receipt + baseMsgModel.receiptTag));
-                SessionHolder.receiptMsg.remove(recModel.receipt + baseMsgModel.receiptTag);
+            default:
+                L.e("未定义指令==>" + baseMsgModel.toString());
                 break;
         }
 
@@ -200,8 +251,8 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         //TODO 将崩溃放入日志
-        cause.printStackTrace();
         closeChannle(ctx);
+        cause.printStackTrace();
     }
 
     private void closeChannle(ChannelHandlerContext ctx) {
@@ -209,24 +260,37 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
         ctx.close();
     }
 
+    private void sendMQ(Map<String, MQMapModel> mqMap, int type, BaseMsgModel msg) {
+        Set<String> queueSet = new HashSet<>();
+        for (MQMapModel value : mqMap.values()) {
+            if (queueSet.contains(value.queueName))
+                break;
+            queueSet.add(value.queueName);
+
+            that.rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(type, gson.toJson(msg))));
+        }
+    }
+
     //TODO 修改redis中的对象 不知道是否需要重新设置回去
     private void sendRabbitLogin(CmdMsgModel cmdMsg) {
-        RLock lock = that.redissonUtil.getLock(cmdMsg.from + "");
+        RLock lock = that.redissonUtil.getLock(cmdMsg.from);
         lock.lock();
-        Map<String, MQMapModel> map = (Map) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, cmdMsg.from);
+        Map<Integer, MQMapModel> map = (Map) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, cmdMsg.from);
         if (cmdMsg.cmd == CmdMsgModel.LOGIN) {
             if (map == null) {
                 map = new HashMap<>();
                 that.redisTemplate.opsForHash().put(ApplicationRunnerImpl.MQ_TAG, cmdMsg.from, map);
             }
+            //TODO 客户端唯一登录 需要踢掉已登录用户
             MQMapModel mapModel = new MQMapModel();
-            mapModel.uuid = cmdMsg.from + "";
+            mapModel.uuid = cmdMsg.from;
             mapModel.queueName = ApplicationRunnerImpl.MQ_NAME;
-            mapModel.deviceToken = cmdMsg.loginTag;
-            map.put(mapModel.deviceToken, mapModel);
+            mapModel.clientToken = cmdMsg.fromToken;
+            mapModel.deviceType = cmdMsg.deviceType;
+            map.put(mapModel.clientToken, mapModel);
         } else if (cmdMsg.cmd == CmdMsgModel.LOGOUT) {
             if (map != null) {
-                map.remove(cmdMsg.loginTag);
+                map.remove(cmdMsg.fromToken);
             }
         }
         lock.unlock();

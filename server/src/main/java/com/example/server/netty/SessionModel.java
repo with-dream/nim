@@ -4,5 +4,5 @@ import io.netty.channel.Channel;
 
 public class SessionModel {
     public Channel channel;
-    public String deviceTag;
+    public int clientToken;
 }

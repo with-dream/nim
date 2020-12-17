@@ -7,8 +7,8 @@ import netty.model.GroupMember;
 import java.util.List;
 
 public class GroupModel {
-    public long groupId;
-    public long userId;
+    public String groupId;
+    public String userId;
     public String members;
     public String groupName;
 

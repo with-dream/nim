@@ -12,16 +12,16 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SessionHolder {
-    public static final ConcurrentHashMap<Long, Vector<SessionModel>> sessionMap = new ConcurrentHashMap<>();
-    public static final ConcurrentHashMap<Channel, Long> sessionChannelMap = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String, Vector<SessionModel>> sessionMap = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<Channel, String> sessionChannelMap = new ConcurrentHashMap<>();
 
-    //key为msgId+device
+    //key is send msgId+clientToken
     public static final  ConcurrentHashMap<String, ReceiptModel> receiptMsg = new ConcurrentHashMap<>();
 
     public static void login(Channel channel, BaseMsgModel msgModel) {
         SessionModel sessionModel = new SessionModel();
         sessionModel.channel = channel;
-        sessionModel.deviceTag = ((CmdMsgModel) msgModel).loginTag;
+        sessionModel.clientToken = ((CmdMsgModel) msgModel).fromToken;
 
         Vector<SessionModel> session = sessionMap.get(msgModel.from);
         if (session == null) {
@@ -37,7 +37,7 @@ public class SessionHolder {
     }
 
     public static void unlogin(Channel channel) {
-        Long uuid = sessionChannelMap.remove(channel);
+        String uuid = sessionChannelMap.remove(channel);
         if (uuid == null)
             return;
         Vector<SessionModel> session = sessionMap.get(uuid);

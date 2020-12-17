@@ -1,22 +1,12 @@
 package user;
 
 import java.sql.Date;
-import java.util.Arrays;
 
-public class UserResultModel extends BaseModel {
+public class UserResultModel {
     public String[] imUrl;
     public String name;
-    public long uuid;
+    public String uuid;
+    public int clientToken;
     public Date registTime;
-
-    @Override
-    public String toString() {
-        return "UserResultModel{" +
-                "imUrl=" + (imUrl == null ? "" : Arrays.toString(imUrl)) +
-                ", name='" + name + '\'' +
-                ", uuid=" + uuid +
-                ", registTime=" + registTime +
-                ", code=" + code +
-                '}';
-    }
+    public int code;
 }

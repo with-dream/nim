@@ -1,6 +1,8 @@
 package netty.model;
 
-public class CmdMsgModel extends BaseMsgModel {
+import java.io.Serializable;
+
+public class CmdMsgModel extends BaseMsgModel implements Serializable {
     public static final int LOGIN = 0;
     public static final int LOGOUT = 1;
     public static final int HEART = 3;
@@ -8,16 +10,25 @@ public class CmdMsgModel extends BaseMsgModel {
     public static final int RECEIVED = 10;
     public static final int READED = 11;
 
-    public int cmd;
-    public String loginTag;
+    public static final int MAC = 0;
+    public static final int WINDOW = 1;
+    public static final int LINUX = 2;
+    public static final int IPHONE = 3;
+    public static final int ANDROID = 4;
 
-    public static CmdMsgModel create(long from, long to, String receiptTag) {
+    public int cmd;
+
+    //客户端类型 电脑 手机等 用于唯一标识一个平台
+    //客户登录时使用sendRabbitLogin方法
+    public int deviceType;
+
+    public static CmdMsgModel create(String from, String to, int clientToken) {
         CmdMsgModel cmdMsgModel = new CmdMsgModel();
-        cmdMsgModel.createMsgid();
+        cmdMsgModel.createMsgId();
         cmdMsgModel.type = MsgType.CMD_MSG;
         cmdMsgModel.from = from;
         cmdMsgModel.to = to;
-        cmdMsgModel.receiptTag = receiptTag;
+        cmdMsgModel.fromToken = clientToken;
         return cmdMsgModel;
     }
 
@@ -25,14 +36,18 @@ public class CmdMsgModel extends BaseMsgModel {
     public String toString() {
         return "CmdMsgModel{" +
                 "cmd=" + cmd +
+                ", deviceType=" + deviceType +
                 ", type=" + type +
                 ", seq=" + seq +
                 ", timeLine=" + timeLine +
-                ", msgId='" + msgId + '\'' +
-                ", device=" + device +
-                ", from=" + from +
-                ", to=" + to +
+                ", msgId=" + msgId +
+                ", fromToken=" + fromToken +
+                ", toToken=" + toToken +
+                ", from='" + from + '\'' +
+                ", to='" + to + '\'' +
                 ", timestamp=" + timestamp +
+                ", tryCount=" + tryCount +
+                ", queueName='" + queueName + '\'' +
                 '}';
     }
 }

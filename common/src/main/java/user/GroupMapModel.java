@@ -1,8 +1,8 @@
 package user;
 
 public class GroupMapModel {
-    public long userId;
-    public long groupId;
+    public String userId;
+    public String groupId;
 
     @Override
     public String toString() {

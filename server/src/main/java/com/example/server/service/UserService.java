@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import user.FriendModel;
 import user.GroupMapModel;
 import user.GroupModel;
+import utils.StrUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,11 +32,17 @@ public class UserService {
         return userMapper.login(userModel);
     }
 
-    public int checkUser(long uuid) {
+    public int checkUser(String uuid) {
         return userMapper.checkUser(uuid);
     }
 
-    public FriendModel checkFriend(long userId, long friendId) {
+    public FriendModel checkFriend(String userId, String friendId, boolean auto) {
+        if (auto) {
+            String[] user = StrUtil.getStr(userId, friendId);
+            userId = user[0];
+            friendId = user[1];
+        }
+
         return userMapper.checkFriend(userId, friendId);
     }
 
@@ -47,15 +54,15 @@ public class UserService {
         return userMapper.delFriend(friendModel);
     }
 
-    public List<FriendModel> getAllFriend(long uuid) {
+    public List<FriendModel> getAllFriend(String uuid) {
         return userMapper.getAllFriend(uuid);
     }
 
-    public List<GroupModel> getAllGroup(long uuid) {
+    public List<GroupModel> getAllGroup(String uuid) {
         return userMapper.getAllGroup(uuid);
     }
 
-    public GroupModel getGroupInfo(long groupId) {
+    public GroupModel getGroupInfo(String groupId) {
         return userMapper.getGroupInfo(groupId);
     }
 
@@ -127,12 +134,12 @@ public class UserService {
         return userMapper.addMapGroup(groupModel);
     }
 
-    public int delMapGroup(long userId) {
+    public int delMapGroup(String userId) {
         return userMapper.delMapGroup(userId);
     }
 
     //TODO 检查群是否存在
-    public int checkGroup(long groupId) {
+    public int checkGroup(String groupId) {
         return 1;
     }
 }

@@ -1,24 +1,27 @@
 package netty.model;
 
-public class MsgModel extends BaseMsgModel {
-    public String info;
+import java.io.Serializable;
 
-    public static MsgModel createP(long from, long to, String receiptTag) {
+public class MsgModel extends BaseMsgModel implements Serializable {
+    public String info;
+    public String groupId;
+
+    public static MsgModel createP(String from, String to, int clientToken) {
         MsgModel msgModel = new MsgModel();
-        msgModel.createMsgid();
+        msgModel.createMsgId();
         msgModel.from = from;
         msgModel.to = to;
-        msgModel.receiptTag = receiptTag;
+        msgModel.fromToken = clientToken;
         msgModel.type = MsgType.MSG_PERSON;
         return msgModel;
     }
 
-    public static MsgModel createG(long from, long to, String receiptTag) {
+    public static MsgModel createG(String from, String to, int clientToken) {
         MsgModel msgModel = new MsgModel();
-        msgModel.createMsgid();
+        msgModel.createMsgId();
         msgModel.from = from;
-        msgModel.to = to;
-        msgModel.receiptTag = receiptTag;
+        msgModel.groupId = to;
+        msgModel.fromToken = clientToken;
         msgModel.type = MsgType.MSG_GROUP;
         return msgModel;
     }
@@ -30,13 +33,14 @@ public class MsgModel extends BaseMsgModel {
                 ", type=" + type +
                 ", seq=" + seq +
                 ", timeLine=" + timeLine +
-                ", msgId='" + msgId + '\'' +
-                ", device=" + device +
-                ", receiptTag='" + receiptTag + '\'' +
-                ", from=" + from +
-                ", to=" + to +
+                ", msgId=" + msgId +
+                ", fromToken=" + fromToken +
+                ", toToken=" + toToken +
+                ", from='" + from + '\'' +
+                ", to='" + to + '\'' +
                 ", timestamp=" + timestamp +
                 ", tryCount=" + tryCount +
+                ", queueName='" + queueName + '\'' +
                 '}';
     }
 }

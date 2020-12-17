@@ -17,19 +17,19 @@ public interface UserMapper {
 
     UserResultModel login(UserModel userModel);
 
-    int checkUser(long uuid);
+    int checkUser(String uuid);
 
-    FriendModel checkFriend(@Param(value = "userId") long userId, @Param(value = "friendId") long friendId);
+    FriendModel checkFriend(@Param(value = "userId") String userId, @Param(value = "friendId") String friendId);
 
     int addFriend(FriendModel friendModel);
 
     int delFriend(FriendModel friendModel);
 
-    List<FriendModel> getAllFriend(long uuid);
+    List<FriendModel> getAllFriend(String uuid);
 
     int updateGroupMember(GroupModel groupModel);
 
-    GroupModel getGroupInfo(long to);
+    GroupModel getGroupInfo(String to);
 
     int createGroup(GroupModel groupModel);
 
@@ -37,7 +37,7 @@ public interface UserMapper {
 
     int addMapGroup(GroupMapModel groupModel);
 
-    int delMapGroup(@Param(value = "userId") long userId);
+    int delMapGroup(@Param(value = "userId") String userId);
 
-    List<GroupModel> getAllGroup(long uuid);
+    List<GroupModel> getAllGroup(String uuid);
 }

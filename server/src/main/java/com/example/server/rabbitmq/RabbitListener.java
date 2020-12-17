@@ -1,9 +1,14 @@
 package com.example.server.rabbitmq;
 
+import com.example.server.ApplicationRunnerImpl;
+import com.example.server.entity.MQMapModel;
 import com.example.server.netty.SessionHolder;
 import com.example.server.netty.SessionModel;
 import com.example.server.service.UserService;
+import com.google.gson.Gson;
 import com.rabbitmq.client.Channel;
+import netty.MQWrapper;
+import netty.MessageDecode;
 import netty.model.*;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.listener.api.ChannelAwareMessageListener;
@@ -13,17 +18,22 @@ import user.CacheModel;
 import user.FriendModel;
 import user.GroupMapModel;
 import user.GroupModel;
+import utils.Constant;
 import utils.L;
+import utils.StrUtil;
 
 import javax.annotation.Resource;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Vector;
 
 @Component(RabbitListener.LISTENER_TAG)
 public class RabbitListener implements ChannelAwareMessageListener {
     public static final String LISTENER_TAG = "RabbitListener";
+
+    private Gson gson = new Gson();
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
@@ -33,54 +43,14 @@ public class RabbitListener implements ChannelAwareMessageListener {
 
     @Override
     public void onMessage(Message message, Channel channel) throws Exception {
-        //TODO 具体操作
+        byte[] bytes = message.getBody();
+        MQWrapper mqWrapper = gson.fromJson(new String(bytes), MQWrapper.class);
+        BaseMsgModel baseMsgModel = MessageDecode.getModel(gson, mqWrapper.type, mqWrapper.json);
+
+        process(baseMsgModel, mqWrapper.self);
     }
 
-    private void sendMsgPerson(BaseMsgModel baseMsgModel) {
-        //对各个端推送消息
-        List<SessionModel> sessionModel = SessionHolder.sessionMap.get(baseMsgModel.to);
-        List<SessionModel> sessionModelSelf = SessionHolder.sessionMap.get(baseMsgModel.from);
-
-        if (sessionModel != null) {
-            for (SessionModel session : sessionModel)
-                if (session != null && session.channel != null) {
-                    BaseMsgModel tmpModel = baseMsgModel.clone();
-                    tmpModel.receiptTag = session.deviceTag;
-                    session.channel.writeAndFlush(tmpModel);
-
-                    ReceiptModel recModel = new ReceiptModel();
-                    recModel.channel = new WeakReference<>(session.channel);
-                    recModel.msgModel = baseMsgModel;
-                    //加入回执缓存
-                    SessionHolder.receiptMsg.put(baseMsgModel.msgId + session.deviceTag, recModel);
-                }
-        }
-        //对于自己的非当前客户端 也要推送消息
-        if (sessionModelSelf.size() > 1)
-            for (SessionModel session : sessionModelSelf)
-                //TODO 不发给发送者
-                if (session != null && session.channel != null && !session.deviceTag.equals(baseMsgModel.receiptTag))
-                    session.channel.writeAndFlush(baseMsgModel);
-    }
-
-    //TODO 可以优化 如果mq相同 则将to做成数组
-    private void sendMsgGroup(BaseMsgModel msgModel) {
-        List<SessionModel> seses = SessionHolder.sessionMap.get(msgModel.to);
-        for (SessionModel s : seses) {
-            if (s.deviceTag.equals(msgModel.receiptTag)) {
-                BaseMsgModel tmpModel = msgModel.clone();
-                tmpModel.receiptTag = s.deviceTag;
-                s.channel.writeAndFlush(tmpModel);
-
-                ReceiptModel recModel = new ReceiptModel();
-                recModel.channel = new WeakReference<>(s.channel);
-                recModel.msgModel = msgModel;
-                SessionHolder.receiptMsg.put(msgModel.msgId + s.deviceTag, recModel);
-            }
-        }
-    }
-
-    private void process(BaseMsgModel baseMsgModel) {
+    private void process(BaseMsgModel baseMsgModel, int self) {
         switch (baseMsgModel.type) {
             case MsgType.REQ_CMD_MSG:
                 RequestMsgModel reqMsg = (RequestMsgModel) baseMsgModel;
@@ -97,13 +67,33 @@ public class RabbitListener implements ChannelAwareMessageListener {
                     case RequestMsgModel.GROUP_EXIT:
                         delGroupMember(reqMsg);
                         break;
+                    case RequestMsgModel.GROUP_DEL:
+                        Vector<SessionModel> users = SessionHolder.sessionMap.get(reqMsg.to);
+                        if (users == null || users.isEmpty()) {
+                            //TODO 加入缓存
+                            break;
+                        }
+
+                        for (SessionModel ses : users) {
+                            RequestMsgModel msgModel = RequestMsgModel.create(Constant.SERVER_UID, reqMsg.to, ses.clientToken);
+                            msgModel.groupId = reqMsg.groupId;
+                            msgModel.cmd = RequestMsgModel.GROUP_DEL;
+                            ses.channel.writeAndFlush(msgModel);
+
+                            ReceiptModel receiptMsgModel = new ReceiptModel();
+                            receiptMsgModel.channel = new WeakReference<>(ses.channel);
+                            receiptMsgModel.msgModel = msgModel;
+                            SessionHolder.receiptMsg.put(msgModel.msgId + "" + ses.clientToken, receiptMsgModel);
+                        }
+                        break;
                     case RequestMsgModel.GROUP_ADD_AGREE:
                         addGroupMember(reqMsg);
                         break;
                     case RequestMsgModel.REQUEST_FRIEND_AGREE:
                         FriendModel friendModel = new FriendModel();
-                        friendModel.userId = Math.min(reqMsg.from, reqMsg.to);
-                        friendModel.friendId = Math.max(reqMsg.from, reqMsg.to);
+                        String[] user = StrUtil.getStr(reqMsg.from, reqMsg.to);
+                        friendModel.userId = user[0];
+                        friendModel.friendId = user[1];
                         friendModel.status = 1;
                         int res = userService.addFriend(friendModel);
                         if (res > 0) {
@@ -115,9 +105,7 @@ public class RabbitListener implements ChannelAwareMessageListener {
                     case RequestMsgModel.DEL_FRIEND_BLOCK:
                     case RequestMsgModel.DEL_FRIEND_UNBLOCK:
                         FriendModel delModel = new FriendModel();
-                        delModel.userId = Math.min(reqMsg.from, reqMsg.to);
-                        delModel.friendId = Math.max(reqMsg.from, reqMsg.to);
-                        FriendModel resCheck = userService.checkFriend(delModel.userId, delModel.friendId);
+                        FriendModel resCheck = userService.checkFriend(delModel.userId, delModel.friendId, true);
                         //如果是双向好友
                         if (resCheck.status == FriendModel.FRIEND_NORMAL) {
                             if (RequestMsgModel.DEL_FRIEND == reqMsg.cmd)
@@ -149,7 +137,15 @@ public class RabbitListener implements ChannelAwareMessageListener {
                         break;
                 }
                 break;
+            case MsgType.CMD_MSG:
 
+                break;
+            case MsgType.MSG_PERSON:
+                sendMsgPerson(baseMsgModel, self);
+                break;
+            case MsgType.MSG_GROUP:
+                sendMsgGroup(baseMsgModel);
+                break;
             case MsgType.RECEIPT_MSG:
                 ReceiptMsgModel recModel = (ReceiptMsgModel) baseMsgModel;
                 //将回执消息存储
@@ -159,19 +155,55 @@ public class RabbitListener implements ChannelAwareMessageListener {
                 //需要区分群消息 个人消息等
                 List<SessionModel> sessionModelSelfReceipt = SessionHolder.sessionMap.get(baseMsgModel.to);
                 for (SessionModel session : sessionModelSelfReceipt)
-                    if (session != null && session.channel != null && !session.deviceTag.equals(baseMsgModel.receiptTag))
+                    if (session != null && session.channel != null)
                         session.channel.writeAndFlush(baseMsgModel);
+                    else {
+                        L.e("SessionModel==>为null");
+                    }
 
 //                L.p("RECEIPT_MSG==>" + SessionHolder.receiptMsg.toString());
 //                L.p("RECEIPT_MSG 111==>" + (recModel.receipt + baseMsgModel.receiptTag));
-                SessionHolder.receiptMsg.remove(recModel.receipt + baseMsgModel.receiptTag);
+                SessionHolder.receiptMsg.remove(recModel.sendMsgId + "" + recModel.fromToken);
                 break;
         }
     }
 
+    private void sendMsgPerson(BaseMsgModel baseMsgModel, int self) {
+        boolean isSelf = self == MQWrapper.SELF;
+        //对各个端推送消息
+        List<SessionModel> sessionModel = SessionHolder.sessionMap.get(isSelf ? baseMsgModel.from : baseMsgModel.to);
+
+        if (sessionModel != null) {
+            for (SessionModel session : sessionModel)
+                if (session != null && session.channel != null) {
+                    session.channel.writeAndFlush(baseMsgModel);
+
+                    ReceiptModel recModel = new ReceiptModel();
+                    recModel.channel = new WeakReference<>(session.channel);
+                    recModel.msgModel = baseMsgModel;
+                    recModel.isSelf = isSelf;
+                    //加入回执缓存
+                    SessionHolder.receiptMsg.put(baseMsgModel.msgId + "" + session.clientToken, recModel);
+                }
+        }
+    }
+
+    //TODO 可以优化 如果mq相同 则将to做成数组
+    private void sendMsgGroup(BaseMsgModel msgModel) {
+        List<SessionModel> seses = SessionHolder.sessionMap.get(msgModel.to);
+        for (SessionModel s : seses) {
+            s.channel.writeAndFlush(msgModel);
+
+            ReceiptModel recModel = new ReceiptModel();
+            recModel.channel = new WeakReference<>(s.channel);
+            recModel.msgModel = msgModel;
+            recModel.isSelf = msgModel.from.equals(msgModel.to);
+            SessionHolder.receiptMsg.put(msgModel.msgId + "" + s.clientToken, recModel);
+        }
+    }
 
     private void requestFriend(RequestMsgModel msgModel) {
-        FriendModel friendModel = userService.checkFriend(msgModel.from, msgModel.to);
+        FriendModel friendModel = userService.checkFriend(msgModel.from, msgModel.to, true);
         //如果已经是好友 则直接返回好友信息
         if (friendModel != null) {
             msgModel.cmd = RequestMsgModel.REQUEST_FRIEND_FRIEND;

@@ -1,6 +1,5 @@
 package com.example.server.user;
 
-import com.example.server.service.SysService;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -10,8 +9,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class UuidManager {
     private AtomicLong uuid;
 
-    @Resource
-    SysService sysService;
+//    @Resource
+//    SysService sysService;
 //
 //    private static class UuidManagerHoler {
 //        private static UuidManager instance = new UuidManager();
@@ -33,14 +32,14 @@ public class UuidManager {
     }
 
     //TODO 需要放在容器启动完成初始化
-    public void initData() {
-        if (this.uuid == null) {
-            long sysUid = sysService.getUuid();
-            this.uuid = new AtomicLong(sysUid);
-        }
-    }
-
-    public void destory() {
-        sysService.saveUuid(uuid.get());
-    }
+//    public void initData() {
+//        if (this.uuid == null) {
+//            long sysUid = sysService.getUuid();
+//            this.uuid = new AtomicLong(sysUid);
+//        }
+//    }
+//
+//    public void destory() {
+//        sysService.saveUuid(uuid.get());
+//    }
 }

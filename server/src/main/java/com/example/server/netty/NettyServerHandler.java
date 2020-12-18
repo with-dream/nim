@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import user.*;
+import utils.Constant;
 import utils.L;
 import utils.StrUtil;
 
@@ -45,8 +46,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
     @Resource
     private UserService userService;
 
-    @Resource
-    RedissonUtil redissonUtil;
+    private RedissonUtil redissonUtil = new RedissonUtil();
 
     private static NettyServerHandler that;
     private ConcurrentHashMap<String, List<CacheModel>> cacheMsg = new ConcurrentHashMap<>();
@@ -93,8 +93,14 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, BaseMsgModel baseMsgModel) throws Exception {
-        if (!(baseMsgModel instanceof CmdMsgModel) || ((CmdMsgModel) baseMsgModel).cmd != CmdMsgModel.HEART)
+        if (!(baseMsgModel instanceof CmdMsgModel) || ((CmdMsgModel) baseMsgModel).cmd != CmdMsgModel.HEART) {
             L.p("channelRead0==>" + baseMsgModel.toString());
+            //除心跳包以外 都要回复一个收到消息
+            ReceiptMsgModel recvModel = ReceiptMsgModel.create(baseMsgModel.to, Constant.SERVER_UID, baseMsgModel.msgId, Constant.SERVER_TOKEN);
+            recvModel.cmd = CmdMsgModel.SEND_SUC;
+            ctx.channel().write(recvModel);
+        }
+
         switch (baseMsgModel.type) {
             case MsgType.CMD_MSG:
                 CmdMsgModel cmdMsg = (CmdMsgModel) baseMsgModel;
@@ -117,7 +123,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                         ctx.channel().writeAndFlush(cmdMsg);
                         break;
                     default:
-                        Map<String, MQMapModel> reqMap = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, cmdMsg.to);
+                        Map<String, MQMapModel> reqMap = (Map<String, MQMapModel>) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, cmdMsg.to);
                         if (reqMap == null) {
                             int check = that.userService.checkUser(cmdMsg.to);
                             if (check == 0) {
@@ -133,7 +139,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 break;
             case MsgType.REQ_CMD_MSG:
                 RequestMsgModel reqMsg = (RequestMsgModel) baseMsgModel;
-                Map<String, MQMapModel> reqMap = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, reqMsg.to);
+                Map<String, MQMapModel> reqMap = (Map<String, MQMapModel>) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, reqMsg.to);
                 if (reqMap == null) {
                     int check = that.userService.checkUser(reqMsg.to);
                     if (check == 0) {
@@ -148,8 +154,8 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
             case MsgType.MSG_PERSON:
                 baseMsgModel.timestamp = System.currentTimeMillis();
                 MsgModel person = (MsgModel) baseMsgModel;
-                Map<String, MQMapModel> mapPModelTo = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, person.to);
-                Map<String, MQMapModel> mapPModelFrom = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, person.from);
+                Map<String, MQMapModel> mapPModelTo = (Map) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, person.to);
+                Map<String, MQMapModel> mapPModelFrom = (Map) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, person.from);
                 if (mapPModelTo == null) {
                     int check = that.userService.checkUser(person.to);
                     if (check == 0) {
@@ -160,16 +166,8 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 }
 
                 sendMQ(mapPModelTo, MsgType.MSG_PERSON, person);
+                sendMQ(mapPModelFrom, MsgType.MSG_PERSON, person, MQWrapper.SELF);
 
-                Set<String> tmpPSet = new HashSet();
-                for (MQMapModel value : mapPModelFrom.values()) {
-                    if (tmpPSet.contains(value.queueName))
-                        continue;
-                    tmpPSet.add(value.queueName);
-
-                    if (value.clientToken != baseMsgModel.fromToken)
-                        that.rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(MsgType.MSG_PERSON, gson.toJson(person), MQWrapper.SELF)));
-                }
                 //缓存消息
                 String timeLineID = StrUtil.getTimeLine(person.from, person.to, "msg_p");
                 that.redisTemplate.opsForList().rightPush(timeLineID, gson.toJson(person));
@@ -183,7 +181,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 Set<String> tmpGSet = new HashSet();
 
                 for (GroupMember m : members) {
-                    Map<String, MQMapModel> mapGModel = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, m.userId);
+                    Map<String, MQMapModel> mapGModel = (Map<String, MQMapModel>) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, m.userId);
                     if (mapGModel == null) {
                         int check = that.userService.checkGroup(m.userId);
                         if (check == 0) {
@@ -201,8 +199,8 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                             continue;
                         tmpGSet.add(value.queueName);
 
-                        //指向目标uuid
                         msgModel.to = value.uuid;
+                        L.p("handler sendMQ MSG_GROUP mq:" + value.queueName + "  " + msgModel.toString());
                         that.rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(MsgType.MSG_GROUP, gson.toJson(msgModel), self ? 1 : 0)));
                     }
 
@@ -214,7 +212,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 break;
             case MsgType.RECEIPT_MSG:
                 ReceiptMsgModel recModel = (ReceiptMsgModel) baseMsgModel;
-                Map<String, MQMapModel> recMap = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, recModel.to);
+                Map<String, MQMapModel> recMap = (Map<String, MQMapModel>) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, recModel.to);
                 if (recMap == null) {
                     int check = that.userService.checkUser(recModel.to);
                     if (check == 0) {
@@ -230,7 +228,6 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 L.e("未定义指令==>" + baseMsgModel.toString());
                 break;
         }
-
     }
 
     @Override
@@ -261,26 +258,29 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
     }
 
     private void sendMQ(Map<String, MQMapModel> mqMap, int type, BaseMsgModel msg) {
+        this.sendMQ(mqMap, type, msg, 0);
+    }
+
+    private void sendMQ(Map<String, MQMapModel> mqMap, int type, BaseMsgModel msg, int self) {
         Set<String> queueSet = new HashSet<>();
         for (MQMapModel value : mqMap.values()) {
+            L.p("handler sendMQ mq:" + value.queueName + "  " + msg.toString());
             if (queueSet.contains(value.queueName))
                 break;
             queueSet.add(value.queueName);
 
-            that.rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(type, gson.toJson(msg))));
+            that.rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(type, gson.toJson(msg), self)));
         }
     }
 
     //TODO 修改redis中的对象 不知道是否需要重新设置回去
     private void sendRabbitLogin(CmdMsgModel cmdMsg) {
-        RLock lock = that.redissonUtil.getLock(cmdMsg.from);
-        lock.lock();
+//        RLock lock = redissonUtil.getLock(cmdMsg.from);
+//        lock.lock();
         Map<Integer, MQMapModel> map = (Map) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, cmdMsg.from);
         if (cmdMsg.cmd == CmdMsgModel.LOGIN) {
-            if (map == null) {
+            if (map == null || (map.isEmpty() && !(map instanceof HashMap)))
                 map = new HashMap<>();
-                that.redisTemplate.opsForHash().put(ApplicationRunnerImpl.MQ_TAG, cmdMsg.from, map);
-            }
             //TODO 客户端唯一登录 需要踢掉已登录用户
             MQMapModel mapModel = new MQMapModel();
             mapModel.uuid = cmdMsg.from;
@@ -293,6 +293,14 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 map.remove(cmdMsg.fromToken);
             }
         }
-        lock.unlock();
+
+        if (map == null || map.isEmpty())
+            that.redisTemplate.opsForHash().delete(ApplicationRunnerImpl.MQ_TAG, cmdMsg.from);
+        else
+            that.redisTemplate.opsForHash().put(ApplicationRunnerImpl.MQ_TAG, cmdMsg.from, map);
+
+        Map<Integer, MQMapModel> map11 = (Map) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, cmdMsg.from);
+        L.p("sendRabbitLogin==>" + cmdMsg.from + "==" + map11.toString());
+//        lock.unlock();
     }
 }

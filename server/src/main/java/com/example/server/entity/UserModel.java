@@ -5,6 +5,6 @@ import java.sql.Date;
 public class UserModel {
     public String name;
     public String pwd;
-    public long uuid;
+    public String uuid;
     public Date registTime;
 }

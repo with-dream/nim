@@ -32,9 +32,9 @@ public class DynamicManagerQueueService {
         String listener = queueDto.listener;
         Integer consumers = queueDto.consumers;
 
+        //TODO 如果已存在 则做重新绑定处理
         QueueInformation info = rabbitAdmin.getQueueInfo(queueName);
         if (info != null) {
-            L.e("rabbitmq已存在==>" + queueName);
             return true;
         }
 

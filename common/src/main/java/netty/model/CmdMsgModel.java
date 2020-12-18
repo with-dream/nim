@@ -7,8 +7,9 @@ public class CmdMsgModel extends BaseMsgModel implements Serializable {
     public static final int LOGOUT = 1;
     public static final int HEART = 3;
 
-    public static final int RECEIVED = 10;
-    public static final int READED = 11;
+    public static final int SEND_SUC = 10;
+    public static final int RECEIVED = 11;
+    public static final int READED = 12;
 
     public static final int MAC = 0;
     public static final int WINDOW = 1;

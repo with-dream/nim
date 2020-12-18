@@ -1,8 +1,5 @@
-import com.example.imlib.Config;
-import com.example.imlib.Test;
 import com.example.imlib.netty.IMContext;
 import com.example.imlib.netty.IMMsgCallback;
-import com.example.imlib.user.RegistModel;
 import com.example.imlib.utils.L;
 import com.example.imlib.utils.StrUtil;
 import com.google.gson.Gson;
@@ -11,9 +8,9 @@ import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import user.FriendResModel;
 import user.GroupResModel;
+import user.RegistModel;
 import user.UserResultModel;
 import utils.Constant;
-import utils.UUIDUtil;
 
 import java.io.IOException;
 import java.util.Scanner;
@@ -187,13 +184,13 @@ public class Main {
         final Gson gson = new Gson();
 
         Request request = new Request.Builder()
-                .url(String.format("http://%s:8080/user/login?name=%s&pwd=%s&deviceType=%d", Conf.LOCAL_IP, name, pwd, 1))
+                .url(String.format("http://%s/user/login?name=%s&pwd=%s&deviceType=%d", Conf.LOCAL_IP, name, pwd, 1))
                 .get()
                 .build();
 
         okHttpClient.newCall(request).enqueue(new Callback() {
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                System.err.println("onFailure==>" + e.toString());
+                L.e("login onFailure==>" + e.toString());
             }
 
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
@@ -215,7 +212,7 @@ public class Main {
 
     private void getFriedList(String uuid) {
         Request request = new Request.Builder()
-                .url(String.format("http://%s:8080/user/getAllFriend?uuid=%s", Conf.LOCAL_IP, uuid))
+                .url(String.format("http://%s/user/getAllFriend?uuid=%s", Conf.LOCAL_IP, uuid))
                 .get()
                 .build();
 
@@ -239,7 +236,7 @@ public class Main {
 
     private void createGroup(String groupName) {
         Request request = new Request.Builder()
-                .url(String.format("http://%s:8080/user/createGroup?uuid=%d&groupName=%s"
+                .url(String.format("http://%s/user/createGroup?uuid=%d&groupName=%s"
                         , Conf.LOCAL_IP, IMContext.getInstance().uuid, groupName))
                 .get()
                 .build();
@@ -259,7 +256,7 @@ public class Main {
 
     private void delGroup(long groupId) {
         Request request = new Request.Builder()
-                .url(String.format("http://%s:8080/user/delGroup?uuid=%d&groupId=%d"
+                .url(String.format("http://%s/user/delGroup?uuid=%d&groupId=%d"
                         , Conf.LOCAL_IP, IMContext.getInstance().uuid, groupId))
                 .get()
                 .build();
@@ -279,7 +276,7 @@ public class Main {
 
     private void getGroupList(String uuid) {
         Request request = new Request.Builder()
-                .url(String.format("http://%s:8080/user/getAllGroup?uuid=%s", Conf.LOCAL_IP, uuid))
+                .url(String.format("http://%s/user/getAllGroup?uuid=%s", Conf.LOCAL_IP, uuid))
                 .get()
                 .build();
 
@@ -311,7 +308,7 @@ public class Main {
         final Gson gson = new Gson();
 
         Request request = new Request.Builder()
-                .url(String.format("http://%s:8080/user/regist?name=%s&pwd=%s", Config.LOCAL_IP, userName, pwd))
+                .url(String.format("http://%s/user/regist?name=%s&pwd=%s", Conf.LOCAL_IP, userName, pwd))
                 .get()
                 .build();
 

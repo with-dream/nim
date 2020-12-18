@@ -79,6 +79,7 @@ public class NettyClient {
         CmdMsgModel cmdMsgModel = CmdMsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, 0);
         cmdMsgModel.cmd = CmdMsgModel.LOGIN;
         cmdMsgModel.timestamp = System.currentTimeMillis();
+        cmdMsgModel.fromToken = IMContext.getInstance().clientToken;
         cmdMsgModel.deviceType = CmdMsgModel.ANDROID;
 //        cmdMsgModel.loginTag = UUID.randomUUID().toString();
 //        IMContext.getInstance().clientTag = cmdMsgModel.loginTag;

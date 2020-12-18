@@ -40,12 +40,13 @@ public class UserController {
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
-//
-//    @RequestMapping(value = "/test")
-//    public String test() {
-//        sender.send();
-//        return "==>";
-//    }
+
+
+    @RequestMapping(value = "/test")
+    public String test() {
+        rabbit.convertAndSend("aaa", "aaaaaa");
+        return "==>";
+    }
 
     @RequestMapping(value = "/login")
     public String login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
@@ -62,7 +63,9 @@ public class UserController {
             result.imUrl = ServerList.SERVER_LIST;
             result.clientToken = UUIDUtil.getClientToken();
 
+            long s = System.currentTimeMillis();
             Map<Integer, MQMapModel> map = (Map) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, result.uuid);
+            L.e("redis==>" + (System.currentTimeMillis() - s));
             if (map != null && !map.isEmpty()) {
                 for (MQMapModel mapModel : map.values()) {
                     if (mapModel.deviceType == deviceType) {
@@ -90,12 +93,12 @@ public class UserController {
     @ResponseBody
     public String regist(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd) {
         //TODO 暂时调用
-        uuidManager.initData();
+//        uuidManager.initData();
 
         UserModel userModel = new UserModel();
         userModel.name = name;
         userModel.pwd = pwd;
-        userModel.uuid = uuidManager.getUuid();
+        userModel.uuid = UUIDUtil.getUid();
         userModel.registTime = new java.sql.Date(new Date().getTime());
         int res = userService.regist(userModel);
 

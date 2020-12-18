@@ -7,11 +7,12 @@ import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ResourceUtils;
+import utils.L;
 
 import java.io.File;
 import java.io.IOException;
 
-@Component
 public class RedissonUtil {
     private RedissonClient redisClient;
     private static final Object LOCK = new Object();
@@ -21,14 +22,10 @@ public class RedissonUtil {
             return this.redisClient;
         synchronized (LOCK) {
             if (this.redisClient == null) {
-                Config config = null;
-                try {
-                    config = Config.fromYAML(new File("application.yml"));
-                    this.redisClient = Redisson.create(config);
-                    return this.redisClient;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                Config config = new Config();
+                config.useClusterServers().addNodeAddress("redis://192.168.20.220:6379");
+                this.redisClient = Redisson.create(config);
+                return this.redisClient;
             }
         }
         return this.redisClient;

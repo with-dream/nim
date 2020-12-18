@@ -9,6 +9,7 @@
 路由的一些优化
 
 
+
 1、集群netty的channel路由
 用户登录时 将uuid和channel在本地做一个映射
 然后再将uuid和rabbitMQ做一个映射 并存放在主服务器上

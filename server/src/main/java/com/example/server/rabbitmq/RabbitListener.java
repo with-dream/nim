@@ -47,6 +47,8 @@ public class RabbitListener implements ChannelAwareMessageListener {
         MQWrapper mqWrapper = gson.fromJson(new String(bytes), MQWrapper.class);
         BaseMsgModel baseMsgModel = MessageDecode.getModel(gson, mqWrapper.type, mqWrapper.json);
 
+        L.p("onMessage==>" + baseMsgModel.toString());
+
         process(baseMsgModel, mqWrapper.self);
     }
 
@@ -262,6 +264,10 @@ public class RabbitListener implements ChannelAwareMessageListener {
                 session.channel.writeAndFlush(msgModel);
             }
         }
+    }
+
+    private boolean isSelf(String uuid, String self) {
+        return uuid.equals(self);
     }
 
     private boolean cacheModel(String timeLineID, CacheModel cacheModel) {

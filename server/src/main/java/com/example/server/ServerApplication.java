@@ -1,8 +1,6 @@
 package com.example.server;
 
 import com.example.server.netty.NettyServer;
-import com.example.server.service.SysService;
-import com.example.server.user.UuidManager;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -23,6 +21,6 @@ public class ServerApplication {
 //        UuidManager.getInstance().init();
 
         NettyServer nettyServer = new NettyServer();
-        nettyServer.start(new InetSocketAddress(Config.LOCAL_IP, 8090));
+        nettyServer.start(new InetSocketAddress("127.0.0.1", 8090));
     }
 }

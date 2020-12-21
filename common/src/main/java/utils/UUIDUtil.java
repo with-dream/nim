@@ -20,6 +20,6 @@ public class UUIDUtil {
         int id = getUUIDHash();
         long time = System.currentTimeMillis() & 0xFFFFFFFF;
         long msgId = (time << 32) | (long) id;
-        return msgId;
+        return Math.abs(msgId);
     }
 }

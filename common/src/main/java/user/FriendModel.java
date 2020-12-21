@@ -5,10 +5,10 @@ public class FriendModel {
     public static final int FRIEND_NORMAL = 1;
     public static final int FRIEND_SELF = 2;
     public static final int FRIEND_OTHER = 3;
-    public static final int FRIEND_DEL = 4;
+    public static final int FRIEND_DEL_EACH = 4;
     public static final int FRIEND_BLOCK_SELF = 5;
     public static final int FRIEND_BLOCK_OTHER = 6;
-    public static final int FRIEND_BLOCK = 7;
+    public static final int FRIEND_BLOCK_EACH = 7;
 
     public String userId;
     public String friendId;

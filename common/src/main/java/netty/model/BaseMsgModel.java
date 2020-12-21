@@ -39,10 +39,9 @@ public class BaseMsgModel implements Cloneable, Serializable {
     public String to;
     //时间戳 毫秒 统一为服务器的时间
     public long timestamp;
+    public int status;
     //重发计数
     public int tryCount;
-
-    public String queueName;
 
     public void clear() {
 
@@ -75,7 +74,6 @@ public class BaseMsgModel implements Cloneable, Serializable {
                 ", to='" + to + '\'' +
                 ", timestamp=" + timestamp +
                 ", tryCount=" + tryCount +
-                ", queueName='" + queueName + '\'' +
                 '}';
     }
 }

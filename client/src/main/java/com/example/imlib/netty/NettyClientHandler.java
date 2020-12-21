@@ -72,8 +72,8 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
                         reqMsg.to = tmp;
                         channelHandlerContext.channel().writeAndFlush(reqMsg);
                         break;
-                    case RequestMsgModel.DEL_FRIEND:
-                    case RequestMsgModel.DEL_FRIEND_EACH:
+                    case RequestMsgModel.FRIEND_DEL:
+                    case RequestMsgModel.FRIEND_DEL_EACH:
                         //请求好友 默认同意
                         L.p("删除好友 来自:" + reqMsg.from);
                         break;
@@ -151,6 +151,7 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
         //消息回执
         ReceiptMsgModel receiptModel = ReceiptMsgModel.create(baseMsgModel.to, baseMsgModel.from, baseMsgModel.msgId, IMContext.getInstance().clientToken);
         receiptModel.cmd = type;
+        receiptModel.sendMsgType = baseMsgModel.type;
         receiptModel.toToken = baseMsgModel.fromToken;
         ChannelFuture msgFuture = IMContext.getInstance().channel.writeAndFlush(receiptModel);
         msgFuture.addListener(new GenericFutureListener<Future<? super Void>>() {

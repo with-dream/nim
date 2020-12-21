@@ -48,7 +48,6 @@ public class CmdMsgModel extends BaseMsgModel implements Serializable {
                 ", to='" + to + '\'' +
                 ", timestamp=" + timestamp +
                 ", tryCount=" + tryCount +
-                ", queueName='" + queueName + '\'' +
                 '}';
     }
 }

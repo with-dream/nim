@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel> {
     private static final int TRY_COUNT_MAX = 5;
+    public static final String MSGID_MAP = "_map";
     private Gson gson = new Gson();
 
     @Resource
@@ -49,7 +50,6 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
     private RedissonUtil redissonUtil = new RedissonUtil();
 
     private static NettyServerHandler that;
-    private ConcurrentHashMap<String, List<CacheModel>> cacheMsg = new ConcurrentHashMap<>();
 
     @Autowired
     private AmqpTemplate rabbit;
@@ -94,9 +94,10 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, BaseMsgModel baseMsgModel) throws Exception {
         if (!(baseMsgModel instanceof CmdMsgModel) || ((CmdMsgModel) baseMsgModel).cmd != CmdMsgModel.HEART) {
-            L.p("channelRead0==>" + baseMsgModel.toString());
+//            L.p("channelRead0==>" + baseMsgModel.toString());
             //除心跳包以外 都要回复一个收到消息
             ReceiptMsgModel recvModel = ReceiptMsgModel.create(baseMsgModel.to, Constant.SERVER_UID, baseMsgModel.msgId, Constant.SERVER_TOKEN);
+            recvModel.sendMsgType = baseMsgModel.type;
             recvModel.cmd = CmdMsgModel.SEND_SUC;
             ctx.channel().write(recvModel);
         }
@@ -150,6 +151,9 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 }
 
                 sendMQ(reqMap, MsgType.REQ_CMD_MSG, reqMsg);
+
+                String timeLineIDReq = StrUtil.getTimeLine(reqMsg.from, reqMsg.to, "msg_r");
+                saveMsg(timeLineIDReq, baseMsgModel);
                 break;
             case MsgType.MSG_PERSON:
                 baseMsgModel.timestamp = System.currentTimeMillis();
@@ -165,13 +169,13 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                     }
                 }
 
+                L.e("==>111");
                 sendMQ(mapPModelTo, MsgType.MSG_PERSON, person);
                 sendMQ(mapPModelFrom, MsgType.MSG_PERSON, person, MQWrapper.SELF);
 
                 //缓存消息
                 String timeLineID = StrUtil.getTimeLine(person.from, person.to, "msg_p");
-                that.redisTemplate.opsForList().rightPush(timeLineID, gson.toJson(person));
-//                System.err.println("timeLineID==>" + that.redisTemplate.opsForList().leftPop(timeLineID));
+                saveMsg(timeLineID, baseMsgModel);
                 break;
             case MsgType.MSG_GROUP:
                 baseMsgModel.timestamp = System.currentTimeMillis();
@@ -208,7 +212,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 }
 
                 String groupLine = "msg_g:" + baseMsgModel.to;
-                that.redisTemplate.opsForList().rightPush(groupLine, gson.toJson(baseMsgModel));
+                saveMsg(groupLine, baseMsgModel);
                 break;
             case MsgType.RECEIPT_MSG:
                 ReceiptMsgModel recModel = (ReceiptMsgModel) baseMsgModel;
@@ -220,6 +224,21 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                         System.err.println("不存在的uuid==>" + recModel.to);
                         break;
                     }
+                }
+
+                switch (recModel.sendMsgType) {
+                    case MsgType.MSG_PERSON:
+                        String timeLineP = StrUtil.getTimeLine(recModel.from, recModel.to, "msg_p");
+                        saveMsg(timeLineP, recModel);
+                        break;
+                    case MsgType.MSG_GROUP:
+                        String timeLineG = StrUtil.getTimeLine(recModel.from, recModel.to, "msg_g");
+                        saveMsg(timeLineG, recModel);
+                        break;
+                    case MsgType.REQ_CMD_MSG:
+                        String timeLineR = StrUtil.getTimeLine(recModel.from, recModel.to, "msg_r");
+                        saveMsg(timeLineR, recModel);
+                        break;
                 }
 
                 sendMQ(recMap, MsgType.RECEIPT_MSG, recModel);
@@ -263,17 +282,21 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
 
     private void sendMQ(Map<String, MQMapModel> mqMap, int type, BaseMsgModel msg, int self) {
         Set<String> queueSet = new HashSet<>();
+        L.p("==>sendMQ");
         for (MQMapModel value : mqMap.values()) {
-            L.p("handler sendMQ mq:" + value.queueName + "  " + msg.toString());
+//            L.p("handler sendMQ mq:" + value.queueName + "  " + msg.toString());
             if (queueSet.contains(value.queueName))
-                break;
+                continue;
+            if (value.clientToken == msg.fromToken)
+                continue;
             queueSet.add(value.queueName);
+
+            L.p("handler sendMQ mq  111:" + value.queueName + "  " + msg.toString());
 
             that.rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(type, gson.toJson(msg), self)));
         }
     }
 
-    //TODO 修改redis中的对象 不知道是否需要重新设置回去
     private void sendRabbitLogin(CmdMsgModel cmdMsg) {
 //        RLock lock = redissonUtil.getLock(cmdMsg.from);
 //        lock.lock();
@@ -302,5 +325,18 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
         Map<Integer, MQMapModel> map11 = (Map) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, cmdMsg.from);
         L.p("sendRabbitLogin==>" + cmdMsg.from + "==" + map11.toString());
 //        lock.unlock();
+    }
+
+    private boolean saveMsg(String timeLine, BaseMsgModel msgModel) {
+        Long index = that.redisTemplate.opsForList().rightPush(timeLine, gson.toJson(timeLine));
+        if (index == null) {
+            L.e("saveMsg==>存储消息失败");
+            return false;
+        }
+        that.redisTemplate.opsForHash().put(timeLine + ":map", msgModel.msgId, index);
+
+
+
+        return true;
     }
 }

@@ -33,10 +33,10 @@ public class DynamicManagerQueueService {
         Integer consumers = queueDto.consumers;
 
         //TODO 如果已存在 则做重新绑定处理
-        QueueInformation info = rabbitAdmin.getQueueInfo(queueName);
-        if (info != null) {
-            return true;
-        }
+//        QueueInformation info = rabbitAdmin.getQueueInfo(queueName);
+//        if (info != null) {
+//            return true;
+//        }
 
         //实例化一个topic交换机
         Exchange exchange = ExchangeBuilder.topicExchange(exchangeName).durable(true).build();

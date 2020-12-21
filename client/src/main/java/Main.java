@@ -20,7 +20,11 @@ public class Main {
     private Gson gson = new Gson();
 
     public static void main(String[] args) {
-        m();
+        try {
+            m();
+        } catch (Exception e) {
+
+        }
     }
 
     private static void m() {
@@ -66,114 +70,117 @@ public class Main {
             }
         });
 
-        boolean debug = true;
-        while (debug) {
-            String cmd = input.next();
-            switch (cmd) {
-                case "q":
-                    return;
-                case "regist":   //注册
-                    L.p("注册 格式:用户名/密码");
-                    String nameR = input.next();
-                    String[] nR = nameR.split("/");
-                    client.regist(nR[0], nR[1]);
-                    break;
-                case "login":   //格式  用户名/密码
-                    L.p("登录 格式:用户名/密码");
-                    String name = input.next();
-                    String[] n = name.split("/");
-                    client.login(n[0], n[1]);
-                    break;
-                case "req_friend":   //申请好友
-                    L.p("申请好友 对方uuid");
-                    String reqUuid = input.next();
-                    client.reqFriend(reqUuid);
-                    break;
-                case "del_friend":   //删除好友
-                    L.p("删除好友 对方uuid/指令   1单方删除 2同时删除");
-                    String delCmd = input.next();
-                    String[] dc = delCmd.split("/");
-                    int del = RequestMsgModel.DEL_FRIEND;
-                    if ("2".equals(dc[1]))
-                        del = RequestMsgModel.DEL_FRIEND_EACH;
-                    client.delFriend(dc[0], del);
-                    break;
-                case "friendList":   //获取所有朋友
-                    client.getFriedList(IMContext.getInstance().uuid);
-                    break;
-                case "groupList":   //获取所有朋友
-                    client.getGroupList(IMContext.getInstance().uuid);
-                    break;
-                case "self":   //获取所有朋友
-                    L.p("self uuid ==>" + IMContext.getInstance().uuid);
-                    break;
-                case "sendP":
-                    L.p("发送消息 uuid/内容");
-                    String strsp = input.next();
-                    String[] p = strsp.split("/");
+        while (true) {
+            try {
+                String cmd = input.next();
+                switch (cmd) {
+                    case "q":
+                        return;
+                    case "regist":   //注册
+                        L.p("注册 格式:用户名/密码");
+                        String nameR = input.next();
+                        String[] nR = nameR.split("/");
+                        client.regist(nR[0], nR[1]);
+                        break;
+                    case "login":   //格式  用户名/密码
+                        L.p("登录 格式:用户名/密码");
+                        String name = input.next();
+                        String[] n = name.split("/");
+                        client.login(n[0], n[1]);
+                        break;
+                    case "req_friend":   //申请好友
+                        L.p("申请好友 对方uuid");
+                        String reqUuid = input.next();
+                        client.reqFriend(reqUuid);
+                        break;
+                    case "del_friend":   //删除好友
+                        L.p("删除好友 对方uuid/指令   1单方删除 2同时删除");
+                        String delCmd = input.next();
+                        String[] dc = delCmd.split("/");
+                        int del = RequestMsgModel.FRIEND_DEL;
+                        if ("2".equals(dc[1]))
+                            del = RequestMsgModel.FRIEND_DEL_EACH;
+                        client.delFriend(dc[0], del);
+                        break;
+                    case "friendList":   //获取所有朋友
+                        client.getFriedList(IMContext.getInstance().uuid);
+                        break;
+                    case "groupList":   //获取所有朋友
+                        client.getGroupList(IMContext.getInstance().uuid);
+                        break;
+                    case "self":   //获取所有朋友
+                        L.p("self uuid ==>" + IMContext.getInstance().uuid);
+                        break;
+                    case "sendP":
+                        L.p("发送消息 uuid/内容");
+                        String strsp = input.next();
+                        String[] p = strsp.split("/");
 
-                    MsgModel msgModel = MsgModel.createP(IMContext.getInstance().uuid, p[0], IMContext.getInstance().clientToken);
-                    msgModel.info = p[1];
-                    IMContext.getInstance().sendMsg(msgModel, true);
-                    break;
-                case "sendPL":
-                    L.p("发送消息 uuid/循环次数/内容");
-                    String strspl = input.next();
-                    String[] pl = strspl.split("/");
+                        MsgModel msgModel = MsgModel.createP(IMContext.getInstance().uuid, p[0], IMContext.getInstance().clientToken);
+                        msgModel.info = p[1];
+                        IMContext.getInstance().sendMsg(msgModel, true);
+                        break;
+                    case "sendPL":
+                        L.p("发送消息 uuid/循环次数/内容");
+                        String strspl = input.next();
+                        String[] pl = strspl.split("/");
 
-                    int count = Integer.parseInt(pl[1]);
-                    for (int i = 0; i < count; i++) {
-                        MsgModel msgModelL = MsgModel.createP(IMContext.getInstance().uuid, pl[0], IMContext.getInstance().clientToken);
-                        msgModelL.info = i + "==>" + pl[2];
-                        IMContext.getInstance().sendMsg(msgModelL, true);
+                        int count = Integer.parseInt(pl[1]);
+                        for (int i = 0; i < count; i++) {
+                            MsgModel msgModelL = MsgModel.createP(IMContext.getInstance().uuid, pl[0], IMContext.getInstance().clientToken);
+                            msgModelL.info = i + "==>" + pl[2];
+                            IMContext.getInstance().sendMsg(msgModelL, true);
 
-                        try {
-                            Thread.currentThread().sleep(100);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
+                            try {
+                                Thread.currentThread().sleep(100);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
                         }
-                    }
-                    break;
-                case "addG":
-                    L.p("申请群 群id");
-                    String strg = input.next();
+                        break;
+                    case "addG":
+                        L.p("申请群 群id");
+                        String strg = input.next();
 
-                    RequestMsgModel gModel = RequestMsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
-                    gModel.groupId = strg;
-                    gModel.cmd = RequestMsgModel.GROUP_ADD;
+                        RequestMsgModel gModel = RequestMsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
+                        gModel.groupId = strg;
+                        gModel.cmd = RequestMsgModel.GROUP_ADD;
 
-                    IMContext.getInstance().sendMsg(gModel, true);
-                    break;
-                case "exitG":
-                    L.p("退出群 群id");
-                    String strge = input.next();
+                        IMContext.getInstance().sendMsg(gModel, true);
+                        break;
+                    case "exitG":
+                        L.p("退出群 群id");
+                        String strge = input.next();
 
-                    RequestMsgModel eModel = RequestMsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
-                    eModel.groupId = strge;
-                    eModel.cmd = RequestMsgModel.GROUP_EXIT;
+                        RequestMsgModel eModel = RequestMsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
+                        eModel.groupId = strge;
+                        eModel.cmd = RequestMsgModel.GROUP_EXIT;
 
-                    IMContext.getInstance().sendMsg(eModel, true);
-                    break;
-                case "sendG":
-                    L.p("发送群消息 uuid/内容");
-                    String strgs = input.next();
-                    String[] gsp = strgs.split("/");
+                        IMContext.getInstance().sendMsg(eModel, true);
+                        break;
+                    case "sendG":
+                        L.p("发送群消息 uuid/内容");
+                        String strgs = input.next();
+                        String[] gsp = strgs.split("/");
 
-                    MsgModel msgModelG = MsgModel.createP(IMContext.getInstance().uuid, gsp[0], IMContext.getInstance().clientToken);
-                    msgModelG.type = MsgType.MSG_GROUP;
-                    msgModelG.info = gsp[1];
-                    IMContext.getInstance().sendMsg(msgModelG, true);
-                    break;
-                case "createG":
-                    L.p("创建群 群名称");
-                    String strgc = input.next();
-                    client.createGroup(strgc);
-                    break;
-                case "delG":
-                    L.p("解散群 groupId");
-                    String strgd = input.next();
-                    client.delGroup(Long.parseLong(strgd));
-                    break;
+                        MsgModel msgModelG = MsgModel.createP(IMContext.getInstance().uuid, gsp[0], IMContext.getInstance().clientToken);
+                        msgModelG.type = MsgType.MSG_GROUP;
+                        msgModelG.info = gsp[1];
+                        IMContext.getInstance().sendMsg(msgModelG, true);
+                        break;
+                    case "createG":
+                        L.p("创建群 群名称");
+                        String strgc = input.next();
+                        client.createGroup(strgc);
+                        break;
+                    case "delG":
+                        L.p("解散群 groupId");
+                        String strgd = input.next();
+                        client.delGroup(Long.parseLong(strgd));
+                        break;
+                }
+            } catch (Exception e) {
+                L.e("e==>" + e.getMessage());
             }
         }
 

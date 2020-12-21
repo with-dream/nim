@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   `birthday` TIMESTAMP COMMENT '生日',
   `py_initial` char(1) NOT NULL DEFAULT '' COMMENT '首字母',
   `quan_pin` varchar(255) NOT NULL DEFAULT '' COMMENT '全拼',
+  `last_update_time` TIMESTAMP NOT NULL COMMENT '最后修改信息时间',
   `regist_time` TIMESTAMP NOT NULL COMMENT '注册时间',
   `last_login_time` TIMESTAMP NOT NULL COMMENT '最后登录时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

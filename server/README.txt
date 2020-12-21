@@ -1,12 +1,17 @@
 问题:
 1、注册 插入时间registTime字段没有时分秒
-4、uuid保存有问题
 
-需要做
+rabbitMQ需要重新绑定
 
-12.16：
-重新定义model类 目前整理完架构 混混乱
-路由的一些优化
+redis锁
+redis缓存清除问题
+redis查找离线数据
+
+12.19：
+重新定义数据库
+支持json和protobuf
+
+
 
 
 
@@ -20,10 +25,15 @@
 
 架构设计:
 https://mp.weixin.qq.com/s?__biz=MzI1ODY0NjAwMA==&mid=2247483756&idx=1&sn=a8e3303bc573b1acaf9ef3862ef89bdd&chksm=ea044bf3dd73c2e5dcf2c10202c66d6143ec866205e9230f974fbc0b0be587926699230b6b18&scene=21#wechat_redirect
+https://blog.csdn.net/jessechanrui/article/details/88399012
+
 
 
 ### 1、redis命令
 redis-server  启动
+
+redis-cli -h 127.0.0.1 -p 6379
+flushall
 
 ### 2、mysql命令
 mysql.server start 启动

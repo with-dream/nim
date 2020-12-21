@@ -8,6 +8,7 @@ public class ReceiptMsgModel extends CmdMsgModel implements Serializable {
     public static final int MSG = 500;
 
     public long sendMsgId;  //发送数据时的msgId
+    public int sendMsgType; //发送消息的类型
     public int level;   //回执消息的权重
 
     public static ReceiptMsgModel create(String from, String to, long sendMsgId, int clientToken) {

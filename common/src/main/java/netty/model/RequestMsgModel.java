@@ -8,10 +8,10 @@ public class RequestMsgModel extends BaseMsgModel implements Serializable {
     public static final int REQUEST_FRIEND_REFUSE = 5;
     public static final int REQUEST_FRIEND_NOBODY = 6; //查无此人
     public static final int REQUEST_FRIEND_FRIEND = 7; //已经是好友
-    public static final int DEL_FRIEND = 8; //单方删除好友
-    public static final int DEL_FRIEND_EACH = 9; //删除好友 同时删除对方好友
-    public static final int DEL_FRIEND_BLOCK = 10; //拉黑
-    public static final int DEL_FRIEND_UNBLOCK = 11; //解除拉黑
+    public static final int FRIEND_DEL = 8; //单方删除好友
+    public static final int FRIEND_DEL_EACH = 9; //删除好友 同时删除对方好友
+    public static final int FRIEND_DEL_BLOCK = 10; //拉黑
+    public static final int FRIEND_DEL_UNBLOCK = 11; //解除拉黑
     public static final int GROUP_CREATE = 12; //创建群
     public static final int GROUP_DEL = 13; //删除群
     public static final int GROUP_ADD = 14; //加入群
@@ -50,7 +50,6 @@ public class RequestMsgModel extends BaseMsgModel implements Serializable {
                 ", to='" + to + '\'' +
                 ", timestamp=" + timestamp +
                 ", tryCount=" + tryCount +
-                ", queueName='" + queueName + '\'' +
                 '}';
     }
 }

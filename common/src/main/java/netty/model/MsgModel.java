@@ -40,7 +40,6 @@ public class MsgModel extends BaseMsgModel implements Serializable {
                 ", to='" + to + '\'' +
                 ", timestamp=" + timestamp +
                 ", tryCount=" + tryCount +
-                ", queueName='" + queueName + '\'' +
                 '}';
     }
 }

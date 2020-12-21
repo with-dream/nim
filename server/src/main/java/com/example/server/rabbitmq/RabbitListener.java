@@ -55,17 +55,20 @@ public class RabbitListener implements ChannelAwareMessageListener {
 
     private void process(BaseMsgModel baseMsgModel, int self) {
         switch (baseMsgModel.type) {
-            case MsgType.REQ_CMD_MSG:
+            case MsgType.MSG_CMD_REQ:
                 RequestMsgModel reqMsg = (RequestMsgModel) baseMsgModel;
                 requestMsg(reqMsg);
                 break;
             case MsgType.MSG_PERSON:
                 sendMsgPerson(baseMsgModel, self);
                 break;
+            case MsgType.MSG_PACK:
+                sendMsgPack(baseMsgModel);
+                break;
             case MsgType.MSG_GROUP:
                 sendMsgGroup(baseMsgModel);
                 break;
-            case MsgType.RECEIPT_MSG:
+            case MsgType.MSG_RECEIPT:
                 ReceiptMsgModel recModel = (ReceiptMsgModel) baseMsgModel;
                 receiptMsg(recModel);
                 break;
@@ -89,6 +92,24 @@ public class RabbitListener implements ChannelAwareMessageListener {
                     recModel.channel = new WeakReference<>(session.channel);
                     recModel.msgModel = baseMsgModel;
                     recModel.isSelf = isSelf;
+                    //加入回执缓存
+                    SessionHolder.receiptMsg.put(baseMsgModel.msgId + "" + session.clientToken, recModel);
+                }
+        }
+    }
+
+    private void sendMsgPack(BaseMsgModel baseMsgModel) {
+        //对各个端推送消息
+        List<SessionModel> sessionModel = SessionHolder.sessionMap.get(baseMsgModel.to);
+
+        if (sessionModel != null && !sessionModel.isEmpty()) {
+            for (SessionModel session : sessionModel)
+                if (session != null && session.channel != null) {
+                    session.channel.writeAndFlush(baseMsgModel);
+
+                    ReceiptModel recModel = new ReceiptModel();
+                    recModel.channel = new WeakReference<>(session.channel);
+                    recModel.msgModel = baseMsgModel;
                     //加入回执缓存
                     SessionHolder.receiptMsg.put(baseMsgModel.msgId + "" + session.clientToken, recModel);
                 }
@@ -172,7 +193,7 @@ public class RabbitListener implements ChannelAwareMessageListener {
                     continue;
                 tmpSet.add(value.queueName);
 
-                rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(MsgType.REQ_CMD_MSG, gson.toJson(msgModel))));
+                rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(MsgType.MSG_CMD_REQ, gson.toJson(msgModel))));
             }
         } else
             L.e("退群错误");

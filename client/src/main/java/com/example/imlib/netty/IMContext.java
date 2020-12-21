@@ -17,6 +17,7 @@ public class IMContext {
     private IMConnCallback callback;
     private IMMsgCallback msgCallback;
     public int clientToken;
+    public boolean logout = false;
     private NettyClient nettyClient = new NettyClient();
     public ConcurrentHashMap<Long, BaseMsgModel> receiptMsg = new ConcurrentHashMap<>();
 

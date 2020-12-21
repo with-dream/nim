@@ -1,6 +1,7 @@
 package netty.model;
 
 import java.io.Serializable;
+import java.util.List;
 
 public class ReceiptMsgModel extends CmdMsgModel implements Serializable {
     public static final int FORCE = 1000;
@@ -15,7 +16,7 @@ public class ReceiptMsgModel extends CmdMsgModel implements Serializable {
         ReceiptMsgModel recMsg = new ReceiptMsgModel();
         recMsg.createMsgId();
         recMsg.sendMsgId = sendMsgId;
-        recMsg.type = MsgType.RECEIPT_MSG;
+        recMsg.type = MsgType.MSG_RECEIPT;
         recMsg.from = from;
         recMsg.to = to;
         recMsg.fromToken = clientToken;

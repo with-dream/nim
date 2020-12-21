@@ -42,18 +42,21 @@ public class MessageDecode extends ByteToMessageDecoder {
     public static final BaseMsgModel getModel(Gson gson, int msgType, String body) {
         Class cls = null;
         switch (msgType) {
-            case MsgType.CMD_MSG:
+            case MsgType.MSG_CMD:
                 cls = CmdMsgModel.class;
                 break;
             case MsgType.MSG_PERSON:
             case MsgType.MSG_GROUP:
                 cls = MsgModel.class;
                 break;
-            case MsgType.RECEIPT_MSG:
+            case MsgType.MSG_RECEIPT:
                 cls = ReceiptMsgModel.class;
                 break;
-            case MsgType.REQ_CMD_MSG:
+            case MsgType.MSG_CMD_REQ:
                 cls = RequestMsgModel.class;
+                break;
+            case MsgType.MSG_PACK:
+                cls = PackMsgModel.class;
                 break;
         }
 

@@ -202,7 +202,7 @@ public class UserController {
                         break;
                     queueSet.add(value.queueName);
 
-                    rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(MsgType.REQ_CMD_MSG, gson.toJson(msgModel))));
+                    rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(MsgType.MSG_CMD_REQ, gson.toJson(msgModel))));
                 }
             } else {
                 L.e("删除群成员失败==>uid " + mem.userId + "  groupid=>" + groupId);

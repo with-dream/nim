@@ -47,6 +47,9 @@ public class NettyClient {
                     reconnCount = 0;
                     IMContext.getInstance().channel = future.channel();
                     L.p("==>客户端成功....");
+
+                    Thread.sleep(200);
+
                     login();
                     return Constant.SUCC;
                 } else
@@ -80,6 +83,7 @@ public class NettyClient {
         cmdMsgModel.timestamp = System.currentTimeMillis();
         cmdMsgModel.fromToken = IMContext.getInstance().clientToken;
         cmdMsgModel.deviceType = CmdMsgModel.ANDROID;
+        L.e("login==>");
 
         ChannelFuture cmdFuture = IMContext.getInstance().channel.writeAndFlush(cmdMsgModel);
         cmdFuture.addListener(new GenericFutureListener<Future<? super Void>>() {

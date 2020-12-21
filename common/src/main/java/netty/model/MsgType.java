@@ -4,17 +4,17 @@ public class MsgType {
     /**
      * 命令消息
      */
-    public static final int CMD_MSG = 0;
+    public static final int MSG_CMD = 0;
 
     /**
      * 请求的命令消息
      */
-    public static final int REQ_CMD_MSG = 5;
+    public static final int MSG_CMD_REQ = 5;
 
     /**
      * 请求的命令消息
      */
-    public static final int REQ_GROUP_MSG = 6;
+    public static final int MSG_GROUP_REQ = 6;
 
     /**
      * 普通消息
@@ -34,6 +34,11 @@ public class MsgType {
     /**
      * 回执消息
      */
-    public static final int RECEIPT_MSG = 4;
+    public static final int MSG_RECEIPT = 4;
+
+    /**
+     * 打包消息
+     */
+    public static final int MSG_PACK = 7;
 
 }

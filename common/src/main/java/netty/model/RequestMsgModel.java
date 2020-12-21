@@ -27,7 +27,7 @@ public class RequestMsgModel extends BaseMsgModel implements Serializable {
     public static RequestMsgModel create(String from, String to, int clientToken) {
         RequestMsgModel reqMsgModel = new RequestMsgModel();
         reqMsgModel.createMsgId();
-        reqMsgModel.type = MsgType.REQ_CMD_MSG;
+        reqMsgModel.type = MsgType.MSG_CMD_REQ;
         reqMsgModel.from = from;
         reqMsgModel.to = to;
         reqMsgModel.fromToken = clientToken;

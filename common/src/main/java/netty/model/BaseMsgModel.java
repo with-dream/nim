@@ -39,6 +39,9 @@ public class BaseMsgModel implements Cloneable, Serializable {
     public String to;
     //时间戳 毫秒 统一为服务器的时间
     public long timestamp;
+
+    public static final int OFFLINE = 1;
+    public static final int SEND_FAILED = 2;
     public int status;
     //重发计数
     public int tryCount;

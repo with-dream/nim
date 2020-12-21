@@ -26,7 +26,7 @@ public class CmdMsgModel extends BaseMsgModel implements Serializable {
     public static CmdMsgModel create(String from, String to, int clientToken) {
         CmdMsgModel cmdMsgModel = new CmdMsgModel();
         cmdMsgModel.createMsgId();
-        cmdMsgModel.type = MsgType.CMD_MSG;
+        cmdMsgModel.type = MsgType.MSG_CMD;
         cmdMsgModel.from = from;
         cmdMsgModel.to = to;
         cmdMsgModel.fromToken = clientToken;

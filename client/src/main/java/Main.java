@@ -3,6 +3,9 @@ import com.example.imlib.netty.IMMsgCallback;
 import com.example.imlib.utils.L;
 import com.example.imlib.utils.StrUtil;
 import com.google.gson.Gson;
+import io.netty.channel.ChannelFuture;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import netty.model.*;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
@@ -15,6 +18,10 @@ import utils.Constant;
 import java.io.IOException;
 import java.util.Scanner;
 
+/**
+ * qqq:6f65a65e-bbe6-4bad-b5d2-882b95e091c6/111
+ *
+ * */
 public class Main {
     private OkHttpClient okHttpClient = new OkHttpClient();
     private Gson gson = new Gson();
@@ -36,7 +43,9 @@ public class Main {
                 L.p("receive==>" + msgModel);
 
                 switch (msgModel.type) {
-                    case MsgType.REQ_CMD_MSG:
+                    case MsgType.MSG_PACK:
+                        break;
+                    case MsgType.MSG_CMD_REQ:
                         RequestMsgModel reqMsg = (RequestMsgModel) msgModel;
                         switch (reqMsg.cmd) {
                             case RequestMsgModel.REQUEST_FRIEND:
@@ -87,6 +96,9 @@ public class Main {
                         String name = input.next();
                         String[] n = name.split("/");
                         client.login(n[0], n[1]);
+                        break;
+                    case "logout":
+                        client.logout();
                         break;
                     case "req_friend":   //申请好友
                         L.p("申请好友 对方uuid");
@@ -213,6 +225,24 @@ public class Main {
                 if (resModel.code == 0) {
                     new Thread(() -> IMContext.getInstance().connect()).start();
                 }
+            }
+        });
+    }
+
+    private void logout() {
+        CmdMsgModel cmdMsgModel = CmdMsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
+        cmdMsgModel.cmd = CmdMsgModel.LOGOUT;
+        cmdMsgModel.timestamp = System.currentTimeMillis();
+        cmdMsgModel.fromToken = IMContext.getInstance().clientToken;
+        cmdMsgModel.deviceType = CmdMsgModel.ANDROID;
+        IMContext.getInstance().logout = true;
+
+        ChannelFuture cmdFuture = IMContext.getInstance().channel.writeAndFlush(cmdMsgModel);
+        cmdFuture.addListener(new GenericFutureListener<Future<? super Void>>() {
+            @Override
+            public void operationComplete(Future<? super Void> future) throws Exception {
+                System.err.println("client logout send succ");
+
             }
         });
     }

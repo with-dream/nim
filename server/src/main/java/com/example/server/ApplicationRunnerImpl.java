@@ -10,6 +10,7 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import utils.L;
@@ -30,21 +31,31 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
     private RedisTemplate<String, Object> redisTemplate;
 
     private void test() {
-        HashOperations<String, String, Object> hashVo = redisTemplate.opsForHash();
-        Map<String, String> mm = new HashMap<>();
-        mm.put("111", "aaa");
-        mm.put("222", "bbb");
-        hashVo.put(ApplicationRunnerImpl.MQ_TAG, "abc", mm);
-        mm.put("333", "ccc");
-        Map<String, String> value = (Map<String, String>) hashVo.get(ApplicationRunnerImpl.MQ_TAG, "abc");
-        L.e("==>" + value.toString());
-        L.e("==>" + hashVo.entries(ApplicationRunnerImpl.MQ_TAG));
+        redisTemplate.delete("111");
+
+        ListOperations<String, Object> listVo = redisTemplate.opsForList();
+        listVo.rightPush("111", "111");
+        listVo.rightPush("111", "222");
+        listVo.rightPush("111", "333");
+        listVo.rightPush("111", "444");
+        L.e("==>" + listVo.rightPush("111", "555"));
+        listVo.remove("111", 1, "111");
+        listVo.remove("111", 1, "222");
+
+        L.e("==>" + listVo.index("111", 0));
+        L.e("==>" + listVo.index("111", 2));
+        Long iii = listVo.indexOf("111", "2");
+        L.e("==>" + iii);
+        L.e("==>" + listVo.indexOf("111", "555"));
     }
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
 
 //        test();
+        Map map = (Map) redisTemplate.opsForHash().entries(ApplicationRunnerImpl.MQ_TAG);
+        if (map != null)
+            L.e("run map ==>" + map.toString());
 
         String mqName = null;
         for (String str : args.getNonOptionArgs()) {
@@ -68,6 +79,5 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
         } else {
             throw new RuntimeException("==>创建mq失败");
         }
-
     }
 }

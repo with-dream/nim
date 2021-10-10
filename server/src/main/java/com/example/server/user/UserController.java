@@ -41,7 +41,6 @@ public class UserController {
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
 
-
     @RequestMapping(value = "/test")
     public String test() {
         rabbit.convertAndSend("aaa", "aaaaaa");
@@ -92,9 +91,6 @@ public class UserController {
     @RequestMapping(value = "/regist")
     @ResponseBody
     public String regist(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd) {
-        //TODO 暂时调用
-//        uuidManager.initData();
-
         UserModel userModel = new UserModel();
         userModel.name = name;
         userModel.pwd = pwd;
@@ -191,7 +187,7 @@ public class UserController {
                     int check = userService.checkUser(mem.userId);
                     if (check == 0) {
                         //TODO 如果uuid不存在 则丢弃 否则缓存
-                        System.err.println("不存在的uuid==>" + mem.userId);
+                        System.err.println("不存在的uuid  delMembers==>" + mem.userId);
                         break;
                     }
                 }

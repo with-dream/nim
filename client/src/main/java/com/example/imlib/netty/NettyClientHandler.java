@@ -1,6 +1,7 @@
 package com.example.imlib.netty;
 
 import com.example.imlib.utils.L;
+import com.google.gson.Gson;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -19,6 +20,7 @@ import java.util.concurrent.TimeUnit;
  **/
 public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel> {
     private static final int TRY_COUNT_MAX = 5;
+    private Gson gson = new Gson();
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
@@ -103,9 +105,10 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 receiptMsg(baseMsgModel);
                 break;
             case MsgType.MSG_PACK:
-                L.e("recv MSG_PACK==>" + baseMsgModel.toString());
+                PackMsgModel packModel = (PackMsgModel) baseMsgModel;
+
                 if (IMContext.getInstance().getMsgCallback() != null)
-                    IMContext.getInstance().getMsgCallback().receive(baseMsgModel);
+                    IMContext.getInstance().getMsgCallback().receive(packModel);
                 receiptMsg(baseMsgModel);
                 break;
             case MsgType.MSG_RECEIPT:

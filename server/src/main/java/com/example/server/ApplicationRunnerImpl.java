@@ -1,6 +1,9 @@
 package com.example.server;
 
 import com.example.server.entity.MQMapModel;
+import com.example.server.netty.NettyServerHandler;
+import com.example.server.netty.SessionHolder;
+import com.example.server.netty.SessionModel;
 import com.example.server.rabbitmq.DynamicManagerQueueService;
 import com.example.server.rabbitmq.QueueDto;
 import com.example.server.rabbitmq.RabbitListener;
@@ -16,13 +19,14 @@ import org.springframework.stereotype.Component;
 import utils.L;
 
 import javax.annotation.Resource;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Component
 public class ApplicationRunnerImpl implements ApplicationRunner {
     public static String MQ_NAME = "";
     public static String MQ_TAG = "mq";
+    public static String HOST_MAP = "host_map";
+    public static String HOST_NAME = "";
     private Gson gson = new Gson();
     @Resource
     DynamicManagerQueueService queueService;
@@ -51,12 +55,6 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-
-//        test();
-        Map map = (Map) redisTemplate.opsForHash().entries(ApplicationRunnerImpl.MQ_TAG);
-        if (map != null)
-            L.e("run map ==>" + map.toString());
-
         String mqName = null;
         for (String str : args.getNonOptionArgs()) {
             String[] ss = str.split("=");
@@ -67,6 +65,15 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
             }
             L.p("str3==>" + str);
         }
+        HOST_NAME = mqName;
+
+//        test();
+        clearMQ();
+
+        Map map = (Map) redisTemplate.opsForHash().entries(ApplicationRunnerImpl.MQ_TAG);
+        if (map != null)
+            L.e("run map ==>" + map.toString());
+
 
         QueueDto queueDto = new QueueDto();
         queueDto.queueName = mqName;
@@ -79,5 +86,40 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
         } else {
             throw new RuntimeException("==>创建mq失败");
         }
+    }
+
+    private void clearMQ() {
+//        RLock lock = redissonUtil.getLock(cmdMsg.from);
+//        lock.lock();
+        Set<Object> mqMap = redisTemplate.opsForSet().members(ApplicationRunnerImpl.HOST_NAME);
+        if (mqMap != null && !mqMap.isEmpty()) {
+            for (Object item : mqMap) {
+                String[] uuidToken = ((String) item).split(":");
+
+                boolean flag = false;
+                Vector<SessionModel> sess = SessionHolder.sessionMap.get(uuidToken[0]);
+                if (sess != null && !sess.isEmpty())
+                    for (SessionModel model : sess)
+                        if (model.clientToken == Integer.parseInt(uuidToken[1])) {
+                            flag = true;
+                            break;
+                        }
+                if (flag)
+                    continue;
+
+                Map<Integer, MQMapModel> map = (Map) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, uuidToken[0]);
+                if (map != null) {
+                    map.remove(Integer.parseInt(uuidToken[1]));
+                }
+
+                if (map == null || map.isEmpty())
+                    redisTemplate.opsForHash().delete(ApplicationRunnerImpl.MQ_TAG, uuidToken[0]);
+                else
+                    redisTemplate.opsForHash().put(ApplicationRunnerImpl.MQ_TAG, uuidToken[0], map);
+
+                redisTemplate.opsForSet().remove(ApplicationRunnerImpl.HOST_NAME, item);
+            }
+        }
+//        lock.unlock();
     }
 }

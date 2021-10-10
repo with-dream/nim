@@ -129,7 +129,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                             int check = that.userService.checkUser(cmdMsg.to);
                             if (check == 0) {
                                 //TODO 如果uuid不存在 则丢弃 否则缓存
-                                System.err.println("不存在的uuid==>" + cmdMsg.to);
+                                System.err.println("不存在的uuid cmd==>" + cmdMsg.to);
                                 break;
                             }
                         }
@@ -147,7 +147,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                     int check = that.userService.checkUser(reqMsg.to);
                     if (check == 0) {
                         //TODO 如果uuid不存在 则丢弃 否则缓存
-                        System.err.println("不存在的uuid==>" + reqMsg.to);
+                        System.err.println("不存在的uuid  MSG_CMD_REQ==>" + reqMsg.to);
                         break;
                     }
                     baseMsgModel.status = BaseMsgModel.OFFLINE;
@@ -169,7 +169,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                     int check = that.userService.checkUser(person.to);
                     if (check == 0) {
                         //TODO 如果uuid不存在 则丢弃 否则缓存
-                        System.err.println("不存在的uuid==>" + person.to);
+                        System.err.println("不存在的uuid MSG_PERSON==>" + person.to);
                         break;
                     }
 
@@ -198,7 +198,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                         int check = that.userService.checkGroup(m.userId);
                         if (check == 0) {
                             //TODO 如果groupId不存在 则丢弃 否则缓存
-                            System.err.println("不存在的uuid==>" + m.userId);
+                            System.err.println("不存在的uuid  MSG_GROUP==>" + m.userId);
                             break;
                         }
 
@@ -231,7 +231,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                     int check = that.userService.checkUser(recModel.to);
                     if (check == 0) {
                         //TODO 如果uuid不存在 则丢弃 否则缓存
-                        System.err.println("不存在的uuid==>" + recModel.to);
+                        System.err.println("不存在的uuid  MSG_RECEIPT==>" + recModel.to);
                         break;
                     }
 
@@ -355,11 +355,12 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
             map.put(mapModel.clientToken, mapModel);
             L.e("login==>" + cmdMsg.toString());
             that.redisTemplate.opsForHash().put(ApplicationRunnerImpl.MQ_TAG, cmdMsg.from, map);
+            that.redisTemplate.opsForSet().add(ApplicationRunnerImpl.HOST_NAME, cmdMsg.from + ":" + cmdMsg.fromToken);
         }
 //        lock.unlock();
     }
 
-    private void logout(long token, String uuid) {
+    public void logout(long token, String uuid) {
 //        RLock lock = redissonUtil.getLock(cmdMsg.from);
 //        lock.lock();
         Map<Integer, MQMapModel> map = (Map) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, uuid);
@@ -371,6 +372,9 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
             that.redisTemplate.opsForHash().delete(ApplicationRunnerImpl.MQ_TAG, uuid);
         else
             that.redisTemplate.opsForHash().put(ApplicationRunnerImpl.MQ_TAG, uuid, map);
+
+        that.redisTemplate.opsForList().remove(ApplicationRunnerImpl.HOST_NAME, 1, uuid + ":" + token);
+
 //        lock.unlock();
     }
 
@@ -425,7 +429,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 if (index != null) {
                     BaseMsgModel msg = (BaseMsgModel) that.redisTemplate.opsForList().index(timeLineMsg, index);
                     if (msg != null) {
-                        msgModel.addMsg(msg);
+                        msgModel.addMsg(gson.toJson(msg));
                     } else {
                         L.e("sendOfflineMsg获取msg为null==>" + index);
                     }
@@ -440,7 +444,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
             int check = that.userService.checkUser(uuid);
             if (check == 0) {
                 //TODO 如果uuid不存在 则丢弃 否则缓存
-                System.err.println("不存在的uuid==>" + uuid);
+                System.err.println("不存在的uuid sendOfflineMsg==>" + uuid);
             }
         }
 

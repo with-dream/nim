@@ -44,6 +44,7 @@ public class Main {
 
                 switch (msgModel.type) {
                     case MsgType.MSG_PACK:
+
                         break;
                     case MsgType.MSG_CMD_REQ:
                         RequestMsgModel reqMsg = (RequestMsgModel) msgModel;

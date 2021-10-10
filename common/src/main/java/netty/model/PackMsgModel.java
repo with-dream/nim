@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PackMsgModel extends BaseMsgModel implements Serializable {
-    private List<BaseMsgModel> msgModels = new ArrayList<>();
+    public List<String> msgModels = new ArrayList<>();
 
     public static PackMsgModel create(String from, String to, int clientToken) {
         PackMsgModel cmdMsgModel = new PackMsgModel();
@@ -17,9 +17,23 @@ public class PackMsgModel extends BaseMsgModel implements Serializable {
         return cmdMsgModel;
     }
 
-    public void addMsg(BaseMsgModel msgModel) {
+    public void addMsgId(String msgModel) {
         this.msgModels.add(msgModel);
     }
+//
+//    public List<BaseMsgModel> parse(Gson gson) {
+//        if (msgModels.isEmpty())
+//            return null;
+//
+//        List<BaseMsgModel> list = new ArrayList<>();
+//        for (String msg : msgModels) {
+//            JsonObject obj = new JsonParser().parse(msg).getAsJsonObject();
+//            int type = obj.get("type").getAsInt();
+//            list.add(MessageDecode.getModel(gson, type, msg));
+//        }
+//        baseMsgModels = list;
+//        return list;
+//    }
 
     @Override
     public String toString() {

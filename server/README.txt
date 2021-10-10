@@ -1,11 +1,11 @@
 问题:
 1、注册 插入时间registTime字段没有时分秒
+https://www.cnblogs.com/luoym/articles/5149400.html
 
 rabbitMQ需要重新绑定
 
 redis锁
 redis缓存清除问题
-redis查找离线数据
 
 12.19：
 重新定义数据库

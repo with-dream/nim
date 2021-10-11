@@ -91,7 +91,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, BaseMsgModel baseMsgModel) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, BaseMsgModel baseMsgModel) {
         if (!(baseMsgModel instanceof CmdMsgModel) || ((CmdMsgModel) baseMsgModel).cmd != CmdMsgModel.HEART) {
 //            L.p("channelRead0==>" + baseMsgModel.toString());
             //除心跳包以外 都要回复一个收到消息
@@ -405,18 +405,14 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
 
     private void sendOfflineMsg(String uuid) {
         Map<Object, Object> offMsg = that.redisTemplate.opsForHash().entries(MSGID_OFFLINE + uuid);
-        if (offMsg == null || offMsg.isEmpty())
+        if (offMsg.isEmpty())
             return;
         PackMsgModel msgModel = PackMsgModel.create(Constant.SERVER_UID, uuid, Constant.SERVER_TOKEN);
 
         Map<String, List<Long>> tmpMap = new HashMap<>();
         for (Map.Entry<Object, Object> entry : offMsg.entrySet()) {
             String timeline = (String) entry.getValue();
-            List<Long> list = tmpMap.get(timeline);
-            if (list == null) {
-                list = new ArrayList<>();
-                tmpMap.put(timeline, list);
-            }
+            List<Long> list = tmpMap.computeIfAbsent(timeline, k -> new ArrayList<>());
             list.add((Long) entry.getKey());
         }
 
@@ -426,14 +422,15 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
             List<Long> list = tmpMap.get(entry.getKey());
             for (long msgId : list) {
                 Long index = that.redisTemplate.opsForList().indexOf(timeLineMap, msgId);
-                if (index != null) {
-                    BaseMsgModel msg = (BaseMsgModel) that.redisTemplate.opsForList().index(timeLineMsg, index);
-                    if (msg != null) {
-                        msgModel.addMsg(gson.toJson(msg));
-                    } else {
-                        L.e("sendOfflineMsg获取msg为null==>" + index);
-                    }
+                if (index == null) continue;
+
+                BaseMsgModel msg = (BaseMsgModel) that.redisTemplate.opsForList().index(timeLineMsg, index);
+                if (msg != null) {
+//                    msgModel.addMsg(gson.toJson(msg));
+                } else {
+                    L.e("sendOfflineMsg获取msg为null==>" + index);
                 }
+
             }
         }
 

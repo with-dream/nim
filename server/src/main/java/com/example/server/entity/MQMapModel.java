@@ -1,5 +1,7 @@
 package com.example.server.entity;
 
+import netty.model.DeviceType;
+
 import java.io.Serializable;
 
 public class MQMapModel implements Serializable {
@@ -8,7 +10,7 @@ public class MQMapModel implements Serializable {
     public String queueName;
     public String uuid;
     public int clientToken;
-    public int deviceType;
+    public DeviceType deviceType;
 
     @Override
     public String toString() {

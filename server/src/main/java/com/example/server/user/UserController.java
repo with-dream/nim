@@ -49,7 +49,7 @@ public class UserController {
 
     @RequestMapping(value = "/login")
     public String login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
-            , @RequestParam(value = "deviceType") int deviceType) {
+            , @RequestParam(value = "deviceType") DeviceType deviceType) {
         UserModel userModel = new UserModel();
         userModel.name = name;
         userModel.pwd = pwd;
@@ -63,6 +63,7 @@ public class UserController {
             result.clientToken = UUIDUtil.getClientToken();
 
             long s = System.currentTimeMillis();
+            //TODO 需要redisson分布式锁
             Map<Integer, MQMapModel> map = (Map) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, result.uuid);
             L.e("redis==>" + (System.currentTimeMillis() - s));
             if (map != null && !map.isEmpty()) {

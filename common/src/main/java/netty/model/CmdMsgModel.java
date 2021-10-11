@@ -21,7 +21,7 @@ public class CmdMsgModel extends BaseMsgModel implements Serializable {
 
     //客户端类型 电脑 手机等 用于唯一标识一个平台
     //客户登录时使用sendRabbitLogin方法
-    public int deviceType;
+    public DeviceType deviceType;
 
     public static CmdMsgModel create(String from, String to, int clientToken) {
         CmdMsgModel cmdMsgModel = new CmdMsgModel();

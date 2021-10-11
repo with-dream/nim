@@ -10,7 +10,7 @@ public class MQMapModel implements Serializable {
     public String queueName;
     public String uuid;
     public int clientToken;
-    public DeviceType deviceType;
+    public int deviceType;
 
     @Override
     public String toString() {

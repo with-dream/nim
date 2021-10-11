@@ -57,13 +57,16 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
     public void run(ApplicationArguments args) throws Exception {
         String mqName = null;
         for (String str : args.getNonOptionArgs()) {
-            String[] ss = str.split("=");
-            switch (ss[0]) {
-                case "mq":
-                    mqName = ss[1];
-                    break;
+            String[] s = str.split("&");
+            for (String tmp : s) {
+                String[] ss = str.split("=");
+                switch (ss[0]) {
+                    case "mq":
+                        mqName = ss[1];
+                        break;
+                }
+                L.p("str3==>" + str);
             }
-            L.p("str3==>" + str);
         }
         HOST_NAME = mqName;
 

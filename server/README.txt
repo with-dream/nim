@@ -42,6 +42,8 @@ mysql.server start 启动
 rabbitmq-server
 后台地址:http://localhost:15672/#/
 
+安装:https://www.rabbitmq.com/install-homebrew.html
+
 ### 4、zookeeper
 zkServer start
 zkServer stop

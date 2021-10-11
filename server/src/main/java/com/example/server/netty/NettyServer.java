@@ -19,7 +19,6 @@ import java.net.InetSocketAddress;
 public class NettyServer {
 
     public void start(InetSocketAddress socketAddress) {
-
         //new 一个主线程组
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         //new 一个工作线程组

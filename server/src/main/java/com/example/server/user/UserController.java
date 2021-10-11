@@ -49,7 +49,7 @@ public class UserController {
 
     @RequestMapping(value = "/login")
     public String login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
-            , @RequestParam(value = "deviceType") DeviceType deviceType) {
+            , @RequestParam(value = "deviceType") int deviceType) {
         UserModel userModel = new UserModel();
         userModel.name = name;
         userModel.pwd = pwd;

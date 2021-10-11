@@ -16,11 +16,25 @@ import java.util.Arrays;
 public class ServerApplication {
 
     public static void main(String[] args) {
+        int port = 8090;
+        for (String str : args) {
+            String[] s = str.split("&");
+            for (String tmp : s) {
+                String[] ss = tmp.split("=");
+                switch (ss[0]) {
+                    case "p":
+                        port = Integer.valueOf(ss[1]);
+                        break;
+                }
+                L.p("str3==>" + str);
+            }
+        }
         SpringApplication.run(ServerApplication.class, args);
+
         //TODO 初始化时 初始uuid
 //        UuidManager.getInstance().init();
 
         NettyServer nettyServer = new NettyServer();
-        nettyServer.start(new InetSocketAddress("127.0.0.1", 8090));
+        nettyServer.start(new InetSocketAddress("127.0.0.1", port));
     }
 }

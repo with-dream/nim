@@ -1,5 +1,6 @@
 package com.example.server.utils;
 
+import org.apache.commons.lang.StringUtils;
 import utils.Constant;
 
 public class Const {
@@ -9,18 +10,16 @@ public class Const {
     /**
      * 用于标识redis的MQMapModel 使用客户端类型做后缀 唯一标识一个客户端类型
      */
-    public static String mqTag(int type) {
-        return MQ_TAG + Constant.mapDevice(type);
+    public static String mqTag(int deviceType) {
+        return MQ_TAG + Constant.mapDevice(deviceType);
     }
 
     public static String[] mqTagList() {
-        if (res.length == 0) {
+        if (StringUtils.isEmpty(res[0])) {
             synchronized (res) {
-                if (res.length == 0) {
-                    int index = 0;
-                    for (int t : Constant.clientType)
-                        res[index++] = mqTag(t);
-                }
+                if (StringUtils.isEmpty(res[0]))
+                    for (int i = 0; i < Constant.clientType.length; i++)
+                        res[i] = MQ_TAG + i;
             }
         }
 

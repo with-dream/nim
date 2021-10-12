@@ -82,7 +82,7 @@ public class NettyClient {
         cmdMsgModel.cmd = CmdMsgModel.LOGIN;
         cmdMsgModel.timestamp = System.currentTimeMillis();
         cmdMsgModel.fromToken = IMContext.getInstance().clientToken;
-        cmdMsgModel.deviceType = CmdMsgModel.ANDROID;
+        cmdMsgModel.deviceType = Constant.ANDROID;
         L.e("login==>");
 
         ChannelFuture cmdFuture = IMContext.getInstance().channel.writeAndFlush(cmdMsgModel);

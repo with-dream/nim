@@ -1,5 +1,6 @@
 package netty.model;
 
+import entity.Entity;
 import utils.UUIDUtil;
 
 import java.io.Serializable;
@@ -22,7 +23,7 @@ import java.io.Serializable;
  * 3、需要支持websocket
  */
 
-public class BaseMsgModel implements Cloneable, Serializable {
+public class BaseMsgModel extends Entity implements Cloneable {
     public int type;
     //消息的序列号
     public long seq = 0;
@@ -39,6 +40,8 @@ public class BaseMsgModel implements Cloneable, Serializable {
     public String to;
     //时间戳 毫秒 统一为服务器的时间
     public long timestamp;
+    //发送时的时间戳 毫秒 统一为服务器的时间
+    public long sendTime;
     //消息等级
     public int level;
 

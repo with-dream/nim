@@ -5,7 +5,6 @@ import netty.model.BaseMsgModel;
 import netty.model.CmdMsgModel;
 import netty.model.ReceiptModel;
 import utils.Constant;
-import utils.UUIDUtil;
 
 import java.lang.ref.WeakReference;
 import java.util.*;
@@ -13,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 当前服务器的推送及基础业务
- * */
+ */
 public class SessionHolder {
     /**
      *
@@ -27,13 +26,21 @@ public class SessionHolder {
     private static final Map<Integer, ConcurrentHashMap<String, SessionModel>> session = new HashMap<>();
 
     //初始化时 将用到的每个客户端平台注册 定义在Constant.clientType中
-    {
+    static {
         for (Integer type : Constant.clientType)
             session.put(type, new ConcurrentHashMap<>());
     }
 
-    public static ConcurrentHashMap<String, SessionModel> getSession(int type) {
+    public static ConcurrentHashMap<String, SessionModel> getSession(int deviceType) {
+        int type = Constant.mapDevice(deviceType);
         return session.get(type);
+    }
+
+    public static boolean checkSession(String uuid) {
+        for (Integer type : Constant.clientType)
+            if (session.get(type).contains(uuid))
+                return true;
+        return false;
     }
 
 
@@ -55,12 +62,12 @@ public class SessionHolder {
         sessionModel.deviceType = ((CmdMsgModel) msgModel).deviceType;
         sessionModel.uuid = msgModel.from;
 
-        getSession(msgModel.type).put(msgModel.from, sessionModel);
+        getSession(msgModel.deviceType).put(msgModel.from, sessionModel);
         sessionChannelMap.put(channel, sessionModel);
     }
 
     public static void logout(CmdMsgModel cmdMsg) {
-        SessionModel sessionModel = getSession(cmdMsg.type).remove(cmdMsg.from);
+        SessionModel sessionModel = getSession(cmdMsg.deviceType).remove(cmdMsg.from);
         if (sessionModel != null)
             sessionChannelMap.remove(sessionModel.channel);
     }
@@ -95,11 +102,11 @@ public class SessionHolder {
             sm.channel.writeAndFlush(msgModel);
 
             ReceiptModel recModel = new ReceiptModel();
-            recModel.token = UUIDUtil.getUid();
             recModel.channel = new WeakReference<>(sm.channel);
+            msgModel.sendTime = System.currentTimeMillis();
             recModel.msgModel = msgModel;
             //加入回执缓存
-            SessionHolder.receiptMsg.put(recModel.token, recModel);
+            SessionHolder.receiptMsg.put(recModel.token(), recModel);
         }
     }
 

@@ -7,6 +7,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class GroupMsgModel extends MsgModel {
+    public String groupId;
+    public int cmd;
     //消息的目标uuid
     public Set<String> toSet = new HashSet<>();
 

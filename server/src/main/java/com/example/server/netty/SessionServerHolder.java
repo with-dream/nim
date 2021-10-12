@@ -38,16 +38,15 @@ public class SessionServerHolder {
     }
 
     @Resource
-    private AmqpTemplate rabbit;
+    public AmqpTemplate rabbit;
 
     @Resource
-    private RedisTemplate<String, Object> redisTemplate;
+    public RedisTemplate<String, Object> redisTemplate;
 
     @Resource
-    private UserService userService;
+    public UserService userService;
 
     private Gson gson = new Gson();
-
 
     /**
      * 1 如果所在客户端平台已登录 则强制退出
@@ -75,9 +74,11 @@ public class SessionServerHolder {
         sessionModel.deviceType = cmdMsg.deviceType;
         sessionModel.uuid = cmdMsg.from;
         sessionModel.queueName = ApplicationRunnerImpl.MQ_NAME;
-        L.e("login==>" + cmdMsg.toString());
         //每个客户端平台对应一个登录实例 记录客户端的登录信息以及所在的mq名称 用于消息转发
         that.redisTemplate.opsForHash().put(Const.mqTag(cmdMsg.deviceType), cmdMsg.from, sessionModel);
+        SessionRedisModel tmp = (SessionRedisModel) that.redisTemplate.opsForHash().get(Const.mqTag(cmdMsg.deviceType), cmdMsg.from);
+//        L.p("login redis==>" + tmp);
+//        L.p("getSessionRedis redis==>" + getSessionRedis(Arrays.asList("qqq", "www")));
         //
         that.redisTemplate.opsForSet().add(ApplicationRunnerImpl.MQ_NAME, cmdMsg.from + ":" + cmdMsg.deviceType);
     }
@@ -85,8 +86,8 @@ public class SessionServerHolder {
     public void logout(Channel channel) {
         SessionModel sessionModel = SessionHolder.logout(channel);
         if (sessionModel != null) {
-            that.redisTemplate.opsForHash().put(Const.mqTag(sessionModel.deviceType), sessionModel.uuid, sessionModel);
-            that.redisTemplate.opsForSet().add(ApplicationRunnerImpl.MQ_NAME, sessionModel.uuid + ":" + sessionModel.deviceType);
+            that.redisTemplate.opsForHash().delete(Const.mqTag(sessionModel.deviceType), sessionModel.uuid);
+            that.redisTemplate.opsForSet().remove(ApplicationRunnerImpl.MQ_NAME, sessionModel.uuid + ":" + sessionModel.deviceType);
         } else {
             throw new RuntimeException("关闭channel异常");
         }
@@ -126,8 +127,8 @@ public class SessionServerHolder {
     /**
      * 发送群消息
      */
-    public <T extends GroupMsgModel> int sendGroupMsq(T msg, String timeLintTag) {
-        String timeLineId = StrUtil.getTimeLine(msg.from, msg.to, timeLintTag);
+    public <T extends GroupMsgModel> int sendGroupMsq(T msg) {
+        String timeLineId = "msg_g:" + msg.to;
 
         //获取群信息
         GroupModel groupModel = that.userService.getGroupInfo(msg.groupId);
@@ -179,20 +180,24 @@ public class SessionServerHolder {
      */
     public <T extends BaseMsgModel> int sendMsq(T msg, Channel channel, String timeLintTag, boolean self) {
         //查找接受用户的uuid 获取信息
-        List<String> uuidList = Arrays.asList(msg.to);
+        List<String> uuidList = new ArrayList<>();
+        uuidList.add(msg.to);
         if (!self)
             uuidList.add(msg.from);
         List<SessionRedisModel> sessionList = getSessionRedis(uuidList);
 
         String timeLineId = StrUtil.getTimeLine(msg.from, msg.to, timeLintTag);
 
-        //用户不在线 缓存消息
+        //检查其他服务器是否有此用户
         boolean toEmpty = true;
         for (SessionRedisModel srm : sessionList)
             if (srm.uuid.equals(msg.to)) {
                 toEmpty = false;
                 break;
             }
+        //检查本服务器是否有此用户
+        if (toEmpty)
+            toEmpty = SessionHolder.checkSession(msg.to);
         if (toEmpty) {
             int check = that.userService.checkUser(msg.to);
             if (check == 0) {

@@ -15,7 +15,7 @@ public class MessageEncode extends MessageToByteEncoder<BaseMsgModel> {
         try {
             ss = gson.toJson(o);
         } catch (Exception e) {
-            System.err.println("e==>" + e.toString());
+            System.err.println(String.format("%s  %s", "encode e==>" + e.toString(), o));
         }
         byte[] str = ss.getBytes();
 //        System.err.println("str==>" + o.toString());

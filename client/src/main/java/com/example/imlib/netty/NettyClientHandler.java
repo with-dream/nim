@@ -115,7 +115,7 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 //将回执消息存储
                 ReceiptMsgModel receiptMsgModel = (ReceiptMsgModel) baseMsgModel;
                 switch (receiptMsgModel.cmd) {
-                    case CmdMsgModel.SEND_SUC:
+                    case CmdMsgModel.SERVER_RECEIVED:
                         IMContext.getInstance().receiptMsg.remove(receiptMsgModel.sendMsgId);
                         L.p("消息发送成功==>" + receiptMsgModel.seq);
                         break;

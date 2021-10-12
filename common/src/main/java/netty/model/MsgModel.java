@@ -2,9 +2,8 @@ package netty.model;
 
 import java.io.Serializable;
 
-public class MsgModel extends BaseMsgModel implements Serializable {
+public class MsgModel extends BaseMsgModel {
     public String info;
-    public String groupId;
 
     public static MsgModel createP(String from, String to, int clientToken) {
         MsgModel msgModel = new MsgModel();

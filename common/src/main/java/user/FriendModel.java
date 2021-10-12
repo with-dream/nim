@@ -15,6 +15,8 @@ public class FriendModel {
     public int status;
     public String userInfo;
     public String friendInfo;
+    public boolean isFriend;
+    public boolean isBlock;
 
     @Override
     public String toString() {

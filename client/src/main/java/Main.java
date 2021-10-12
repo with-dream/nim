@@ -20,8 +20,7 @@ import java.util.Scanner;
 
 /**
  * qqq:6f65a65e-bbe6-4bad-b5d2-882b95e091c6/111
- *
- * */
+ */
 public class Main {
     private OkHttpClient okHttpClient = new OkHttpClient();
     private Gson gson = new Gson();
@@ -193,7 +192,7 @@ public class Main {
                         break;
                 }
             } catch (Exception e) {
-                L.e("e==>" + e.getMessage());
+                L.e("main  e==>" + e.getMessage());
             }
         }
 
@@ -235,7 +234,7 @@ public class Main {
         cmdMsgModel.cmd = CmdMsgModel.LOGOUT;
         cmdMsgModel.timestamp = System.currentTimeMillis();
         cmdMsgModel.fromToken = IMContext.getInstance().clientToken;
-        cmdMsgModel.deviceType = CmdMsgModel.ANDROID;
+        cmdMsgModel.deviceType = Constant.ANDROID;
         IMContext.getInstance().logout = true;
 
         ChannelFuture cmdFuture = IMContext.getInstance().channel.writeAndFlush(cmdMsgModel);

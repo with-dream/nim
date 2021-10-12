@@ -39,13 +39,22 @@ public class UserService {
     }
 
     public FriendModel checkFriend(String userId, String friendId, boolean auto) {
+        boolean reversal = false;
         if (auto) {
             String[] user = StrUtil.getStr(userId, friendId);
+            reversal = userId.equals(user[1]);
+
             userId = user[0];
             friendId = user[1];
         }
 
-        return userMapper.checkFriend(userId, friendId);
+        FriendModel model = userMapper.checkFriend(userId, friendId);
+        if (model == null) return null;
+
+        model.isBlock = model.status == FriendModel.FRIEND_BLOCK_EACH || model.status == (reversal ? FriendModel.FRIEND_BLOCK_OTHER : FriendModel.FRIEND_BLOCK_SELF);
+        if (!model.isBlock)
+            model.isFriend = model.status == FriendModel.FRIEND_NORMAL || model.status == (reversal ? FriendModel.FRIEND_OTHER : FriendModel.FRIEND_SELF);
+        return model;
     }
 
     public int addFriend(FriendModel friendModel) {
@@ -69,6 +78,7 @@ public class UserService {
     }
 
     public int addGroupMember(RequestMsgModel msgModel) {
+        //TODO 群成员不应该保存为json
         synchronized (SessionHolder.getSync(String.valueOf(msgModel.groupId))) {
             GroupModel groupModel = userMapper.getGroupInfo(msgModel.groupId);
             if (groupModel != null) {

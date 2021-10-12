@@ -1,9 +1,13 @@
 package com.example.server.service;
 
 import com.example.server.ApplicationRunnerImpl;
+import com.example.server.entity.GroupMsgModel;
+import com.example.server.netty.NettyServerHandler;
 import com.example.server.netty.SessionHolder;
 import com.example.server.netty.SessionModel;
 import com.example.server.netty.SessionServerHolder;
+import com.example.server.redis.TagList;
+import io.netty.channel.Channel;
 import netty.MQWrapper;
 import netty.model.BaseMsgModel;
 import netty.model.MsgType;
@@ -11,71 +15,53 @@ import netty.model.ReceiptModel;
 import netty.model.RequestMsgModel;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import user.FriendModel;
 import user.GroupMapModel;
 import user.GroupModel;
-import utils.Constant;
 import utils.L;
 import utils.StrUtil;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import java.lang.ref.WeakReference;
-import java.nio.channels.Channel;
-import java.util.*;
 
-@Service
+@Component
 public class RequestService {
 
-    @Resource
-    private RedisTemplate<String, Object> redisTemplate;
+    private static RequestService that;
+
+    @PostConstruct
+    public void init() {
+        that = this;
+    }
 
     @Resource
-    private UserService userService;
+    public UserService userService;
 
     @Resource
-    private AmqpTemplate rabbit;
-
-    @Resource
-    private SessionServerHolder holder;
+    public SessionServerHolder holder;
 
     public boolean requestMsg(RequestMsgModel reqMsg, Channel channel) {
         switch (reqMsg.cmd) {
             case RequestMsgModel.REQUEST_FRIEND:
-                requestFriend(reqMsg);
+                requestFriend(reqMsg, channel);
                 break;
             case RequestMsgModel.GROUP_ADD:
-                GroupModel group = userService.getGroupInfo(reqMsg.groupId);
-                //申请群 将目标群指向为群拥有者
+                GroupModel group = that.userService.getGroupInfo(reqMsg.groupId);
+                //TODO 申请群 将目标群指向为群拥有者和群管理 待完善
                 reqMsg.to = group.userId;
-                writeReqMsg(reqMsg);
+                that.holder.sendMsq(reqMsg, channel, TagList.TAG_REQ, true);
+                //TODO 申请群时 需要记录申请状态 保存在mysql中
                 break;
             case RequestMsgModel.GROUP_EXIT:
                 delGroupMember(reqMsg);
                 break;
             case RequestMsgModel.GROUP_DEL:
-                Vector<SessionModel> users = SessionHolder.sessionMap.get(reqMsg.to);
-                if (users == null || users.isEmpty()) {
-                    //TODO 加入缓存
-                    break;
-                }
-
-                for (SessionModel ses : users) {
-                    if (checkSelf(ses.clientToken, reqMsg))
-                        continue;
-                    RequestMsgModel msgModel = RequestMsgModel.create(Constant.SERVER_UID, reqMsg.to, ses.clientToken);
-                    msgModel.groupId = reqMsg.groupId;
-                    msgModel.cmd = RequestMsgModel.GROUP_DEL;
-                    ses.channel.writeAndFlush(msgModel);
-
-                    ReceiptModel receiptMsgModel = new ReceiptModel();
-                    receiptMsgModel.channel = new WeakReference<>(ses.channel);
-                    receiptMsgModel.msgModel = msgModel;
-                    SessionHolder.receiptMsg.put(msgModel.msgId + "" + ses.clientToken, receiptMsgModel);
-                }
+                delGroup(reqMsg);
                 break;
             case RequestMsgModel.GROUP_ADD_AGREE:
-                addGroupMember(reqMsg);
+                addGroupMember(reqMsg, channel);
                 break;
             case RequestMsgModel.REQUEST_FRIEND_AGREE:
                 FriendModel friendModel = new FriendModel();
@@ -83,9 +69,9 @@ public class RequestService {
                 friendModel.userId = user[0];
                 friendModel.friendId = user[1];
                 friendModel.status = 1;
-                int res = userService.addFriend(friendModel);
+                int res = that.userService.addFriend(friendModel);
                 if (res > 0) {
-                    writeReqMsg(reqMsg);
+//                    writeReqMsg(reqMsg);
                 }
                 break;
             case RequestMsgModel.FRIEND_DEL:
@@ -93,7 +79,7 @@ public class RequestService {
             case RequestMsgModel.FRIEND_DEL_BLOCK:
             case RequestMsgModel.FRIEND_DEL_UNBLOCK:
                 FriendModel delModel = new FriendModel();
-                FriendModel resCheck = userService.checkFriend(delModel.userId, delModel.friendId, true);
+                FriendModel resCheck = that.userService.checkFriend(delModel.userId, delModel.friendId, true);
                 //如果是双向好友
                 if (resCheck.status == FriendModel.FRIEND_NORMAL) {
                     if (RequestMsgModel.FRIEND_DEL == reqMsg.cmd)
@@ -117,10 +103,10 @@ public class RequestService {
                         delModel.status = FriendModel.FRIEND_DEL_EACH;
                 }
 
-                int delRes = userService.delFriend(delModel);
+                int delRes = that.userService.delFriend(delModel);
                 if (delRes > 0) {
                     reqMsg.status = delModel.status;
-                    writeReqMsg(reqMsg);
+//                    writeReqMsg(reqMsg);
                 }
                 break;
         }
@@ -128,74 +114,64 @@ public class RequestService {
         return true;
     }
 
-    private void requestFriend(RequestMsgModel msgModel) {
-        FriendModel friendModel = userService.checkFriend(msgModel.from, msgModel.to, true);
-        if (friendModel != null && friendModel.status == ) {
-            msgModel.cmd = RequestMsgModel.REQUEST_FRIEND_FRIEND;
-//            channel.writeAndFlush(msgModel);
+    private void requestFriend(RequestMsgModel msgModel, Channel channel) {
+        FriendModel friendModel = that.userService.checkFriend(msgModel.from, msgModel.to, true);
+        //空表示不是好友 且没有被拉黑
+        if (friendModel == null || (!friendModel.isFriend && !friendModel.isBlock)) {
+            that.holder.sendMsq(msgModel, channel, TagList.TAG_REQ, true);
             return;
         }
-
-        writeReqMsg(msgModel);
     }
 
     //加入群
-    private void addGroupMember(RequestMsgModel msgModel) {
-        int res = userService.addGroupMember(msgModel);
+    private void addGroupMember(RequestMsgModel msgModel, Channel channel) {
+        int res = that.userService.addGroupMember(msgModel);
         if (res == 0) {
             GroupMapModel groupModel = new GroupMapModel();
             groupModel.userId = msgModel.to;
             groupModel.groupId = msgModel.groupId;
             L.p("member==>" + groupModel.toString());
-            res = userService.addMapGroup(groupModel);
+            res = that.userService.addMapGroup(groupModel);
             if (res != 1)
                 L.e("addGroupMember==>失败");
-            writeReqMsg(msgModel);
+            that.holder.sendMsq(msgModel, channel, TagList.TAG_REQ, false);
         } else
             L.e("加入群错误");
     }
 
-    //退群
+    //TODO 退群 sql不合理
     private void delGroupMember(RequestMsgModel msgModel) {
-        GroupModel res = userService.delGroupMember(msgModel);
+        GroupModel res = that.userService.delGroupMember(msgModel);
         if (res != null) {
-            int resDel = userService.delMapGroup(msgModel.from);
+            int resDel = that.userService.delMapGroup(msgModel.from);
             if (resDel != 1)
                 L.e("delGroupMember==>失败");
 
-            msgModel.to = res.userId;
-            Map<String, MQMapModel> mapGModel = (Map<String, MQMapModel>) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, msgModel.to);
-            Set<String> tmpSet = new HashSet<>();
-            for (MQMapModel value : mapGModel.values()) {
-                if (tmpSet.contains(value.queueName))
-                    continue;
-                tmpSet.add(value.queueName);
-
-                rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(MsgType.MSG_CMD_REQ, gson.toJson(msgModel))));
-            }
+            GroupMsgModel groupMsgModel = GroupMsgModel.createG(msgModel.from, msgModel.groupId);
+            groupMsgModel.fromToken = msgModel.fromToken;
+            groupMsgModel.deviceType = msgModel.deviceType;
+            groupMsgModel.cmd = RequestMsgModel.GROUP_EXIT;
+            that.holder.sendGroupMsq(groupMsgModel);
         } else
             L.e("退群错误");
     }
 
-    private void writeReqMsg(RequestMsgModel msgModel) {
-        List<SessionModel> sessionModel = SessionHolder.sessionMap.get(msgModel.to);
-        if (sessionModel == null) {
-            int res = userService.checkUser(msgModel.to);
-            if (res == 0) {
-                System.err.println("==>requestFriend res 好友的uid为空");
-                msgModel.cmd = RequestMsgModel.REQUEST_FRIEND_NOBODY;
-//                channel.writeAndFlush(msgModel);//TODO
-            }
+    //TODO 退群 sql不合理
+    //解散群
+    private void delGroup(RequestMsgModel msgModel) {
+        GroupModel res = that.userService.delGroupMember(msgModel);
+        if (res != null) {
+            int resDel = that.userService.delMapGroup(msgModel.from);
+            if (resDel != 1)
+                L.e("delGroupMember==>失败");
 
-            //加入缓存 用户登录时 直接拉取数据
-            redisTemplate.opsForList().rightPush(String.valueOf(msgModel.to), msgModel);
-        } else {
-            for (SessionModel session : sessionModel) {
-                if (checkSelf(session.clientToken, msgModel))
-                    continue;
-                session.channel.writeAndFlush(msgModel);
-            }
-        }
+            GroupMsgModel groupMsgModel = GroupMsgModel.createG(msgModel.from, msgModel.groupId);
+            groupMsgModel.fromToken = msgModel.fromToken;
+            groupMsgModel.deviceType = msgModel.deviceType;
+            groupMsgModel.cmd = RequestMsgModel.GROUP_DEL;
+            that.holder.sendGroupMsq(groupMsgModel);
+        } else
+            L.e("退群错误");
     }
 
     private boolean checkSelf(int token, BaseMsgModel msg) {

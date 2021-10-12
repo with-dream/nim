@@ -17,8 +17,8 @@ public class Constant {
     public static final int IPHONE = 13;
     public static final int ANDROID = 14;
 
-    public static int mapDevice(int deviceInfo) {
-        switch (deviceInfo) {
+    public static int mapDevice(int deviceType) {
+        switch (deviceType) {
             case MAC:
             case WINDOW:
             case LINUX:
@@ -29,7 +29,7 @@ public class Constant {
             case WEB:
                 return WEB;
             default:
-                throw new RuntimeException("mapDevice==>未知类型  deviceInfo:" + deviceInfo);
+                throw new RuntimeException("mapDevice==>未知类型  deviceInfo:" + deviceType);
         }
     }
 

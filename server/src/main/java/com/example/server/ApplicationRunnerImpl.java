@@ -5,6 +5,7 @@ import com.example.server.netty.SessionModel;
 import com.example.server.rabbitmq.DynamicManagerQueueService;
 import com.example.server.rabbitmq.QueueDto;
 import com.example.server.rabbitmq.RabbitListener;
+import com.example.server.utils.Const;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -56,34 +57,15 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
         }
     }
 
+    //重新绑定mq 需要将redis中的缓存数据清除
     private void clearMQ() {
-        Set<Object> mqMap = redisTemplate.opsForSet().members(ApplicationRunnerImpl.MQ_NAME);
-        if (mqMap != null && !mqMap.isEmpty()) {
-            for (Object item : mqMap) {
-                String[] uuidToken = ((String) item).split(":");
-
-                boolean flag = false;
-                Vector<SessionModel> sess = SessionHolder.sessionMap.get(uuidToken[0]);
-                if (sess != null && !sess.isEmpty())
-                    for (SessionModel model : sess)
-                        if (model.clientToken == Integer.parseInt(uuidToken[1])) {
-                            flag = true;
-                            break;
-                        }
-                if (flag)
-                    continue;
-
-                Map<Integer, MQMapModel> map = (Map) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, uuidToken[0]);
-                if (map != null) {
-                    map.remove(Integer.parseInt(uuidToken[1]));
-                }
-
-                if (map == null || map.isEmpty())
-                    redisTemplate.opsForHash().delete(ApplicationRunnerImpl.MQ_TAG, uuidToken[0]);
-                else
-                    redisTemplate.opsForHash().put(ApplicationRunnerImpl.MQ_TAG, uuidToken[0], map);
-
-                redisTemplate.opsForSet().remove(ApplicationRunnerImpl.MQ_NAME, item);
+        Set<Object> cacheUUid = redisTemplate.opsForSet().members(ApplicationRunnerImpl.MQ_NAME);
+        if (cacheUUid != null && !cacheUUid.isEmpty()) {
+            for (Object obj : cacheUUid) {
+                String[] item = ((String) obj).split(":");
+                String uuid = item[0];
+                int deviceType = Integer.valueOf(item[1]);
+                redisTemplate.opsForHash().delete(Const.mqTag(deviceType), uuid);
             }
         }
     }

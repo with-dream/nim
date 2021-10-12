@@ -1,8 +1,6 @@
 package netty.model;
 
-import java.io.Serializable;
-
-public class RequestMsgModel extends BaseMsgModel implements Serializable {
+public class RequestMsgModel extends BaseMsgModel {
     public static final int REQUEST_FRIEND = 2;
     public static final int REQUEST_FRIEND_AGREE = 4;
     public static final int REQUEST_FRIEND_REFUSE = 5;

@@ -15,8 +15,7 @@ public class SessionHolder {
     public static final ConcurrentHashMap<String, Vector<SessionModel>> sessionMap = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<Channel, String> sessionChannelMap = new ConcurrentHashMap<>();
 
-    //key is send msgId+clientToken
-    public static final  ConcurrentHashMap<String, ReceiptModel> receiptMsg = new ConcurrentHashMap<>();
+    public static final  ConcurrentHashMap<Integer, ReceiptModel> receiptMsg = new ConcurrentHashMap<>();
 
     public static void login(Channel channel, BaseMsgModel msgModel) {
         SessionModel sessionModel = new SessionModel();
@@ -36,7 +35,7 @@ public class SessionHolder {
         sessionChannelMap.put(channel, msgModel.from);
     }
 
-    public static void unlogin(Channel channel) {
+    public static void logout(Channel channel) {
         String uuid = sessionChannelMap.remove(channel);
         if (uuid == null)
             return;

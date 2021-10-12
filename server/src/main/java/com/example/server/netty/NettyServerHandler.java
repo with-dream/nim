@@ -114,7 +114,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                         sendOfflineMsg(cmdMsg.from);
                         break;
                     case CmdMsgModel.LOGOUT:
-                        SessionHolder.unlogin(ctx.channel());
+                        SessionHolder.logout(ctx.channel());
                         sendRabbitLogin(cmdMsg);
                         ctx.channel().close();
                         break;

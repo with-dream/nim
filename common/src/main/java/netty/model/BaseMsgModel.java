@@ -30,7 +30,7 @@ public class BaseMsgModel implements Cloneable, Serializable {
     public long timeLine;
     //消息id 保证唯一 规则
     public long msgId;
-    //设备token 用于标记平台的客户端
+    //设备token 用于标记客户端平台
     public int fromToken;
     public int toToken;
     //发送者uuid

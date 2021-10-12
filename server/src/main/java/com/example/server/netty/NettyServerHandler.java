@@ -1,9 +1,9 @@
 package com.example.server.netty;
 
 import com.example.server.ApplicationRunnerImpl;
-import com.example.server.entity.MQMapModel;
-import com.example.server.redis.RedissonUtil;
+import com.example.server.entity.GroupMsgModel;
 import com.example.server.service.UserService;
+import com.example.server.utils.Const;
 import com.google.gson.Gson;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -18,11 +18,13 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import user.*;
 import utils.Constant;
+import utils.Errcode;
 import utils.L;
 import utils.StrUtil;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -34,8 +36,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel> {
     private static final int TRY_COUNT_MAX = 5;
-    public static final String MSGID_MAP = "msg_map:";
-    public static final String MSGID_OFFLINE = "offline_msgid:";
+
     public static final int WEEK_SECOND = 7 * 24 * 60 * 60;
     public static final int MONTH_SECOND = 30 * 24 * 60 * 60;
     private Gson gson = new Gson();
@@ -46,11 +47,12 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
     @Resource
     private UserService userService;
 
-    private RedissonUtil redissonUtil = new RedissonUtil();
+    @Resource
+    private SessionServerHolder holder;
 
     private static NettyServerHandler that;
 
-    @Autowired
+    @Resource
     private AmqpTemplate rabbit;
 
     @PostConstruct
@@ -62,7 +64,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         super.channelInactive(ctx);
 
-        closeChannle(ctx);
+        holder.logout(ctx.channel());
     }
 
     @Override
@@ -94,10 +96,10 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
     protected void channelRead0(ChannelHandlerContext ctx, BaseMsgModel baseMsgModel) {
         if (!(baseMsgModel instanceof CmdMsgModel) || ((CmdMsgModel) baseMsgModel).cmd != CmdMsgModel.HEART) {
 //            L.p("channelRead0==>" + baseMsgModel.toString());
-            //除心跳包以外 都要回复一个收到消息
+            //除心跳包以外 每收到一个消息都要回复服务端已收到
             ReceiptMsgModel recvModel = ReceiptMsgModel.create(Constant.SERVER_UID, baseMsgModel.to, baseMsgModel.msgId, Constant.SERVER_TOKEN);
             recvModel.sendMsgType = baseMsgModel.type;
-            recvModel.cmd = CmdMsgModel.SEND_SUC;
+            recvModel.cmd = CmdMsgModel.SERVER_RECEIVED;
             ctx.channel().write(recvModel);
         }
 
@@ -106,17 +108,11 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 CmdMsgModel cmdMsg = (CmdMsgModel) baseMsgModel;
                 switch (cmdMsg.cmd) {
                     case CmdMsgModel.LOGIN:
-                        SessionHolder.login(ctx.channel(), baseMsgModel);
-                        System.err.println("channelRead0 login==>" + baseMsgModel.toString());
-
-                        sendRabbitLogin(cmdMsg);
-
-                        sendOfflineMsg(cmdMsg.from);
+                        holder.login(ctx.channel(), cmdMsg);
+                        holder.sendOfflineMsg(cmdMsg.from);
                         break;
                     case CmdMsgModel.LOGOUT:
-                        SessionHolder.logout(ctx.channel());
-                        sendRabbitLogin(cmdMsg);
-                        ctx.channel().close();
+                        holder.logout(ctx.channel());
                         break;
                     case CmdMsgModel.HEART:
                         cmdMsg.to = cmdMsg.from;
@@ -124,145 +120,162 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
                         ctx.channel().writeAndFlush(cmdMsg);
                         break;
                     default:
-                        Map<String, MQMapModel> reqMap = (Map<String, MQMapModel>) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, cmdMsg.to);
-                        if (reqMap == null) {
-                            int check = that.userService.checkUser(cmdMsg.to);
-                            if (check == 0) {
-                                //TODO 如果uuid不存在 则丢弃 否则缓存
-                                System.err.println("不存在的uuid cmd==>" + cmdMsg.to);
-                                break;
-                            }
-                        }
 
-                        sendMQ(reqMap, MsgType.MSG_CMD, cmdMsg);
                         break;
                 }
                 break;
             case MsgType.MSG_CMD_REQ:
                 RequestMsgModel reqMsg = (RequestMsgModel) baseMsgModel;
-                String timeLineIDReq = StrUtil.getTimeLine(reqMsg.from, reqMsg.to, "msg_r");
+//                String timeLineID = StrUtil.getTimeLine(reqMsg.from, reqMsg.to, "msg_req");
+                holder.sendMsq(reqMsg, ctx.channel(), "msg_req", true);
 
-                Map<String, MQMapModel> reqMap = (Map<String, MQMapModel>) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, reqMsg.to);
-                if (reqMap == null || reqMap.isEmpty()) {
-                    int check = that.userService.checkUser(reqMsg.to);
-                    if (check == 0) {
-                        //TODO 如果uuid不存在 则丢弃 否则缓存
-                        System.err.println("不存在的uuid  MSG_CMD_REQ==>" + reqMsg.to);
-                        break;
-                    }
-                    baseMsgModel.status = BaseMsgModel.OFFLINE;
-                    saveOfflineMsgId(ctx.channel(), baseMsgModel, timeLineIDReq);
-                }
-
-                sendMQ(reqMap, MsgType.MSG_CMD_REQ, reqMsg);
-
-                saveMsg(timeLineIDReq, baseMsgModel);
+//                //查找接受用户的uuid 获取信息
+//                List<SessionRedisModel> reqSession = holder.getSessionRedis(Collections.singletonList(reqMsg.to));
+//                //用户不在线 缓存消息
+//                if (reqSession.isEmpty()) {
+//                    int check = that.userService.checkUser(reqMsg.to);
+//                    if (check == 0) {
+//                        //TODO 如果uuid不存在 则丢弃 否则缓存
+//                        System.err.println("不存在的uuid  MSG_CMD_REQ==>" + reqMsg.to);
+//                        resCode = Errcode.NOBODY;
+//                        break;
+//                    }
+//                    reqMsg.status = BaseMsgModel.OFFLINE;
+//                    String timeLineID = StrUtil.getTimeLine(reqMsg.from, reqMsg.to, "msg_req");
+//                    holder.saveOfflineMsgId(ctx.channel(), reqMsg, timeLineID);
+//                    resCode = Errcode.OFFLINE;
+//                    break;
+//                }
+//
+//                SessionHolder.sendMsg(reqMsg, false);
+//
+//                //转发到其他服务器
+//                Set<String> queueTmpReq = new HashSet<>();
+//                //去除本服务器
+//                queueTmpReq.add(ApplicationRunnerImpl.MQ_NAME);
+//                for (SessionRedisModel session : reqSession) {
+//                    //如果多个客户端在同一个服务器 只需要发送一份
+//                    if (queueTmpReq.contains(session.queueName))
+//                        continue;
+//                    queueTmpReq.add(session.queueName);
+//
+//                    that.rabbit.convertAndSend(session.queueName, gson.toJson(new MQWrapper(MsgType.MSG_CMD_REQ, gson.toJson(reqMsg))));
+//                }
                 break;
             case MsgType.MSG_PERSON:
                 baseMsgModel.timestamp = System.currentTimeMillis();
-                MsgModel person = (MsgModel) baseMsgModel;
-                String timeLineID = StrUtil.getTimeLine(person.from, person.to, "msg_p");
-
-                Map<String, MQMapModel> mapPModelTo = (Map) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, person.to);
-                Map<String, MQMapModel> mapPModelFrom = (Map) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, person.from);
-                if (mapPModelTo == null || mapPModelTo.isEmpty()) {
-                    int check = that.userService.checkUser(person.to);
-                    if (check == 0) {
-                        //TODO 如果uuid不存在 则丢弃 否则缓存
-                        System.err.println("不存在的uuid MSG_PERSON==>" + person.to);
-                        break;
-                    }
-
-                    baseMsgModel.status = BaseMsgModel.OFFLINE;
-                    saveOfflineMsgId(ctx.channel(), baseMsgModel, timeLineID);
-                } else {
-                    sendMQ(mapPModelTo, MsgType.MSG_PERSON, person);
-                }
-
-                sendMQ(mapPModelFrom, MsgType.MSG_PERSON, person, MQWrapper.SELF);
-
-                //缓存消息
-                saveMsg(timeLineID, baseMsgModel);
+                MsgModel perMsg = (MsgModel) baseMsgModel;
+                holder.sendMsq(perMsg, ctx.channel(), "msg_person", true);
+//                //查找接受用户的uuid 获取信息
+//                List<SessionRedisModel> perSession = holder.getSessionRedis(Arrays.asList(perMsg.to, perMsg.from));
+//
+//                //用户不在线 缓存消息
+//                boolean toEmpty = true;
+//                for (SessionRedisModel srm : perSession)
+//                    if (srm.uuid.equals(perMsg.to)) {
+//                        toEmpty = false;
+//                        break;
+//                    }
+//                if (toEmpty) {
+//                    int check = that.userService.checkUser(perMsg.to);
+//                    if (check == 0) {
+//                        //TODO 如果uuid不存在 则丢弃 否则缓存
+//                        System.err.println("不存在的uuid  MSG_CMD_REQ==>" + perMsg.to);
+//                        resCode = Errcode.NOBODY;
+//                        break;
+//                    }
+//                    perMsg.status = BaseMsgModel.OFFLINE;
+//                String timeLineId = StrUtil.getTimeLine(perMsg.from, perMsg.to, "msg_per");
+//                    holder.saveOfflineMsgId(ctx.channel(), perMsg, timeLineID);
+//                    resCode = Errcode.OFFLINE;
+//                    break;
+//                }
+//
+//                SessionHolder.sendMsg(perMsg, true);
+//
+//                //转发到其他服务器
+//                Set<String> queueTmpPer = new HashSet<>();
+//                //去除本服务器
+//                queueTmpPer.add(ApplicationRunnerImpl.MQ_NAME);
+//                for (SessionRedisModel session : perSession) {
+//                    //如果多个客户端在同一个服务器 只需要发送一份
+//                    if (queueTmpPer.contains(session.queueName))
+//                        continue;
+//                    queueTmpPer.add(session.queueName);
+//
+//                    that.rabbit.convertAndSend(session.queueName, gson.toJson(new MQWrapper(perMsg.type, gson.toJson(perMsg))));
+//                }
+//                //缓存消息
+//                holder.saveMsg(timeLineID, baseMsgModel);
                 break;
             case MsgType.MSG_GROUP:
                 baseMsgModel.timestamp = System.currentTimeMillis();
                 String groupLine = "msg_g:" + baseMsgModel.to;
-                MsgModel msgModel = (MsgModel) baseMsgModel;
-                GroupModel groupModel = that.userService.getGroupInfo(msgModel.groupId);
-                List<GroupMember> members = groupModel.getMembers(gson);
-                Set<String> tmpGSet = new HashSet();
-
-                for (GroupMember m : members) {
-                    Map<String, MQMapModel> mapGModel = (Map<String, MQMapModel>) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, m.userId);
-                    if (mapGModel == null) {
-                        int check = that.userService.checkGroup(m.userId);
-                        if (check == 0) {
-                            //TODO 如果groupId不存在 则丢弃 否则缓存
-                            System.err.println("不存在的uuid  MSG_GROUP==>" + m.userId);
-                            break;
-                        }
-
-                        baseMsgModel.status = BaseMsgModel.OFFLINE;
-                        saveOfflineMsgId(ctx.channel(), baseMsgModel, groupLine);
-                    } else {
-                        mapGModel.clear();
-
-                        boolean self = m.userId.equals(baseMsgModel.from);
-                        for (MQMapModel value : mapGModel.values()) {
-                            if (self && value.clientToken == baseMsgModel.fromToken)
-                                continue;
-                            if (tmpGSet.contains(value.queueName))
-                                continue;
-                            tmpGSet.add(value.queueName);
-
-                            msgModel.to = value.uuid;
-                            L.p("handler sendMQ MSG_GROUP mq:" + value.queueName + "  " + msgModel.toString());
-                            that.rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(MsgType.MSG_GROUP, gson.toJson(msgModel), self ? 1 : 0)));
-                        }
-                    }
-                }
-
-                saveMsg(groupLine, baseMsgModel);
+                GroupMsgModel msgModel = (GroupMsgModel) baseMsgModel;
+                holder.sendGroupMsq(msgModel, "msg_group");
+//                //获取群信息
+//                GroupModel groupModel = that.userService.getGroupInfo(msgModel.groupId);
+//                if (groupModel == null) {
+//                    int check = that.userService.checkGroup(groupModel.userId);
+//                    if (check == 0) {
+//                        //TODO 如果groupId不存在 则丢弃 否则缓存
+//                        System.err.println("不存在的uuid  MSG_GROUP==>" + groupModel.userId);
+//                        break;
+//                    }
+//                }
+//                //获取群成员
+//                List<GroupMember> members = groupModel.getMembers(gson);
+//                List<String> uuidList = new ArrayList<>();
+//                for (GroupMember m : members)
+//                    uuidList.add(m.userId);
+//                //获取所有的在线成员 并将相同queueName的成员
+//                List<SessionRedisModel> memSessionList = holder.getSessionRedis(uuidList);
+//                if (!memSessionList.isEmpty()) {
+//                    Map<String, GroupMsgModel> gMap = new HashMap<>();
+//                    for (SessionRedisModel srm : memSessionList) {
+//                        //先推送连接本服务器的客户端
+//                        if (srm.queueName.equals(ApplicationRunnerImpl.MQ_NAME)
+//                                && srm.clientToken != msgModel.fromToken) {
+//                            GroupMsgModel groupMsg = GroupMsgModel.createG(msgModel.from, srm.uuid);
+//                            SessionHolder.sendMsg(groupMsg, false);
+//                        } else {
+//                            //将相同服务器的所有目标uuid打包 统一发送
+//                            GroupMsgModel gmm = gMap.get(srm.queueName);
+//                            if (gmm == null) {
+//                                gmm = new GroupMsgModel();
+//                                gMap.put(srm.queueName, gmm);
+//                            }
+//                            gmm.toSet.add(srm.uuid);
+//                        }
+//                    }
+//                    //发送到其他服务器
+//                    for (Map.Entry<String, GroupMsgModel> entry : gMap.entrySet())
+//                        that.rabbit.convertAndSend(entry.getKey(), gson.toJson(new MQWrapper(MsgType.MSG_CMD_REQ, gson.toJson(entry.getValue()))));
+//                }
+//
+//                holder.saveMsg(groupLine, baseMsgModel);
                 break;
+            //回执消息
             case MsgType.MSG_RECEIPT:
                 ReceiptMsgModel recModel = (ReceiptMsgModel) baseMsgModel;
-                Map<String, MQMapModel> recMap = (Map<String, MQMapModel>) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, recModel.to);
-                if (recMap == null) {
-                    int check = that.userService.checkUser(recModel.to);
-                    if (check == 0) {
-                        //TODO 如果uuid不存在 则丢弃 否则缓存
-                        System.err.println("不存在的uuid  MSG_RECEIPT==>" + recModel.to);
-                        break;
-                    }
 
-                    baseMsgModel.status = BaseMsgModel.OFFLINE;
-                }
-
+                String timeLineTag = "tmp";
                 switch (recModel.sendMsgType) {
                     case MsgType.MSG_PERSON:
-                        String timeLineP = StrUtil.getTimeLine(recModel.from, recModel.to, "msg_p");
-                        saveMsg(timeLineP, recModel);
-
-                        saveOfflineMsgId(ctx.channel(), recModel, timeLineP);
+                        timeLineTag = "msg_p";
                         break;
                     case MsgType.MSG_GROUP:
-                        String timeLineG = StrUtil.getTimeLine(recModel.from, recModel.to, "msg_g");
-                        saveMsg(timeLineG, recModel);
-
-                        saveOfflineMsgId(ctx.channel(), recModel, timeLineG);
+                        timeLineTag = "msg_g";
                         break;
                     case MsgType.MSG_PACK:
                         //TODO 删除离线id
                         break;
                     case MsgType.MSG_CMD_REQ:
-                        String timeLineR = StrUtil.getTimeLine(recModel.from, recModel.to, "msg_r");
-                        saveMsg(timeLineR, recModel);
-
-                        saveOfflineMsgId(ctx.channel(), recModel, timeLineR);
+                        timeLineTag = "msg_r";
                         break;
                 }
 
-                sendMQ(recMap, MsgType.MSG_RECEIPT, recModel);
+                holder.sendMsq(recModel, ctx.channel(), timeLineTag, false);
                 break;
             default:
                 L.e("未定义指令==>" + baseMsgModel.toString());
@@ -277,7 +290,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
             IdleStateEvent idleStateEvent = (IdleStateEvent) evt;
 
             if (idleStateEvent.state() == IdleState.READER_IDLE) {
-                closeChannle(ctx);
+                holder.logout(ctx.channel());
             }
         }
     }
@@ -288,164 +301,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         //TODO 将崩溃放入日志
-        closeChannle(ctx);
+        holder.logout(ctx.channel());
         cause.printStackTrace();
-    }
-
-    private void closeChannle(ChannelHandlerContext ctx) {
-        String uuid = SessionHolder.sessionChannelMap.remove(ctx.channel());
-        if (uuid == null)
-            return;
-        Vector<SessionModel> session = SessionHolder.sessionMap.get(uuid);
-        session.removeIf(model -> {
-            if (model.channel == ctx.channel()) {
-
-                logout(model.clientToken, uuid);
-
-                return true;
-            }
-            return false;
-        });
-
-        ctx.close();
-    }
-
-    private void sendMQ(Map<String, MQMapModel> mqMap, int type, BaseMsgModel msg) {
-        this.sendMQ(mqMap, type, msg, 0);
-    }
-
-    private void sendMQ(Map<String, MQMapModel> mqMap, int type, BaseMsgModel msg, int self) {
-        Set<String> queueSet = new HashSet<>();
-        L.p("==>sendMQ");
-        for (MQMapModel value : mqMap.values()) {
-//            L.p("handler sendMQ mq:" + value.queueName + "  " + msg.toString());
-            if (queueSet.contains(value.queueName))
-                continue;
-            if (value.clientToken == msg.fromToken && msg.type != MsgType.MSG_PACK)
-                continue;
-            queueSet.add(value.queueName);
-
-            L.p("handler sendMQ mq  111:" + value.queueName + "  " + msg.toString());
-
-            that.rabbit.convertAndSend(value.queueName, gson.toJson(new MQWrapper(type, gson.toJson(msg), self)));
-        }
-    }
-
-    private void sendRabbitLogin(CmdMsgModel cmdMsg) {
-        if (cmdMsg.cmd == CmdMsgModel.LOGIN) {
-            login(cmdMsg);
-        } else if (cmdMsg.cmd == CmdMsgModel.LOGOUT) {
-            logout(cmdMsg.fromToken, cmdMsg.from);
-        }
-    }
-
-    private void login(CmdMsgModel cmdMsg) {
-//        RLock lock = redissonUtil.getLock(cmdMsg.from);
-//        lock.lock();
-        Map<Integer, MQMapModel> map = (Map) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, cmdMsg.from);
-        if (cmdMsg.cmd == CmdMsgModel.LOGIN) {
-            if (map == null || (map.isEmpty() && !(map instanceof HashMap)))
-                map = new HashMap<>();
-            //TODO 客户端唯一登录 需要踢掉已登录用户
-            MQMapModel mapModel = new MQMapModel();
-            mapModel.uuid = cmdMsg.from;
-            mapModel.queueName = ApplicationRunnerImpl.MQ_NAME;
-            mapModel.clientToken = cmdMsg.fromToken;
-            mapModel.deviceType = cmdMsg.deviceType;
-            map.put(mapModel.clientToken, mapModel);
-            L.e("login==>" + cmdMsg.toString());
-            that.redisTemplate.opsForHash().put(ApplicationRunnerImpl.MQ_TAG, cmdMsg.from, map);
-            that.redisTemplate.opsForSet().add(ApplicationRunnerImpl.HOST_NAME, cmdMsg.from + ":" + cmdMsg.fromToken);
-        }
-//        lock.unlock();
-    }
-
-    public void logout(long token, String uuid) {
-//        RLock lock = redissonUtil.getLock(cmdMsg.from);
-//        lock.lock();
-        Map<Integer, MQMapModel> map = (Map) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, uuid);
-        if (map != null) {
-            map.remove(token);
-        }
-
-        if (map == null || map.isEmpty())
-            that.redisTemplate.opsForHash().delete(ApplicationRunnerImpl.MQ_TAG, uuid);
-        else
-            that.redisTemplate.opsForHash().put(ApplicationRunnerImpl.MQ_TAG, uuid, map);
-
-        that.redisTemplate.opsForList().remove(ApplicationRunnerImpl.HOST_NAME, 1, uuid + ":" + token);
-
-//        lock.unlock();
-    }
-
-    private boolean saveMsg(String timeLine, BaseMsgModel msgModel) {
-        Long index = that.redisTemplate.opsForList().rightPush(timeLine, msgModel);
-        if (index == null) {
-            L.e("saveMsg==>存储消息失败");
-            return false;
-        }
-        that.redisTemplate.opsForList().rightPush(MSGID_MAP + timeLine, msgModel.msgId);
-
-        return true;
-    }
-
-    private boolean saveOfflineMsgId(Channel channel, BaseMsgModel msgModel, String timeLine) {
-        if (msgModel.status == BaseMsgModel.OFFLINE) {
-            that.redisTemplate.opsForHash().put(MSGID_OFFLINE + msgModel.to, msgModel.msgId, timeLine);
-
-            //TODO 离线回复已发送 可以和SEND_SUC一起回复
-            ReceiptMsgModel receiptModel = ReceiptMsgModel.create(msgModel.to, msgModel.from, msgModel.msgId, Constant.SERVER_TOKEN);
-            receiptModel.cmd = CmdMsgModel.RECEIVED;
-            receiptModel.sendMsgType = msgModel.type;
-            receiptModel.toToken = msgModel.fromToken;
-            channel.writeAndFlush(receiptModel);
-        }
-        return true;
-    }
-
-    private void sendOfflineMsg(String uuid) {
-        Map<Object, Object> offMsg = that.redisTemplate.opsForHash().entries(MSGID_OFFLINE + uuid);
-        if (offMsg.isEmpty())
-            return;
-        PackMsgModel msgModel = PackMsgModel.create(Constant.SERVER_UID, uuid, Constant.SERVER_TOKEN);
-
-        Map<String, List<Long>> tmpMap = new HashMap<>();
-        for (Map.Entry<Object, Object> entry : offMsg.entrySet()) {
-            String timeline = (String) entry.getValue();
-            List<Long> list = tmpMap.computeIfAbsent(timeline, k -> new ArrayList<>());
-            list.add((Long) entry.getKey());
-        }
-
-        for (Map.Entry<String, List<Long>> entry : tmpMap.entrySet()) {
-            String timeLineMap = MSGID_MAP + entry.getKey();
-            String timeLineMsg = entry.getKey();
-            List<Long> list = tmpMap.get(entry.getKey());
-            for (long msgId : list) {
-                Long index = that.redisTemplate.opsForList().indexOf(timeLineMap, msgId);
-                if (index == null) continue;
-
-                BaseMsgModel msg = (BaseMsgModel) that.redisTemplate.opsForList().index(timeLineMsg, index);
-                if (msg != null) {
-//                    msgModel.addMsg(gson.toJson(msg));
-                } else {
-                    L.e("sendOfflineMsg获取msg为null==>" + index);
-                }
-
-            }
-        }
-
-        L.e("sendOfflineMsg==>" + msgModel.toString());
-
-        Map<String, MQMapModel> mapModel = (Map) that.redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, uuid);
-        if (mapModel == null) {
-            int check = that.userService.checkUser(uuid);
-            if (check == 0) {
-                //TODO 如果uuid不存在 则丢弃 否则缓存
-                System.err.println("不存在的uuid sendOfflineMsg==>" + uuid);
-            }
-        }
-
-        L.p("MSG_PACK==>" + msgModel.toString());
-        sendMQ(mapModel, MsgType.MSG_PACK, msgModel);
     }
 }

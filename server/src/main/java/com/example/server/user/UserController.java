@@ -2,7 +2,6 @@ package com.example.server.user;
 
 import com.example.server.ApplicationRunnerImpl;
 import com.example.server.ServerList;
-import com.example.server.entity.MQMapModel;
 import com.example.server.entity.UserModel;
 import com.example.server.entity.UserResultModel;
 import com.example.server.service.UserService;
@@ -64,20 +63,30 @@ public class UserController {
 
             long s = System.currentTimeMillis();
             //TODO 需要redisson分布式锁
-            Map<Integer, MQMapModel> map = (Map) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, result.uuid);
-            L.e("redis==>" + (System.currentTimeMillis() - s));
-            if (map != null && !map.isEmpty()) {
-                for (MQMapModel mapModel : map.values()) {
-                    if (mapModel.deviceType == deviceType) {
-                        //TODO 踢下线操作
-                        break;
-                    }
-                }
-            }
+//            Map<Integer, MQMapModel> map = (Map) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, result.uuid);
+//            L.e("redis==>" + (System.currentTimeMillis() - s));
+//            if (map != null && !map.isEmpty()) {
+//                for (MQMapModel mapModel : map.values()) {
+//                    if (mapModel.deviceType == deviceType) {
+//                        //TODO 踢下线操作
+//                        break;
+//                    }
+//                }
+//            }
         }
 
         result.code = 0;
         String res = gson.toJson(result);
+        System.out.println("==>" + res);
+
+        return res;
+    }
+
+    @RequestMapping(value = "/server_list")
+    public String serverList() {
+        ServiceListModel slm = new ServiceListModel();
+        slm.serviceList = Constant.SERVER_LIST;
+        String res = gson.toJson(slm);
         System.out.println("==>" + res);
 
         return res;

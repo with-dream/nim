@@ -3,6 +3,7 @@ package com.example.server.service;
 import com.example.server.entity.UserResultModel;
 import com.example.server.mapper.UserMapper;
 import com.example.server.entity.UserModel;
+import com.example.server.netty.SessionHolder;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import netty.model.GroupMember;
@@ -14,12 +15,13 @@ import user.GroupMapModel;
 import user.GroupModel;
 import utils.StrUtil;
 
+import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class UserService {
-    @Autowired
+    @Resource
     public UserMapper userMapper;
 
     private Gson gson = new Gson();
@@ -67,7 +69,7 @@ public class UserService {
     }
 
     public int addGroupMember(RequestMsgModel msgModel) {
-        synchronized (String.valueOf(msgModel.groupId).intern()) {
+        synchronized (SessionHolder.getSync(String.valueOf(msgModel.groupId))) {
             GroupModel groupModel = userMapper.getGroupInfo(msgModel.groupId);
             if (groupModel != null) {
                 List<GroupMember> members = null;
@@ -97,7 +99,7 @@ public class UserService {
     }
 
     public GroupModel delGroupMember(RequestMsgModel msgModel) {
-        synchronized (String.valueOf(msgModel.groupId).intern()) {
+        synchronized (SessionHolder.getSync(String.valueOf(msgModel.groupId))) {
             GroupModel groupModel = userMapper.getGroupInfo(msgModel.groupId);
             if (groupModel != null) {
                 List<GroupMember> members = groupModel.getMembers(gson);

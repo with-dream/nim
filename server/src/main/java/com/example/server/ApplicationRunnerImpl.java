@@ -1,19 +1,12 @@
 package com.example.server;
 
-import com.example.server.entity.MQMapModel;
-import com.example.server.netty.NettyServerHandler;
 import com.example.server.netty.SessionHolder;
 import com.example.server.netty.SessionModel;
 import com.example.server.rabbitmq.DynamicManagerQueueService;
 import com.example.server.rabbitmq.QueueDto;
 import com.example.server.rabbitmq.RabbitListener;
-import com.example.server.zookeeper.ZooUtil;
-import com.google.gson.Gson;
-import org.apache.commons.lang.StringUtils;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.data.redis.core.HashOperations;
-import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import utils.L;
@@ -24,37 +17,15 @@ import java.util.*;
 @Component
 public class ApplicationRunnerImpl implements ApplicationRunner {
     public static String MQ_NAME = "";
-    public static String MQ_TAG = "mq";
-    public static String HOST_MAP = "host_map";
-    public static String HOST_NAME = "";
-    private Gson gson = new Gson();
+
     @Resource
     DynamicManagerQueueService queueService;
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
 
-    private void test() {
-        redisTemplate.delete("111");
-
-        ListOperations<String, Object> listVo = redisTemplate.opsForList();
-        listVo.rightPush("111", "111");
-        listVo.rightPush("111", "222");
-        listVo.rightPush("111", "333");
-        listVo.rightPush("111", "444");
-        L.e("==>" + listVo.rightPush("111", "555"));
-        listVo.remove("111", 1, "111");
-        listVo.remove("111", 1, "222");
-
-        L.e("==>" + listVo.index("111", 0));
-        L.e("==>" + listVo.index("111", 2));
-        Long iii = listVo.indexOf("111", "2");
-        L.e("==>" + iii);
-        L.e("==>" + listVo.indexOf("111", "555"));
-    }
-
     @Override
-    public void run(ApplicationArguments args) throws Exception {
+    public void run(ApplicationArguments args) {
         String mqName = null;
         for (String str : args.getNonOptionArgs()) {
             String[] s = str.split("&");
@@ -68,15 +39,9 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
                 L.p("str3==>" + str);
             }
         }
-        HOST_NAME = mqName;
+        MQ_NAME = mqName;
 
-//        test();
         clearMQ();
-
-        Map map = (Map) redisTemplate.opsForHash().entries(ApplicationRunnerImpl.MQ_TAG);
-        if (map != null)
-            L.e("run map ==>" + map.toString());
-
 
         QueueDto queueDto = new QueueDto();
         queueDto.queueName = mqName;
@@ -92,9 +57,7 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
     }
 
     private void clearMQ() {
-//        RLock lock = redissonUtil.getLock(cmdMsg.from);
-//        lock.lock();
-        Set<Object> mqMap = redisTemplate.opsForSet().members(ApplicationRunnerImpl.HOST_NAME);
+        Set<Object> mqMap = redisTemplate.opsForSet().members(ApplicationRunnerImpl.MQ_NAME);
         if (mqMap != null && !mqMap.isEmpty()) {
             for (Object item : mqMap) {
                 String[] uuidToken = ((String) item).split(":");
@@ -120,9 +83,8 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
                 else
                     redisTemplate.opsForHash().put(ApplicationRunnerImpl.MQ_TAG, uuidToken[0], map);
 
-                redisTemplate.opsForSet().remove(ApplicationRunnerImpl.HOST_NAME, item);
+                redisTemplate.opsForSet().remove(ApplicationRunnerImpl.MQ_NAME, item);
             }
         }
-//        lock.unlock();
     }
 }

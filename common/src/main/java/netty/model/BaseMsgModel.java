@@ -39,6 +39,11 @@ public class BaseMsgModel implements Cloneable, Serializable {
     public String to;
     //时间戳 毫秒 统一为服务器的时间
     public long timestamp;
+    //消息等级
+    public int level;
+
+    //客户端类型 电脑 手机等 用于唯一标识一个平台
+    public int deviceType;
 
     public static final int OFFLINE = 1;
     public static final int SEND_FAILED = 2;

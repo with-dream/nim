@@ -16,16 +16,6 @@ public class MsgModel extends BaseMsgModel implements Serializable {
         return msgModel;
     }
 
-    public static MsgModel createG(String from, String to, int clientToken) {
-        MsgModel msgModel = new MsgModel();
-        msgModel.createMsgId();
-        msgModel.from = from;
-        msgModel.groupId = to;
-        msgModel.fromToken = clientToken;
-        msgModel.type = MsgType.MSG_GROUP;
-        return msgModel;
-    }
-
     @Override
     public String toString() {
         return "MsgModel{" +

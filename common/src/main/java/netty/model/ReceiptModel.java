@@ -5,6 +5,7 @@ import io.netty.channel.Channel;
 import java.lang.ref.WeakReference;
 
 public class ReceiptModel {
+    public String token;
     public boolean isSelf;
     public BaseMsgModel msgModel;
     public WeakReference<Channel> channel;

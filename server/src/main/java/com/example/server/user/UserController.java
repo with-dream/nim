@@ -1,15 +1,12 @@
 package com.example.server.user;
 
-import com.example.server.ApplicationRunnerImpl;
 import com.example.server.ServerList;
-import com.example.server.entity.UserModel;
-import com.example.server.entity.UserResultModel;
+import org.apache.commons.lang.StringUtils;
+import user.UserModel;
 import com.example.server.service.UserService;
 import com.google.gson.Gson;
-import netty.MQWrapper;
 import netty.model.*;
 import org.springframework.amqp.core.AmqpTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -28,13 +25,13 @@ import java.util.*;
 public class UserController {
     Gson gson = new Gson();
 
-    @Autowired
+    @Resource
     UserService userService;
 
-    @Autowired
+    @Resource
     UuidManager uuidManager;
 
-    @Autowired
+    @Resource
     private AmqpTemplate rabbit;
 
     @Resource
@@ -47,49 +44,18 @@ public class UserController {
     }
 
     @RequestMapping(value = "/login")
-    public String login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
+    public BaseModel<UserModel> login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
             , @RequestParam(value = "deviceType") int deviceType) {
         UserModel userModel = new UserModel();
         userModel.name = name;
         userModel.pwd = pwd;
-        UserResultModel result = userService.login(userModel);
-        L.p("login res==>" + result);
-        if (result == null) {
-            result = new UserResultModel();
-            result.code = -1;
-        } else {
-            result.imUrl = ServerList.SERVER_LIST;
-            result.clientToken = UUIDUtil.getClientToken();
-
-            long s = System.currentTimeMillis();
-            //TODO 需要redisson分布式锁
-//            Map<Integer, MQMapModel> map = (Map) redisTemplate.opsForHash().get(ApplicationRunnerImpl.MQ_TAG, result.uuid);
-//            L.e("redis==>" + (System.currentTimeMillis() - s));
-//            if (map != null && !map.isEmpty()) {
-//                for (MQMapModel mapModel : map.values()) {
-//                    if (mapModel.deviceType == deviceType) {
-//                        //TODO 踢下线操作
-//                        break;
-//                    }
-//                }
-//            }
+        UserModel res = userService.login(userModel);
+        boolean loginSuccess = res != null && StringUtils.isNotEmpty(res.uuid);
+        if (loginSuccess) {
+            res.serviceList = Constant.SERVER_LIST;
         }
 
-        result.code = 0;
-        String res = gson.toJson(result);
-        System.out.println("==>" + res);
-
-        return res;
-    }
-
-    @RequestMapping(value = "/server_list")
-    public String serverList() {
-        ServiceListModel slm = new ServiceListModel();
-        slm.serviceList = Constant.SERVER_LIST;
-        String res = gson.toJson(slm);
-        System.out.println("==>" + res);
-
-        return res;
+        return loginSuccess ? BaseModel.succ(res) : BaseModel.fail();
     }
 
     @RequestMapping(value = "/unlogin")
@@ -98,65 +64,40 @@ public class UserController {
         return "";
     }
 
-    @RequestMapping(value = "/regist")
+    @RequestMapping(value = "/register")
     @ResponseBody
-    public String regist(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd) {
+    public BaseModel register(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd) {
         UserModel userModel = new UserModel();
         userModel.name = name;
         userModel.pwd = pwd;
         userModel.uuid = UUIDUtil.getUid();
-        userModel.registTime = new java.sql.Date(new Date().getTime());
-        int res = userService.regist(userModel);
-
-        RegistModel registModel = new RegistModel();
-        registModel.code = 0;
-        if (res != 1) {
-            registModel.code = 1;
-        }
-        System.err.println("regist res==>" + res);
-        return gson.toJson(registModel);
+        userModel.registerTime = new Date();
+        int res = userService.register(userModel);
+        return res == 1 ? BaseModel.succ() : BaseModel.fail();
     }
 
     @RequestMapping(value = "/getAllFriend")
     @ResponseBody
-    public String getAllFriend(@RequestParam(value = "uuid") String uuid) {
-        FriendResModel friendResModel = new FriendResModel();
-        friendResModel.friends = userService.getAllFriend(uuid);
-        friendResModel.code = 0;
-
-        System.err.println("regist res==>" + friendResModel.toString());
-        return gson.toJson(friendResModel);
+    public BaseModel<List<FriendModel>> getAllFriend(@RequestParam(value = "uuid") String uuid) {
+        List<FriendModel> res = userService.getAllFriend(uuid);
+        return BaseModel.succ(res);
     }
 
     @RequestMapping(value = "/getAllGroup")
     @ResponseBody
-    public String getAllGroup(@RequestParam(value = "uuid") String uuid) {
-        GroupResModel resModel = new GroupResModel();
-        resModel.groups = userService.getAllGroup(uuid);
-        resModel.code = 0;
-
-        System.err.println("regist res==>" + resModel.toString());
-        return gson.toJson(resModel);
+    public BaseModel<List<GroupInfoModel>> getAllGroup(@RequestParam(value = "uuid") String uuid) {
+        List<GroupInfoModel> res = userService.getAllGroup(uuid);
+        return BaseModel.succ(res);
     }
 
     @RequestMapping(value = "/createGroup")
     @ResponseBody
-    public String createGroup(@RequestParam(value = "uuid") String uuid, @RequestParam(value = "groupName") String groupName) {
-        GroupModel groupModel = new GroupModel();
-        groupModel.userId = uuid;
-        groupModel.groupName = groupName;
-        //TODO 创建uuid
-        groupModel.groupId = UUIDUtil.getUid();
-
-        List<GroupMember> m = new ArrayList<>();
-        GroupMember member = new GroupMember();
-        member.userId = uuid;
-        m.add(member);
-
-        groupModel.members = groupModel.memToStr(gson, m);
-
+    public BaseModel<GroupInfoModel> createGroup(@RequestParam(value = "uuid") String uuid, @RequestParam(value = "groupName") String groupName) {
+        GroupInfoModel groupModel = new GroupInfoModel();
+        groupModel.uuid = uuid;
+        groupModel.name = groupName;
+        groupModel.memberCount = 1;
         int res = userService.createGroup(groupModel);
-
-        return "创建群==>" + res + "==" + groupModel.toString();
+        return res == 1 ? BaseModel.succ(groupModel) : BaseModel.fail();
     }
 }

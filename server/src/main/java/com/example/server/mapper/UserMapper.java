@@ -1,21 +1,19 @@
 package com.example.server.mapper;
 
-import com.example.server.entity.UserModel;
-import com.example.server.entity.UserResultModel;
+import user.GroupInfoModel;
+import user.GroupMemberModel;
+import user.UserModel;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 import user.FriendModel;
-import user.GroupMapModel;
-import user.GroupModel;
 
-import java.security.acl.Group;
 import java.util.List;
 
 @Repository
 public interface UserMapper {
-    int regist(UserModel userModel);
+    int register(UserModel userModel);
 
-    UserResultModel login(UserModel userModel);
+    UserModel login(UserModel userModel);
 
     int checkUser(String uuid);
 
@@ -25,19 +23,21 @@ public interface UserMapper {
 
     int delFriend(FriendModel friendModel);
 
-    List<FriendModel> getAllFriend(String uuid);
+    List<FriendModel> getAllFriend(@Param(value = "uuid") String uuid);
 
-    int updateGroupMember(GroupModel groupModel);
+    int addGroupMember(GroupMemberModel memberModel);
 
-    GroupModel getGroupInfo(String to);
+    int delGroupMember(GroupMemberModel memberModel);
 
-    int createGroup(GroupModel groupModel);
+    List<GroupMemberModel> getGroupMembers(@Param(value = "groupId") long groupId);
 
-    int delGroup(GroupModel groupModel);
+    int checkGroupRole(GroupMemberModel memberModel);
 
-    int addMapGroup(GroupMapModel groupModel);
+    GroupInfoModel getGroupInfo(@Param(value = "groupId") long groupId);
 
-    int delMapGroup(@Param(value = "userId") String userId);
+    int createGroup(GroupInfoModel groupModel);
 
-    List<GroupModel> getAllGroup(String uuid);
+    int delGroup(GroupInfoModel groupModel);
+
+    List<GroupInfoModel> getAllGroup(@Param(value = "uuid") String uuid);
 }

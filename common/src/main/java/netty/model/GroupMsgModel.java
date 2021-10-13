@@ -1,17 +1,14 @@
-package com.example.server.entity;
-
-import netty.model.MsgModel;
-import netty.model.MsgType;
+package netty.model;
 
 import java.util.HashSet;
 import java.util.Set;
 
 public class GroupMsgModel extends MsgModel {
-    public String groupId;
+    public long groupId;
     //消息的目标uuid
     public Set<String> toSet = new HashSet<>();
 
-    public static GroupMsgModel createG(String from, String to) {
+    public static GroupMsgModel createG(String from, long to) {
         GroupMsgModel msgModel = new GroupMsgModel();
         msgModel.createMsgId();
         msgModel.from = from;

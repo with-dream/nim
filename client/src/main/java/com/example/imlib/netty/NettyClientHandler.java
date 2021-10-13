@@ -52,11 +52,11 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
     }
 
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, BaseMsgModel baseMsgModel) throws Exception {
-        if (!(baseMsgModel instanceof MsgCmd) || ((MsgCmd) baseMsgModel).cmd != MsgCmd.HEART)
+        if (!(baseMsgModel instanceof MsgModel) || ((MsgModel) baseMsgModel).cmd != MsgCmd.HEART)
             L.p(("客户端channelRead0 ==>" + baseMsgModel.toString()));
         switch (baseMsgModel.type) {
             case MsgType.MSG_CMD:
-                MsgCmd cmdMsg = (MsgCmd) baseMsgModel;
+                MsgModel cmdMsg = (MsgModel) baseMsgModel;
                 switch (cmdMsg.cmd) {
                     case MsgCmd.HEART:
 
@@ -94,7 +94,7 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 receiptMsg(baseMsgModel);
                 break;
             case MsgType.MSG_PERSON:
-                MsgCmd person = (MsgCmd) baseMsgModel;
+                MsgModel person = (MsgModel) baseMsgModel;
                 if (IMContext.getInstance().getMsgCallback() != null)
                     IMContext.getInstance().getMsgCallback().receive(person);
                 receiptMsg(baseMsgModel);
@@ -142,7 +142,7 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
 
                     break;
                 case ALL_IDLE:
-                    MsgModel heart = MsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
+                    MsgModel heart = MsgModel.createCmd(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
                     heart.cmd = MsgCmd.HEART;
                     IMContext.getInstance().sendMsg(heart);
                     break;

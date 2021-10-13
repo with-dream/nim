@@ -1,9 +1,11 @@
 package com.example.server.netty;
 
+import com.example.server.utils.Const;
 import io.netty.channel.Channel;
 import netty.model.*;
 import netty.model.ReceiptCacheModel;
 import utils.Constant;
+import utils.L;
 
 import java.lang.ref.WeakReference;
 import java.util.*;
@@ -63,6 +65,10 @@ public class SessionHolder {
 
         getSession(msgModel.deviceType).put(msgModel.from, sessionModel);
         sessionChannelMap.put(channel, sessionModel);
+
+        if (Const.DEBUG) {
+            L.p("login getSession==>" + getSession(msgModel.deviceType));
+        }
     }
 
     public static void logout(MsgModel cmdMsg) {
@@ -96,7 +102,9 @@ public class SessionHolder {
                     sessionModelList.add(smFrom);
             }
         }
-
+        if (Const.DEBUG) {
+            L.p("sendMsg==>" + sessionModelList);
+        }
         for (SessionModel sm : sessionModelList) {
             sm.channel.writeAndFlush(msgModel);
 

@@ -9,10 +9,7 @@ import io.netty.util.concurrent.GenericFutureListener;
 import netty.model.*;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
-import user.FriendResModel;
-import user.GroupResModel;
-import user.RegistModel;
-import user.UserResultModel;
+import user.*;
 import utils.Constant;
 
 import java.io.IOException;
@@ -128,7 +125,7 @@ public class Main {
                         String strsp = input.next();
                         String[] p = strsp.split("/");
 
-                        MsgModel msgModel = MsgModel.createP(IMContext.getInstance().uuid, p[0], IMContext.getInstance().clientToken);
+                        MsgModel msgModel = MsgModel.createPer(IMContext.getInstance().uuid, p[0], IMContext.getInstance().clientToken);
                         msgModel.info = p[1];
                         IMContext.getInstance().sendMsg(msgModel, true);
                         break;
@@ -139,7 +136,7 @@ public class Main {
 
                         int count = Integer.parseInt(pl[1]);
                         for (int i = 0; i < count; i++) {
-                            MsgCmd msgModelL = MsgCmd.createP(IMContext.getInstance().uuid, pl[0], IMContext.getInstance().clientToken);
+                            MsgModel msgModelL = MsgModel.createPer(IMContext.getInstance().uuid, pl[0], IMContext.getInstance().clientToken);
                             msgModelL.info = i + "==>" + pl[2];
                             IMContext.getInstance().sendMsg(msgModelL, true);
 
@@ -175,8 +172,7 @@ public class Main {
                         String strgs = input.next();
                         String[] gsp = strgs.split("/");
 
-                        MsgModel msgModelG = MsgModel.createP(IMContext.getInstance().uuid, gsp[0], IMContext.getInstance().clientToken);
-                        msgModelG.type = MsgType.MSG_GROUP;
+                        GroupMsgModel msgModelG = GroupMsgModel.createG(IMContext.getInstance().uuid, gsp[0]);
                         msgModelG.info = gsp[1];
                         IMContext.getInstance().sendMsg(msgModelG, true);
                         break;
@@ -230,7 +226,7 @@ public class Main {
     }
 
     private void logout() {
-        MsgModel cmdMsgModel = MsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
+        MsgModel cmdMsgModel = MsgModel.createCmd(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
         cmdMsgModel.cmd = MsgCmd.LOGOUT;
         cmdMsgModel.timestamp = System.currentTimeMillis();
         cmdMsgModel.fromToken = IMContext.getInstance().clientToken;

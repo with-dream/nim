@@ -1,6 +1,5 @@
 package com.example.server.netty;
 
-import com.example.server.entity.GroupMsgModel;
 import com.example.server.redis.TagList;
 import com.example.server.service.RequestService;
 import io.netty.channel.ChannelHandlerContext;

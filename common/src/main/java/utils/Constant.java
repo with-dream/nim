@@ -1,5 +1,8 @@
 package utils;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class Constant {
     public static int SUCC = 0;
     public static int FAILED = 1;
@@ -33,5 +36,5 @@ public class Constant {
         }
     }
 
-    public static final String SERVER_LIST[] = {"127.0.0.1:8090"};
+    public static final List<String> SERVER_LIST = Arrays.asList("127.0.0.1:8090");
 }

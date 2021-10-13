@@ -4,9 +4,10 @@ public class MsgModel extends BaseMsgModel {
     public String info;
     public int cmd;
 
-    public static MsgModel createP(String from, String to, int clientToken) {
+    public static MsgModel create(int msgType, String from, String to, int clientToken) {
         MsgModel msgModel = new MsgModel();
         msgModel.createMsgId();
+        msgModel.type = msgType;
         msgModel.from = from;
         msgModel.to = to;
         msgModel.fromToken = clientToken;
@@ -14,11 +15,20 @@ public class MsgModel extends BaseMsgModel {
         return msgModel;
     }
 
+    public static MsgModel createCmd(String from, String to, int clientToken) {
+        return create(MsgType.MSG_CMD, from, to, clientToken);
+    }
+
+    public static MsgModel createPer(String from, String to, int clientToken) {
+        return create(MsgType.MSG_PERSON, from, to, clientToken);
+    }
+
     @Override
     public String toString() {
-        return "MsgCmd{" +
+        return "MsgModel{" +
                 "info='" + info + '\'' +
                 ", type=" + type +
+                ", cmd=" + cmd +
                 ", seq=" + seq +
                 ", timeLine=" + timeLine +
                 ", msgId=" + msgId +

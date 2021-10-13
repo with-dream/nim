@@ -1,47 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.server.mapper.UserMapper">
-    <resultMap id="userModel" type="com.example.server.entity.UserModel">
-        <result column="name" jdbcType="VARCHAR" property="name"/>
-        <result column="pwd" jdbcType="VARCHAR" property="pwd"/>
-        <result column="uuid" jdbcType="VARCHAR" property="uuid"/>
-        <result column="registTime" jdbcType="TIMESTAMP" property="registTime"/>
-    </resultMap>
-
-    <resultMap id="userResModel" type="com.example.server.entity.UserResultModel">
-        <result column="name" jdbcType="VARCHAR" property="name"/>
-        <result column="uuid" jdbcType="VARCHAR" property="uuid"/>
-        <result column="registTime" jdbcType="TIMESTAMP" property="registTime"/>
-    </resultMap>
-
-    <resultMap id="friendModel" type="user.FriendModel">
-        <result column="user_id" jdbcType="VARCHAR" property="userId"/>
-        <result column="friend_id" jdbcType="VARCHAR" property="friendId"/>
-        <result column="status" jdbcType="INTEGER" property="status"/>
-        <result column="friend_info" jdbcType="VARCHAR" property="userInfo"/>
-        <result column="user_info" jdbcType="VARCHAR" property="friendInfo"/>
-    </resultMap>
-
-    <resultMap id="groupModel" type="user.GroupModel">
-        <result column="user_id" jdbcType="VARCHAR" property="userId"/>
-        <result column="group_id" jdbcType="VARCHAR" property="groupId"/>
-        <result column="members" jdbcType="CLOB" property="members"/>
-        <result column="groupName" jdbcType="VARCHAR" property="groupName"/>
-    </resultMap>
-
-    <insert id="regist" parameterType="userModel">
-        insert into user(name, pwd, uuid, registTime) values (#{name}, #{pwd}, #{uuid}, #{registTime});
+    <insert id="register" parameterType="user.UserModel">
+        insert into user(name, pwd, uuid, registerTime) values (#{name}, #{pwd}, #{uuid}, #{registerTime});
     </insert>
 
-    <select id="login" resultMap="userResModel" parameterType="userModel">
-        SELECT name,uuid,registTime FROM user where name = #{name} and pwd = #{pwd};
+    <select id="login" resultMap="user.UserModel" parameterType="user.UserModel">
+        SELECT * FROM user_info where name = #{name} and pwd = #{pwd};
     </select>
 
     <select id="checkUser" resultType="int">
         SELECT count(*) FROM user where uuid = #{uuid};
     </select>
 
-    <select id="checkFriend" resultMap="friendModel">
+    <select id="checkFriend" resultMap="user.FriendModel">
         SELECT * FROM friend where user_id = #{userId} and friend_id = #{friendId};
     </select>
 
@@ -54,24 +26,37 @@
         update friend set status=#{status} where user_id = #{userId} and friend_id = #{friendId};
     </update>
 
-    <select id="getAllFriend" resultMap="friendModel" parameterType="long">
-        SELECT * FROM friend where user_id = #{userId} or friend_id = #{userId};
+    <select id="getAllFriend" resultMap="user.FriendModel" parameterType="java.lang.String">
+        SELECT * FROM friend_info where user_id = #{uuid} or friend_id = #{uuid};
     </select>
 
-    <update id="updateGroupMember" parameterType="user.GroupModel">
-        update group_info set members=#{members} where group_id=#{groupId};
-    </update>
+    <select id="getGroupMembers" resultMap="user.GroupMemberModel" parameterType="long">
+        SELECT * FROM group_member where groupId= #{groupId};
+    </select>
 
-    <select id="getGroupInfo" resultMap="groupModel" parameterType="long">
+    <insert id="addGroupMember" parameterType="user.GroupMemberModel">
+        insert into group_member(uuid, groupId, role, level, insertTime, lastTime) values(#{uuid}, #{groupId}, #{role}, #{level}, #{insertTime}, #{lastTime});
+    </insert>
+
+    <delete id="delGroupMember" parameterType="user.GroupMemberModel">
+        delete from group_member where uuid=#{uuid} and groupId=#{id};
+    </delete>
+
+    <select id="checkGroupRole" resultMap="int" parameterType="user.GroupMemberModel">
+        SELECT role FROM group_member where group_id = #{groupId} and uuid=#{uuid};
+    </select>
+
+    <select id="getGroupInfo" resultMap="user.GroupInfoModel" parameterType="long">
         SELECT * FROM group_info where group_id = #{groupId};
     </select>
 
-    <insert id="createGroup" parameterType="user.GroupModel">
-        insert into group_info(user_id, group_id, members, groupName) values(#{userId}, #{groupId}, #{members}, #{groupName});
+
+    <insert id="createGroup" useGeneratedKeys="true" keyProperty="id" parameterType="user.GroupInfoModel">
+        insert into group_info(name, uuid, memberCount) values(#{name}, #{uuid}, #{memberCount});
     </insert>
 
     <delete id="delGroup" parameterType="user.GroupModel">
-        delete from group_info where group_id=#{groupId};
+        delete from group_info where id=#{groupId};
     </delete>
 
     <insert id="addMapGroup" parameterType="user.GroupMapModel">
@@ -82,8 +67,8 @@
         delete from group_map where user_id=#{userId};
     </delete>
 
-    <select id="getAllGroup" resultMap="groupModel" parameterType="long">
-        SELECT * FROM group_map where user_id = #{userId};
+    <select id="getAllGroup" resultMap="user.GroupInfoModel" parameterType="java.lang.String">
+        SELECT * FROM group_info where uuid = #{uuid};
     </select>
 </mapper>
 

@@ -1,6 +1,5 @@
 package com.example.server.rabbitmq;
 
-import com.example.server.entity.GroupMsgModel;
 import com.example.server.netty.SessionHolder;
 import com.google.gson.Gson;
 import com.rabbitmq.client.Channel;
@@ -14,7 +13,7 @@ import utils.L;
 
 /**
  * mq消息转发 收到的消息都是本服务器的消息 可以直接推送到客户端
- * */
+ */
 @Component(RabbitListener.LISTENER_TAG)
 public class RabbitListener implements ChannelAwareMessageListener {
     public static final String LISTENER_TAG = "RabbitListener";
@@ -49,7 +48,7 @@ public class RabbitListener implements ChannelAwareMessageListener {
     private void sendMsgGroup(BaseMsgModel msg) {
         GroupMsgModel groupModel = (GroupMsgModel) msg;
         for (String uuid : groupModel.toSet) {
-            MsgModel msgModel = MsgModel.createP(msg.from, uuid, msg.fromToken);
+            MsgModel msgModel = MsgModel.createPer(msg.from, uuid, msg.fromToken);
             SessionHolder.sendMsg(msgModel, false);
         }
     }

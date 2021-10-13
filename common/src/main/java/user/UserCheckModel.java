@@ -1,14 +1,16 @@
 package user;
 
+import entity.Entity;
+
 import java.sql.Date;
 import java.util.Arrays;
 
-public class UserResultModel {
+public class UserCheckModel extends Entity {
     public String[] imUrl;
     public String name;
     public String uuid;
     public int clientToken;
-    public Date registTime;
+    public Date registerTime;
     public int code;
 
     @Override
@@ -18,7 +20,7 @@ public class UserResultModel {
                 ", name='" + name + '\'' +
                 ", uuid='" + uuid + '\'' +
                 ", clientToken=" + clientToken +
-                ", registTime=" + registTime +
+                ", registTime=" + registerTime +
                 ", code=" + code +
                 '}';
     }

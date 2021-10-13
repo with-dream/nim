@@ -1,7 +1,6 @@
 package com.example.server.netty;
 
 import com.example.server.ApplicationRunnerImpl;
-import com.example.server.entity.GroupMsgModel;
 import com.example.server.service.UserService;
 import com.example.server.utils.Const;
 import com.google.gson.Gson;
@@ -11,7 +10,7 @@ import netty.model.*;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
-import user.GroupModel;
+import user.GroupMemberModel;
 import utils.Constant;
 import utils.Errcode;
 import utils.L;
@@ -19,7 +18,6 @@ import utils.StrUtil;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -131,20 +129,19 @@ public class SessionServerHolder {
         String timeLineId = "msg_g:" + msg.to;
 
         //获取群信息
-        GroupModel groupModel = that.userService.getGroupInfo(msg.groupId);
-        if (groupModel == null) {
-            int check = that.userService.checkGroup(groupModel.userId);
-            if (check == 0) {
+        List<GroupMemberModel> memList = that.userService.getGroupMembers(msg.groupId);
+        if (memList == null) {
+            boolean check = that.userService.checkGroup(msg.groupId);
+            if (!check) {
                 //TODO 如果groupId不存在 则丢弃 否则缓存
-                System.err.println("不存在的uuid  MSG_GROUP==>" + groupModel.userId);
+                System.err.println("不存在的groupId  MSG_GROUP==>" + msg.groupId);
                 return Errcode.NO_GROUP;
             }
         }
         //获取群成员
-        List<GroupMember> members = groupModel.getMembers(gson);
         List<String> uuidList = new ArrayList<>();
-        for (GroupMember m : members)
-            uuidList.add(m.userId);
+        for (GroupMemberModel m : memList)
+            uuidList.add(m.uuid);
         //获取所有的在线成员 并将相同queueName的成员
         List<SessionRedisModel> memSessionList = getSessionRedis(uuidList);
         if (!memSessionList.isEmpty()) {
@@ -187,6 +184,10 @@ public class SessionServerHolder {
         List<SessionRedisModel> sessionList = getSessionRedis(uuidList);
 
         String timeLineId = StrUtil.getTimeLine(msg.from, msg.to, timeLintTag);
+
+        if (Const.DEBUG) {
+            L.p("sendMsq==>" + sessionList);
+        }
 
         //检查其他服务器是否有此用户
         boolean toEmpty = true;

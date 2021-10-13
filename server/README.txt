@@ -31,6 +31,7 @@ https://blog.csdn.net/jessechanrui/article/details/88399012
 
 ### 1、redis命令
 redis-server  启动
+后台启动  redis-server /usr/local/etc/redis.conf &
 
 redis-cli -h 127.0.0.1 -p 6379
 flushall
@@ -40,6 +41,7 @@ mysql.server start 启动
 
 ### 3、rabbitmq
 rabbitmq-server
+rabbitmq-server -detached
 后台地址:http://localhost:15672/#/
 
 安装:https://www.rabbitmq.com/install-homebrew.html

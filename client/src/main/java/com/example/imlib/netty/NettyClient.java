@@ -14,6 +14,7 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import netty.model.MsgCmd;
 import netty.model.MsgModel;
+import netty.model.MsgType;
 import utils.Constant;
 
 
@@ -79,7 +80,8 @@ public class NettyClient {
     }
 
     private void login() {
-        MsgModel cmdMsgModel = MsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, 0);
+        MsgModel cmdMsgModel = MsgModel.createCmd(IMContext.getInstance().uuid, Constant.SERVER_UID, 0);
+        cmdMsgModel.type = MsgType.MSG_CMD;
         cmdMsgModel.cmd = MsgCmd.LOGIN;
         cmdMsgModel.timestamp = System.currentTimeMillis();
         cmdMsgModel.fromToken = IMContext.getInstance().clientToken;

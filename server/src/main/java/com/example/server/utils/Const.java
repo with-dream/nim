@@ -4,6 +4,8 @@ import org.apache.commons.lang.StringUtils;
 import utils.Constant;
 
 public class Const {
+    public static final boolean DEBUG = true;
+
     public static String MQ_TAG = "mq";
     private static String res[] = new String[Constant.clientType.length];
 

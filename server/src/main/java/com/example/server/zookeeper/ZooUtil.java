@@ -59,7 +59,7 @@ public class ZooUtil {
         return "nodeLock";
     }
 
-    private String createPath(String path, CreateMode createMode) {
+    private String createath(String path, CreateMode createMode) {
         try {
             Stat stat = zkCli.exists(path, true);
             if (stat == null) {

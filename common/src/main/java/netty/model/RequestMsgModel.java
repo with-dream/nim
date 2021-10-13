@@ -12,7 +12,7 @@ public class RequestMsgModel extends BaseMsgModel {
     public static final int FRIEND_DEL_UNBLOCK = 11; //解除拉黑
     public static final int GROUP_CREATE = 12; //创建群
     public static final int GROUP_DEL = 13; //删除群
-    public static final int GROUP_ADD = 14; //加入群
+    public static final int GROUP_ADD = 14; //申请加入群
     public static final int GROUP_EXIT = 15; //退群
     public static final int GROUP_OUT = 16; //剔出群
     public static final int GROUP_ADD_AGREE = 17;
@@ -20,7 +20,7 @@ public class RequestMsgModel extends BaseMsgModel {
 
     public int cmd;
     public int status;
-    public String groupId;
+    public long groupId;
 
     public static RequestMsgModel create(String from, String to, int clientToken) {
         RequestMsgModel reqMsgModel = new RequestMsgModel();

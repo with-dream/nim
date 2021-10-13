@@ -11,7 +11,7 @@ import io.netty.channel.Channel;
 import netty.MQWrapper;
 import netty.model.BaseMsgModel;
 import netty.model.MsgType;
-import netty.model.ReceiptModel;
+import netty.model.ReceiptCacheModel;
 import netty.model.RequestMsgModel;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.data.redis.core.RedisTemplate;

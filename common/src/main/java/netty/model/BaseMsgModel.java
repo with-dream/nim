@@ -24,6 +24,7 @@ import java.io.Serializable;
  */
 
 public class BaseMsgModel extends Entity implements Cloneable {
+    //消息类型 MsgType
     public int type;
     //消息的序列号
     public long seq = 0;

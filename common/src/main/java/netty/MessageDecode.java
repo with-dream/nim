@@ -43,11 +43,9 @@ public class MessageDecode extends ByteToMessageDecoder {
         Class cls = null;
         switch (msgType) {
             case MsgType.MSG_CMD:
-                cls = CmdMsgModel.class;
-                break;
             case MsgType.MSG_PERSON:
             case MsgType.MSG_GROUP:
-                cls = MsgModel.class;
+                cls = MsgCmd.class;
                 break;
             case MsgType.MSG_RECEIPT:
                 cls = ReceiptMsgModel.class;

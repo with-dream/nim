@@ -53,7 +53,7 @@ public class SessionServerHolder {
      * 2 将uuid和channel做映射 用于消息推送
      * 3 将uuid和mq做映射 用于将消息路由到本服务器进行推送
      */
-    public void login(Channel channel, CmdMsgModel cmdMsg) {
+    public void login(Channel channel, MsgModel cmdMsg) {
         Object map = that.redisTemplate.opsForHash().get(Const.mqTag(cmdMsg.deviceType), cmdMsg.from);
         if (map != null) {
             //踢掉已经登录的用户 如果在本服务器 直接强制退出
@@ -236,7 +236,7 @@ public class SessionServerHolder {
 
         //TODO 离线回复已发送 可以和SEND_SUC一起回复
         ReceiptMsgModel receiptModel = ReceiptMsgModel.create(msgModel.to, msgModel.from, msgModel.msgId, Constant.SERVER_TOKEN);
-        receiptModel.cmd = CmdMsgModel.RECEIVED;
+        receiptModel.cmd = MsgCmd.RECEIVED;
         receiptModel.sendMsgType = msgModel.type;
         receiptModel.toToken = msgModel.fromToken;
         channel.writeAndFlush(receiptModel);

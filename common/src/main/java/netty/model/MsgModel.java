@@ -1,9 +1,8 @@
 package netty.model;
 
-import java.io.Serializable;
-
 public class MsgModel extends BaseMsgModel {
     public String info;
+    public int cmd;
 
     public static MsgModel createP(String from, String to, int clientToken) {
         MsgModel msgModel = new MsgModel();
@@ -17,7 +16,7 @@ public class MsgModel extends BaseMsgModel {
 
     @Override
     public String toString() {
-        return "MsgModel{" +
+        return "MsgCmd{" +
                 "info='" + info + '\'' +
                 ", type=" + type +
                 ", seq=" + seq +

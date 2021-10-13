@@ -52,13 +52,13 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
     }
 
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, BaseMsgModel baseMsgModel) throws Exception {
-        if (!(baseMsgModel instanceof CmdMsgModel) || ((CmdMsgModel) baseMsgModel).cmd != CmdMsgModel.HEART)
+        if (!(baseMsgModel instanceof MsgCmd) || ((MsgCmd) baseMsgModel).cmd != MsgCmd.HEART)
             L.p(("客户端channelRead0 ==>" + baseMsgModel.toString()));
         switch (baseMsgModel.type) {
             case MsgType.MSG_CMD:
-                CmdMsgModel cmdMsg = (CmdMsgModel) baseMsgModel;
+                MsgCmd cmdMsg = (MsgCmd) baseMsgModel;
                 switch (cmdMsg.cmd) {
-                    case CmdMsgModel.HEART:
+                    case MsgCmd.HEART:
 
                         break;
                 }
@@ -94,7 +94,7 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 receiptMsg(baseMsgModel);
                 break;
             case MsgType.MSG_PERSON:
-                MsgModel person = (MsgModel) baseMsgModel;
+                MsgCmd person = (MsgCmd) baseMsgModel;
                 if (IMContext.getInstance().getMsgCallback() != null)
                     IMContext.getInstance().getMsgCallback().receive(person);
                 receiptMsg(baseMsgModel);
@@ -115,11 +115,11 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 //将回执消息存储
                 ReceiptMsgModel receiptMsgModel = (ReceiptMsgModel) baseMsgModel;
                 switch (receiptMsgModel.cmd) {
-                    case CmdMsgModel.SERVER_RECEIVED:
+                    case MsgCmd.SERVER_RECEIVED:
                         IMContext.getInstance().receiptMsg.remove(receiptMsgModel.sendMsgId);
                         L.p("消息发送成功==>" + receiptMsgModel.seq);
                         break;
-                    case CmdMsgModel.RECEIVED:
+                    case MsgCmd.RECEIVED:
                         L.p("消息已送达==>" + receiptMsgModel.toString());
                         break;
                 }
@@ -142,8 +142,8 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
 
                     break;
                 case ALL_IDLE:
-                    CmdMsgModel heart = CmdMsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
-                    heart.cmd = CmdMsgModel.HEART;
+                    MsgModel heart = MsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
+                    heart.cmd = MsgCmd.HEART;
                     IMContext.getInstance().sendMsg(heart);
                     break;
             }
@@ -173,6 +173,6 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
     }
 
     public void receiptMsg(BaseMsgModel baseMsgModel) {
-        this.receiptMsg(baseMsgModel, CmdMsgModel.RECEIVED);
+        this.receiptMsg(baseMsgModel, MsgCmd.RECEIVED);
     }
 }

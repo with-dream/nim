@@ -5,7 +5,7 @@ import io.netty.channel.Channel;
 
 import java.lang.ref.WeakReference;
 
-public class ReceiptModel extends Entity {
+public class ReceiptCacheModel extends Entity {
     public BaseMsgModel msgModel;
     public WeakReference<Channel> channel;
 
@@ -15,7 +15,7 @@ public class ReceiptModel extends Entity {
 
     @Override
     public String toString() {
-        return "ReceiptModel{" +
+        return "ReceiptCacheModel{" +
                 "msgModel=" + msgModel +
                 ", channel=" + channel +
                 '}';

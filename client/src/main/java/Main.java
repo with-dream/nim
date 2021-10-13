@@ -139,7 +139,7 @@ public class Main {
 
                         int count = Integer.parseInt(pl[1]);
                         for (int i = 0; i < count; i++) {
-                            MsgModel msgModelL = MsgModel.createP(IMContext.getInstance().uuid, pl[0], IMContext.getInstance().clientToken);
+                            MsgCmd msgModelL = MsgCmd.createP(IMContext.getInstance().uuid, pl[0], IMContext.getInstance().clientToken);
                             msgModelL.info = i + "==>" + pl[2];
                             IMContext.getInstance().sendMsg(msgModelL, true);
 
@@ -230,8 +230,8 @@ public class Main {
     }
 
     private void logout() {
-        CmdMsgModel cmdMsgModel = CmdMsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
-        cmdMsgModel.cmd = CmdMsgModel.LOGOUT;
+        MsgModel cmdMsgModel = MsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
+        cmdMsgModel.cmd = MsgCmd.LOGOUT;
         cmdMsgModel.timestamp = System.currentTimeMillis();
         cmdMsgModel.fromToken = IMContext.getInstance().clientToken;
         cmdMsgModel.deviceType = Constant.ANDROID;

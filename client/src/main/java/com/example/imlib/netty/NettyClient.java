@@ -12,7 +12,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import netty.model.CmdMsgModel;
+import netty.model.MsgCmd;
+import netty.model.MsgModel;
 import utils.Constant;
 
 
@@ -78,8 +79,8 @@ public class NettyClient {
     }
 
     private void login() {
-        CmdMsgModel cmdMsgModel = CmdMsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, 0);
-        cmdMsgModel.cmd = CmdMsgModel.LOGIN;
+        MsgModel cmdMsgModel = MsgModel.create(IMContext.getInstance().uuid, Constant.SERVER_UID, 0);
+        cmdMsgModel.cmd = MsgCmd.LOGIN;
         cmdMsgModel.timestamp = System.currentTimeMillis();
         cmdMsgModel.fromToken = IMContext.getInstance().clientToken;
         cmdMsgModel.deviceType = Constant.ANDROID;

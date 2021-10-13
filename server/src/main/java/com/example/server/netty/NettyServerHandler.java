@@ -76,31 +76,31 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, BaseMsgModel baseMsgModel) {
-        if (!(baseMsgModel instanceof CmdMsgModel) || ((CmdMsgModel) baseMsgModel).cmd != CmdMsgModel.HEART) {
+        if (!(baseMsgModel instanceof MsgModel) || ((MsgModel) baseMsgModel).cmd != MsgCmd.HEART) {
 //            L.p("channelRead0==>" + baseMsgModel.toString());
             //除心跳包以外 每收到一个消息都要回复服务端已收到
             ReceiptMsgModel recvModel = ReceiptMsgModel.create(Constant.SERVER_UID, baseMsgModel.to, baseMsgModel.msgId, Constant.SERVER_TOKEN);
             recvModel.sendMsgType = baseMsgModel.type;
-            recvModel.cmd = CmdMsgModel.SERVER_RECEIVED;
+            recvModel.cmd = MsgCmd.SERVER_RECEIVED;
             ctx.channel().write(recvModel);
         }
 
-        if (!(baseMsgModel instanceof CmdMsgModel) || ((CmdMsgModel) baseMsgModel).cmd != CmdMsgModel.HEART)
+        if (!(baseMsgModel instanceof MsgModel) || ((MsgModel) baseMsgModel).cmd != MsgCmd.HEART)
             L.p("server==>" + baseMsgModel);
 
         baseMsgModel.timestamp = System.currentTimeMillis();
         switch (baseMsgModel.type) {
             case MsgType.MSG_CMD:
-                CmdMsgModel cmdMsg = (CmdMsgModel) baseMsgModel;
+                MsgModel cmdMsg = (MsgModel) baseMsgModel;
                 switch (cmdMsg.cmd) {
-                    case CmdMsgModel.LOGIN:
+                    case MsgCmd.LOGIN:
                         that.holder.login(ctx.channel(), cmdMsg);
                         that.holder.sendOfflineMsg(cmdMsg.from);
                         break;
-                    case CmdMsgModel.LOGOUT:
+                    case MsgCmd.LOGOUT:
                         that.holder.logout(ctx.channel());
                         break;
-                    case CmdMsgModel.HEART:
+                    case MsgCmd.HEART:
                         cmdMsg.to = cmdMsg.from;
                         cmdMsg.from = Constant.SERVER_UID;
                         ctx.channel().writeAndFlush(cmdMsg);

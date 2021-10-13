@@ -1,6 +1,6 @@
 package netty.model;
 
-public class ReceiptMsgModel extends CmdMsgModel {
+public class ReceiptMsgModel extends MsgModel {
     public static final int FORCE = 1000;
     public static final int CMD = 800;
     public static final int MSG = 500;

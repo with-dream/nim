@@ -1,9 +1,8 @@
 package com.example.server.netty;
 
 import io.netty.channel.Channel;
-import netty.model.BaseMsgModel;
-import netty.model.CmdMsgModel;
-import netty.model.ReceiptModel;
+import netty.model.*;
+import netty.model.ReceiptCacheModel;
 import utils.Constant;
 
 import java.lang.ref.WeakReference;
@@ -52,21 +51,21 @@ public class SessionHolder {
     /**
      * 先缓存消息 收到客户端确认收到消息 才移除 保证送达
      */
-    public static final ConcurrentHashMap<String, ReceiptModel> receiptMsg = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String, ReceiptCacheModel> receiptMsg = new ConcurrentHashMap<>();
 
     //将channel和uuid做本地映射
     public static void login(Channel channel, BaseMsgModel msgModel) {
         SessionModel sessionModel = new SessionModel();
         sessionModel.channel = channel;
-        sessionModel.clientToken = ((CmdMsgModel) msgModel).fromToken;
-        sessionModel.deviceType = ((CmdMsgModel) msgModel).deviceType;
+        sessionModel.clientToken = ((MsgModel) msgModel).fromToken;
+        sessionModel.deviceType = ((MsgModel) msgModel).deviceType;
         sessionModel.uuid = msgModel.from;
 
         getSession(msgModel.deviceType).put(msgModel.from, sessionModel);
         sessionChannelMap.put(channel, sessionModel);
     }
 
-    public static void logout(CmdMsgModel cmdMsg) {
+    public static void logout(MsgModel cmdMsg) {
         SessionModel sessionModel = getSession(cmdMsg.deviceType).remove(cmdMsg.from);
         if (sessionModel != null)
             sessionChannelMap.remove(sessionModel.channel);
@@ -101,7 +100,7 @@ public class SessionHolder {
         for (SessionModel sm : sessionModelList) {
             sm.channel.writeAndFlush(msgModel);
 
-            ReceiptModel recModel = new ReceiptModel();
+            ReceiptCacheModel recModel = new ReceiptCacheModel();
             recModel.channel = new WeakReference<>(sm.channel);
             msgModel.sendTime = System.currentTimeMillis();
             recModel.msgModel = msgModel;

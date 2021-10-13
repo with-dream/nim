@@ -20,7 +20,7 @@ public class RequestMsgModel extends BaseMsgModel {
 
     public int cmd;
     public int status;
-    public long groupId;
+    public String groupId;
 
     public static RequestMsgModel create(String from, String to, int clientToken) {
         RequestMsgModel reqMsgModel = new RequestMsgModel();

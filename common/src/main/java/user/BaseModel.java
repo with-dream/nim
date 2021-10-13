@@ -10,6 +10,10 @@ public class BaseModel<T> extends Entity {
     public String msg;
     public T data;
 
+    public boolean success() {
+        return code == SUCC;
+    }
+
     public static BaseModel fail() {
         return fail(FAIL);
     }

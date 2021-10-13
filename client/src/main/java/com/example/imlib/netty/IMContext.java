@@ -7,11 +7,12 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import netty.model.BaseMsgModel;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class IMContext {
     public String uuid;
-    private String[] ipList;
+    private List<String> ipList;
     public Channel channel;
     public Context context;
     private IMConnCallback callback;
@@ -21,7 +22,7 @@ public class IMContext {
     private NettyClient nettyClient = new NettyClient();
     public ConcurrentHashMap<Long, BaseMsgModel> receiptMsg = new ConcurrentHashMap<>();
 
-    public void setIpList(String[] ipList) {
+    public void setIpList(List<String> ipList) {
         this.ipList = ipList;
     }
 
@@ -30,6 +31,7 @@ public class IMContext {
     }
 
     public void sendMsg(BaseMsgModel msg, boolean receipt) {
+        msg.delayTime = System.currentTimeMillis();
         if (receipt)
             receiptMsg.put(msg.msgId, msg);
 

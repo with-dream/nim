@@ -11,7 +11,6 @@ public class MsgModel extends BaseMsgModel {
         msgModel.from = from;
         msgModel.to = to;
         msgModel.fromToken = clientToken;
-        msgModel.type = MsgType.MSG_PERSON;
         return msgModel;
     }
 

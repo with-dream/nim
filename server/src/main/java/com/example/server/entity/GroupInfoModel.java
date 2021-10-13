@@ -1,4 +1,4 @@
-package user;
+package com.example.server.entity;
 
 public class GroupInfoModel {
     public String groupId;

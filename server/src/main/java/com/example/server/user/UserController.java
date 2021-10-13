@@ -1,18 +1,19 @@
 package com.example.server.user;
 
-import com.example.server.ServerList;
+import com.example.server.entity.FriendModel;
+import com.example.server.entity.GroupInfoModel;
+import com.example.server.entity.UserCheckModel;
 import org.apache.commons.lang.StringUtils;
-import user.UserModel;
+import com.example.server.entity.UserModel;
 import com.example.server.service.UserService;
 import com.google.gson.Gson;
-import netty.model.*;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
-import user.*;
+import user.BaseModel;
 import utils.Constant;
 import utils.L;
 import utils.UUIDUtil;
@@ -44,12 +45,12 @@ public class UserController {
     }
 
     @RequestMapping(value = "/login")
-    public BaseModel<UserModel> login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
+    public BaseModel<UserCheckModel> login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
             , @RequestParam(value = "deviceType") int deviceType) {
         UserModel userModel = new UserModel();
         userModel.name = name;
         userModel.pwd = pwd;
-        UserModel res = userService.login(userModel);
+        UserCheckModel res = userService.login(userModel);
         boolean loginSuccess = res != null && StringUtils.isNotEmpty(res.uuid);
         if (loginSuccess) {
             res.serviceList = Constant.SERVER_LIST;
@@ -94,6 +95,7 @@ public class UserController {
     @ResponseBody
     public BaseModel<GroupInfoModel> createGroup(@RequestParam(value = "uuid") String uuid, @RequestParam(value = "groupName") String groupName) {
         GroupInfoModel groupModel = new GroupInfoModel();
+        groupModel.groupId = UUIDUtil.getUid();
         groupModel.uuid = uuid;
         groupModel.name = groupName;
         groupModel.memberCount = 1;

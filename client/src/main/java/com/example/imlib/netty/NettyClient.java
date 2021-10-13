@@ -1,5 +1,6 @@
 package com.example.imlib.netty;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.example.imlib.utils.L;
@@ -25,7 +26,7 @@ public class NettyClient {
     private EventLoopGroup group;
     private int reconnCount;
 
-    public int connect(String[] ipList) {
+    public int connect(List<String> ipList) {
         if (group != null) {
             group.shutdownGracefully();
         }
@@ -94,7 +95,7 @@ public class NettyClient {
             public void operationComplete(Future<? super Void> future) throws Exception {
                 System.err.println("client cmd send succ");
                 if (IMContext.getInstance().getCallback() != null) {
-                    IMContext.getInstance().getCallback().lonin(future.isSuccess()
+                    IMContext.getInstance().getCallback().login(future.isSuccess()
                             ? Constant.SUCC : Constant.FAILED);
                 }
             }

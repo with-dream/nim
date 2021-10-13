@@ -6,11 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
 import utils.L;
 
-import javax.annotation.PreDestroy;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
 
 @MapperScan("com.example.server.mapper")
 @SpringBootApplication

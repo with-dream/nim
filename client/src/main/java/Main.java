@@ -3,6 +3,7 @@ import com.example.imlib.netty.IMMsgCallback;
 import com.example.imlib.utils.L;
 import com.example.imlib.utils.StrUtil;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
@@ -11,8 +12,10 @@ import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import user.*;
 import utils.Constant;
+import utils.UUIDUtil;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -82,11 +85,11 @@ public class Main {
                 switch (cmd) {
                     case "q":
                         return;
-                    case "regist":   //注册
+                    case "register":   //注册
                         L.p("注册 格式:用户名/密码");
                         String nameR = input.next();
                         String[] nR = nameR.split("/");
-                        client.regist(nR[0], nR[1]);
+                        client.register(nR[0], nR[1]);
                         break;
                     case "login":   //格式  用户名/密码
                         L.p("登录 格式:用户名/密码");
@@ -209,18 +212,22 @@ public class Main {
             }
 
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                String res = response.body().string();
-                System.err.println("resModel  1111==>" + res);
+                String str = response.body().string();
+                System.err.println("resModel  1111==>" + str);
 
-                UserResultModel resModel = gson.fromJson(res, UserResultModel.class);
-                System.err.println("resModel==>" + resModel.toString());
-                IMContext.getInstance().setIpList(resModel.imUrl);
-                IMContext.getInstance().uuid = resModel.uuid;
-                IMContext.getInstance().clientToken = resModel.clientToken;
-
-                if (resModel.code == 0) {
+                BaseModel<UserCheckModel> res = gson.fromJson(str, new TypeToken<BaseModel<UserCheckModel>>() {
+                }.getType());
+                if (res.success()) {
+                    UserCheckModel userModel = res.data;
+                    System.err.println("resModel==>" + userModel.toString());
+                    IMContext.getInstance().setIpList(userModel.serviceList);
+                    IMContext.getInstance().uuid = userModel.uuid;
+                    IMContext.getInstance().clientToken = UUIDUtil.getClientToken();
                     new Thread(() -> IMContext.getInstance().connect()).start();
+                } else {
+                    L.p("==>登录失败");
                 }
+
             }
         });
     }
@@ -255,13 +262,12 @@ public class Main {
             }
 
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                String res = response.body().string();
-                System.err.println("resModel  1111==>" + res);
-
-                FriendResModel resModel = gson.fromJson(res, FriendResModel.class);
-                System.err.println("resModel==>" + resModel.toString());
-                if (resModel.code == 0) {
-
+                String str = response.body().string();
+                System.err.println("resModel  1111==>" + str);
+                BaseModel<List<FriendModel>> res = gson.fromJson(str, new TypeToken<BaseModel<List<FriendModel>>>() {
+                }.getType());
+                if (res.success()) {
+                    L.p("getAllFriend==>" + res.data);
                 }
             }
         });
@@ -320,18 +326,13 @@ public class Main {
 
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 String res = response.body().string();
-                System.err.println("resModel  1111==>" + res);
+                System.err.println("getAllGroup  1111==>" + res);
 
-                GroupResModel resModel = gson.fromJson(res, GroupResModel.class);
-                System.err.println("resModel==>" + resModel.toString());
-                if (resModel.code == 0) {
-
-                }
             }
         });
     }
 
-    private void regist(String userName, String pwd) {
+    private void register(String userName, String pwd) {
         if (StrUtil.isEmpty(userName) || StrUtil.isEmpty(pwd)) {
             L.e("用户名 密码不能空");
             return;
@@ -341,7 +342,7 @@ public class Main {
         final Gson gson = new Gson();
 
         Request request = new Request.Builder()
-                .url(String.format("http://%s/user/regist?name=%s&pwd=%s", Conf.LOCAL_IP, userName, pwd))
+                .url(String.format("http://%s/user/register?name=%s&pwd=%s", Conf.LOCAL_IP, userName, pwd))
                 .get()
                 .build();
 
@@ -352,11 +353,8 @@ public class Main {
 
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 String res = response.body().string();
-                L.p("resModel==>" + res);
+                L.p("register==>" + res);
 
-                RegistModel resModel = gson.fromJson(res, RegistModel.class);
-                if (resModel.code == 0) {
-                }
             }
         });
     }

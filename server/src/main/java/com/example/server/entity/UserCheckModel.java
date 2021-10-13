@@ -1,9 +1,7 @@
-package user;
+package com.example.server.entity;
 
 import entity.Entity;
 
-import java.sql.Date;
-import java.util.Arrays;
 import java.util.List;
 
 public class UserCheckModel extends Entity {

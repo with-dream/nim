@@ -46,7 +46,7 @@ public class ZkServer {
     }
 
     // 2.注册信息
-    public void regist(String hostname) throws KeeperException, InterruptedException {
+    public void register(String hostname) throws KeeperException, InterruptedException {
         String node = zkCli.create(parentNode + "/server", hostname.getBytes(), Ids.OPEN_ACL_UNSAFE,
                 CreateMode.EPHEMERAL_SEQUENTIAL);
         System.out.println(node);

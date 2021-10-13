@@ -5,9 +5,9 @@ import com.example.server.redis.TagList;
 import io.netty.channel.Channel;
 import netty.model.RequestMsgModel;
 import org.springframework.stereotype.Component;
-import user.FriendModel;
-import user.GroupInfoModel;
-import user.GroupMemberModel;
+import com.example.server.entity.FriendModel;
+import com.example.server.entity.GroupInfoModel;
+import com.example.server.entity.GroupMemberModel;
 import utils.L;
 import utils.StrUtil;
 

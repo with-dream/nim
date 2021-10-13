@@ -103,7 +103,7 @@ public class SessionHolder {
             }
         }
         if (Const.DEBUG) {
-            L.p("sendMsg==>" + sessionModelList);
+            L.p("sendMsg local==>" + sessionModelList);
         }
         for (SessionModel sm : sessionModelList) {
             sm.channel.writeAndFlush(msgModel);

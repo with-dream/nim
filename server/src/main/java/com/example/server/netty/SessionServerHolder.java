@@ -10,7 +10,7 @@ import netty.model.*;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
-import user.GroupMemberModel;
+import com.example.server.entity.GroupMemberModel;
 import utils.Constant;
 import utils.Errcode;
 import utils.L;
@@ -108,6 +108,8 @@ public class SessionServerHolder {
 
     /**
      * 根据uuid 获取所有在线客户端信息
+     * <p>
+     * 已经丢弃了本机的queueName 本服务器不需要转发
      */
     public List<SessionRedisModel> getSessionRedis(List<String> uuidList) {
         List<SessionRedisModel> sessionList = new ArrayList<>();
@@ -179,7 +181,7 @@ public class SessionServerHolder {
         //查找接受用户的uuid 获取信息
         List<String> uuidList = new ArrayList<>();
         uuidList.add(msg.to);
-        if (!self)
+        if (self)
             uuidList.add(msg.from);
         List<SessionRedisModel> sessionList = getSessionRedis(uuidList);
 

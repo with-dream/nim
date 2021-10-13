@@ -1,11 +1,8 @@
 package com.example.server.mapper;
 
-import user.GroupInfoModel;
-import user.GroupMemberModel;
-import user.UserModel;
+import com.example.server.entity.*;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
-import user.FriendModel;
 
 import java.util.List;
 
@@ -13,7 +10,7 @@ import java.util.List;
 public interface UserMapper {
     int register(UserModel userModel);
 
-    UserModel login(UserModel userModel);
+    UserCheckModel login(UserModel userModel);
 
     int checkUser(String uuid);
 
@@ -29,11 +26,11 @@ public interface UserMapper {
 
     int delGroupMember(GroupMemberModel memberModel);
 
-    List<GroupMemberModel> getGroupMembers(@Param(value = "groupId") long groupId);
+    List<GroupMemberModel> getGroupMembers(@Param(value = "groupId") String groupId);
 
     int checkGroupRole(GroupMemberModel memberModel);
 
-    GroupInfoModel getGroupInfo(@Param(value = "groupId") long groupId);
+    GroupInfoModel getGroupInfo(@Param(value = "groupId") String groupId);
 
     int createGroup(GroupInfoModel groupModel);
 

@@ -78,7 +78,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<BaseMsgModel
         if (!(baseMsgModel instanceof MsgModel) || ((MsgModel) baseMsgModel).cmd != MsgCmd.HEART) {
 //            L.p("channelRead0==>" + baseMsgModel.toString());
             //除心跳包以外 每收到一个消息都要回复服务端已收到
-            ReceiptMsgModel recvModel = ReceiptMsgModel.create(Constant.SERVER_UID, baseMsgModel.to, baseMsgModel.msgId, Constant.SERVER_TOKEN);
+            ReceiptMsgModel recvModel = ReceiptMsgModel.create(Constant.SERVER_UID, baseMsgModel.from, baseMsgModel.msgId, Constant.SERVER_TOKEN);
             recvModel.sendMsgType = baseMsgModel.type;
             recvModel.cmd = MsgCmd.SERVER_RECEIVED;
             ctx.channel().write(recvModel);

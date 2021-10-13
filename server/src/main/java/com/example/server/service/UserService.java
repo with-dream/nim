@@ -1,13 +1,9 @@
 package com.example.server.service;
 
+import com.example.server.entity.*;
 import com.example.server.mapper.UserMapper;
 import org.springframework.transaction.annotation.Transactional;
-import user.GroupInfoModel;
-import user.GroupMemberModel;
-import user.UserModel;
-import com.google.gson.Gson;
 import org.springframework.stereotype.Service;
-import user.FriendModel;
 import utils.StrUtil;
 
 import javax.annotation.Resource;
@@ -18,13 +14,11 @@ public class UserService {
     @Resource
     public UserMapper userMapper;
 
-    private Gson gson = new Gson();
-
     public int register(UserModel userModel) {
         return userMapper.register(userModel);
     }
 
-    public UserModel login(UserModel userModel) {
+    public UserCheckModel login(UserModel userModel) {
         return userMapper.login(userModel);
     }
 
@@ -67,7 +61,7 @@ public class UserService {
         return userMapper.getAllGroup(uuid);
     }
 
-    public GroupInfoModel getGroupInfo(long groupId) {
+    public GroupInfoModel getGroupInfo(String groupId) {
         return userMapper.getGroupInfo(groupId);
     }
 
@@ -91,7 +85,7 @@ public class UserService {
         return res;
     }
 
-    public List<GroupMemberModel> getGroupMembers(long groupId) {
+    public List<GroupMemberModel> getGroupMembers(String groupId) {
         return userMapper.getGroupMembers(groupId);
     }
 
@@ -100,7 +94,7 @@ public class UserService {
         int res = userMapper.createGroup(groupModel);
 
         GroupMemberModel memberModel = new GroupMemberModel();
-        memberModel.groupId = groupModel.id;
+        memberModel.groupId = groupModel.groupId;
         memberModel.uuid = groupModel.uuid;
         memberModel.role = GroupMemberModel.OWNER;
         memberModel.level = 0;
@@ -113,7 +107,7 @@ public class UserService {
      */
     @Transactional
     public int delGroup(GroupInfoModel groupModel) {
-        List<GroupMemberModel> memList = getGroupMembers(groupModel.id);
+        List<GroupMemberModel> memList = getGroupMembers(groupModel.groupId);
         for (GroupMemberModel gmm : memList) {
             int res = userMapper.delGroupMember(gmm);
             if (res != 1) {
@@ -123,7 +117,7 @@ public class UserService {
         return userMapper.delGroup(groupModel);
     }
 
-    public boolean checkGroup(long groupId) {
+    public boolean checkGroup(String groupId) {
         return true;
     }
 }

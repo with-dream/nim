@@ -43,6 +43,8 @@ public class BaseMsgModel extends Entity implements Cloneable {
     public long timestamp;
     //发送时的时间戳 毫秒 统一为服务器的时间
     public long sendTime;
+    //统计消息延时
+    public long delayTime;
     //消息等级
     public int level;
 

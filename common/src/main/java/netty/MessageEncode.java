@@ -5,6 +5,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import netty.model.BaseMsgModel;
+import utils.L;
 
 public class MessageEncode extends MessageToByteEncoder<BaseMsgModel> {
     private Gson gson = new Gson();
@@ -14,6 +15,7 @@ public class MessageEncode extends MessageToByteEncoder<BaseMsgModel> {
         String ss = null;
         try {
             ss = gson.toJson(o);
+//            L.p("encode==>" + ss);
         } catch (Exception e) {
             System.err.println(String.format("%s  %s", "encode e==>" + e.toString(), o));
         }

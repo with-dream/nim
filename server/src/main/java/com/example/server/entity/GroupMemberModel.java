@@ -1,4 +1,4 @@
-package user;
+package com.example.server.entity;
 
 import entity.Entity;
 

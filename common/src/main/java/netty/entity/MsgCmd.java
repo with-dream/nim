@@ -1,4 +1,4 @@
-package netty.model;
+package netty.entity;
 
 public class MsgCmd {
     public static final int LOGIN = 0;
@@ -6,7 +6,6 @@ public class MsgCmd {
     public static final int HEART = 3;
 
     public static final int SEND_SUC = 10;
-    public static final int RECEIVED = 11;
     public static final int READ = 12;
 
     public static final int SERVER_RECEIVED = 100;

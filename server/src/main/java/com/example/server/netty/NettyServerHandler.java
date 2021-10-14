@@ -6,7 +6,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
-import netty.model.*;
+import netty.entity.RequestMsgModel;
 import org.springframework.stereotype.Component;
 import utils.Constant;
 import utils.L;

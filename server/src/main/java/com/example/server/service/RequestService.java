@@ -3,7 +3,7 @@ package com.example.server.service;
 import com.example.server.netty.SessionServerHolder;
 import com.example.server.redis.TagList;
 import io.netty.channel.Channel;
-import netty.model.RequestMsgModel;
+import netty.entity.RequestMsgModel;
 import org.springframework.stereotype.Component;
 import com.example.server.entity.FriendModel;
 import com.example.server.entity.GroupInfoModel;

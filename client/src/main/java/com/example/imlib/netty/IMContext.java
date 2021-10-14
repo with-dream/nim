@@ -5,7 +5,9 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import netty.model.BaseMsgModel;
+import netty.entity.Message;
+import utils.Constant;
+import utils.UUIDUtil;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,10 +33,10 @@ public class IMContext {
     }
 
     public void sendMsg(BaseMsgModel msg, boolean receipt) {
-        msg.delayTime = System.currentTimeMillis();
-        if (receipt)
+        if (receipt) {
+            msg.delayTime = System.currentTimeMillis();
             receiptMsg.put(msg.msgId, msg);
-
+        }
         ChannelFuture future = channel.writeAndFlush(msg);
         future.addListener(new GenericFutureListener<Future<? super Void>>() {
             @Override
@@ -87,4 +89,21 @@ public class IMContext {
         return nettyClient.connect(this.ipList);
     }
 
+    public static <T> Message<T> createMsg(String to, int msgType, T msg) {
+        Message<T> msgNormal = new Message<>();
+        msgNormal.msgId = UUIDUtil.getMsgId();
+
+        RouteInfo ri = new RouteInfo();
+        ri.from = IMContext.getInstance().uuid;
+        ri.fromToken = IMContext.getInstance().clientToken;
+        ri.deviceType = Constant.ANDROID;
+        ri.to = to;
+        msgNormal.routeInfo = ri;
+
+        msgNormal.msg = msg;
+        msgNormal.msgType = msgType;
+
+        Analyse analyse = new Analyse();
+        return msgNormal;
+    }
 }

@@ -57,9 +57,7 @@ public class SessionServerHolder {
             //踢掉已经登录的用户 如果在本服务器 直接强制退出
             SessionRedisModel oldMQ = (SessionRedisModel) map;
             if (oldMQ.queueName.equals(ApplicationRunnerImpl.MQ_NAME)) {
-                that.redisTemplate.opsForHash().delete(Const.mqTag(cmdMsg.deviceType), cmdMsg.from);
-                that.redisTemplate.opsForSet().remove(ApplicationRunnerImpl.MQ_NAME, cmdMsg.from + ":" + cmdMsg.deviceType);
-                SessionHolder.logout(cmdMsg);
+
             } else {
                 //TODO 通过mq发送命令强制退出
             }
@@ -239,7 +237,7 @@ public class SessionServerHolder {
 
         //TODO 离线回复已发送 可以和SEND_SUC一起回复
         ReceiptMsgModel receiptModel = ReceiptMsgModel.create(msgModel.to, msgModel.from, msgModel.msgId, Constant.SERVER_TOKEN);
-        receiptModel.cmd = MsgCmd.RECEIVED;
+        receiptModel.cmd = MsgCmd.CLIENT_RECEIVED;
         receiptModel.sendMsgType = msgModel.type;
         receiptModel.toToken = msgModel.fromToken;
         channel.writeAndFlush(receiptModel);

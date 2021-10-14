@@ -1,16 +1,17 @@
 package com.example.imlib.netty;
 
 import com.example.imlib.utils.L;
-import com.google.gson.Gson;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import netty.model.*;
+import netty.entity.RequestMsgModel;
 import utils.Constant;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -20,7 +21,7 @@ import java.util.concurrent.TimeUnit;
  **/
 public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel> {
     private static final int TRY_COUNT_MAX = 5;
-    private Gson gson = new Gson();
+    private Map<Long, BaseMsgModel> tmpMap = new HashMap<>();
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
@@ -116,11 +117,17 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
                 ReceiptMsgModel receiptMsgModel = (ReceiptMsgModel) baseMsgModel;
                 switch (receiptMsgModel.cmd) {
                     case MsgCmd.SERVER_RECEIVED:
-                        IMContext.getInstance().receiptMsg.remove(receiptMsgModel.sendMsgId);
-                        L.p("消息发送成功==>" + receiptMsgModel.seq);
+                        BaseMsgModel tmpMsgModel = IMContext.getInstance().receiptMsg.remove(receiptMsgModel.sendMsgId);
+//                        tmpMap.put(receiptMsgModel.sendMsgId, tmpMsgModel);
+//                        if (tmpMsgModel != null)
+//                            L.p("时间==>" + (System.currentTimeMillis() - tmpMsgModel.sendTime));
+                        L.p("消息已发送到服务器==>" + receiptMsgModel.seq);
                         break;
-                    case MsgCmd.RECEIVED:
-                        L.p("消息已送达==>" + receiptMsgModel.toString());
+                    case MsgCmd.CLIENT_RECEIVED:
+//                        BaseMsgModel msgModel = tmpMap.remove(receiptMsgModel.sendMsgId);
+//                        if (msgModel != null)
+//                            L.p("时间==>" + (System.currentTimeMillis() - msgModel.sendTime));
+                        L.p("消息已发送到目标客户端==>" + receiptMsgModel.toString());
                         break;
                 }
                 break;
@@ -173,6 +180,6 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
     }
 
     public void receiptMsg(BaseMsgModel baseMsgModel) {
-        this.receiptMsg(baseMsgModel, MsgCmd.RECEIVED);
+        this.receiptMsg(baseMsgModel, MsgCmd.CLIENT_RECEIVED);
     }
 }

@@ -13,9 +13,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import netty.model.MsgCmd;
-import netty.model.MsgModel;
-import netty.model.MsgType;
 import utils.Constant;
 
 

@@ -4,7 +4,8 @@ import com.google.gson.Gson;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
-import netty.model.*;
+import netty.entity.NimMsg;
+import netty.entity.RequestMsgModel;
 
 import java.util.List;
 
@@ -13,17 +14,12 @@ public class MessageDecode extends ByteToMessageDecoder {
     private Gson gson = new Gson();
 
     @Override
-    protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list) throws Exception {
+    protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list) {
         if (byteBuf.readableBytes() < HEAD_LENGTH) {
             return;
         }
         byteBuf.markReaderIndex();
         int dataLength = byteBuf.readInt();
-        if (dataLength < 0) {
-            channelHandlerContext.close();
-        }
-
-        int msgType = byteBuf.readInt();
         if (dataLength < 0) {
             channelHandlerContext.close();
         }
@@ -36,28 +32,7 @@ public class MessageDecode extends ByteToMessageDecoder {
         byte[] body = new byte[dataLength];
         byteBuf.readBytes(body);
 
-        list.add(getModel(gson, msgType, new String(body)));
-    }
-
-    public static final BaseMsgModel getModel(Gson gson, int msgType, String body) {
-        Class cls = null;
-        switch (msgType) {
-            case MsgType.MSG_CMD:
-            case MsgType.MSG_PERSON:
-            case MsgType.MSG_GROUP:
-                cls = MsgModel.class;
-                break;
-            case MsgType.MSG_RECEIPT:
-                cls = ReceiptMsgModel.class;
-                break;
-            case MsgType.MSG_CMD_REQ:
-                cls = RequestMsgModel.class;
-                break;
-            case MsgType.MSG_PACK:
-                cls = PackMsgModel.class;
-                break;
-        }
-
-        return (BaseMsgModel) gson.fromJson(body, cls);
+        NimMsg msg = gson.fromJson(new String(body), NimMsg.class);
+        list.add(msg);
     }
 }

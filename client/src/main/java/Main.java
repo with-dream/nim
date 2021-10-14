@@ -7,7 +7,7 @@ import com.google.gson.reflect.TypeToken;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import netty.model.*;
+import netty.entity.RequestMsgModel;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import user.*;
@@ -130,6 +130,8 @@ public class Main {
 
                         MsgModel msgModel = MsgModel.createPer(IMContext.getInstance().uuid, p[0], IMContext.getInstance().clientToken);
                         msgModel.info = p[1];
+
+
                         IMContext.getInstance().sendMsg(msgModel, true);
                         break;
                     case "sendPL":

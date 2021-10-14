@@ -3,11 +3,8 @@ package com.example.server.rabbitmq;
 import com.example.server.netty.SessionHolder;
 import com.google.gson.Gson;
 import com.rabbitmq.client.Channel;
-import netty.MQWrapper;
-import netty.MessageDecode;
 import netty.entity.MsgType;
 import netty.entity.NimMsg;
-import netty.model.*;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.listener.api.ChannelAwareMessageListener;
 import org.springframework.stereotype.Component;
@@ -53,7 +50,8 @@ public class RabbitListener implements ChannelAwareMessageListener {
         if (uuidSetObj == null) throw new RuntimeException("转发消息的目标uuid为空");
         Set<String> uuidSet = (Set<String>) uuidSetObj;
         for (String uuid : uuidSet) {
-            MsgModel msgModel = MsgModel.createPer(msg.from, uuid, msg.fromToken);
+            NimMsg copy = msg.copy();
+            copy.to = uuid;
             SessionHolder.sendMsg(msg, false);
         }
     }

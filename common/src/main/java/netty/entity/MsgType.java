@@ -53,6 +53,10 @@ public class MsgType {
     public static final int TYPE_PACK = 6;
     public static final int KEY_PACK = 601; //普通消息
 
+    /**
+     * 心跳消息
+     */
+    public static final int TYPE_HEART = 10;
 
     public static final int KEY_UNIFY_GROUP_ID = 10001;//群id
     public static final int KEY_UNIFY_MSG_TOKEN = 10002;//消息的token 用于消息回执

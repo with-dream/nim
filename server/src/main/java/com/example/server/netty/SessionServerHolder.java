@@ -6,7 +6,8 @@ import com.example.server.utils.Const;
 import com.google.gson.Gson;
 import io.netty.channel.Channel;
 import netty.MQWrapper;
-import netty.model.*;
+import netty.entity.MsgType;
+import netty.entity.NimMsg;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -51,8 +52,8 @@ public class SessionServerHolder {
      * 2 将uuid和channel做映射 用于消息推送
      * 3 将uuid和mq做映射 用于将消息路由到本服务器进行推送
      */
-    public void login(Channel channel, MsgModel cmdMsg) {
-        Object map = that.redisTemplate.opsForHash().get(Const.mqTag(cmdMsg.deviceType), cmdMsg.from);
+    public void login(Channel channel, NimMsg msg) {
+        Object map = that.redisTemplate.opsForHash().get(Const.mqTag(msg.deviceType), msg.from);
         if (map != null) {
             //踢掉已经登录的用户 如果在本服务器 直接强制退出
             SessionRedisModel oldMQ = (SessionRedisModel) map;
@@ -63,20 +64,21 @@ public class SessionServerHolder {
             }
         }
 
-        SessionHolder.login(channel, cmdMsg);
+        SessionHolder.login(channel, msg);
         //将uuid和mq做映射 用于其他服务器转发消息
         SessionRedisModel sessionModel = new SessionRedisModel();
-        sessionModel.clientToken = cmdMsg.fromToken;
-        sessionModel.deviceType = cmdMsg.deviceType;
-        sessionModel.uuid = cmdMsg.from;
+        sessionModel.clientToken = msg.fromToken;
+        sessionModel.deviceType = msg.deviceType;
+        sessionModel.uuid = msg.from;
         sessionModel.queueName = ApplicationRunnerImpl.MQ_NAME;
         //每个客户端平台对应一个登录实例 记录客户端的登录信息以及所在的mq名称 用于消息转发
-        that.redisTemplate.opsForHash().put(Const.mqTag(cmdMsg.deviceType), cmdMsg.from, sessionModel);
-        SessionRedisModel tmp = (SessionRedisModel) that.redisTemplate.opsForHash().get(Const.mqTag(cmdMsg.deviceType), cmdMsg.from);
+        that.redisTemplate.opsForHash().put(Const.mqTag(msg.deviceType), msg.from, sessionModel);
+        //测试用
+//        SessionRedisModel tmp = (SessionRedisModel) that.redisTemplate.opsForHash().get(Const.mqTag(msg.deviceType), msg.from);
 //        L.p("login redis==>" + tmp);
 //        L.p("getSessionRedis redis==>" + getSessionRedis(Arrays.asList("qqq", "www")));
-        //
-        that.redisTemplate.opsForSet().add(ApplicationRunnerImpl.MQ_NAME, cmdMsg.from + ":" + cmdMsg.deviceType);
+        //用于退出
+        that.redisTemplate.opsForSet().add(ApplicationRunnerImpl.MQ_NAME, msg.from + ":" + msg.deviceType);
     }
 
     public void logout(Channel channel) {
@@ -93,13 +95,13 @@ public class SessionServerHolder {
     /**
      * 缓存消息
      */
-    public boolean saveMsg(String timeLine, BaseMsgModel msgModel) {
-        Long index = that.redisTemplate.opsForList().rightPush(timeLine, msgModel);
+    public boolean saveMsg(String timeLine, NimMsg msg) {
+        Long index = that.redisTemplate.opsForList().rightPush(timeLine, msg);
         if (index == null) {
             L.e("saveMsg==>存储消息失败");
             return false;
         }
-        that.redisTemplate.opsForList().rightPush(MSGID_MAP + timeLine, msgModel.msgId);
+        that.redisTemplate.opsForList().rightPush(MSGID_MAP + timeLine, msg.msgId);
 
         return true;
     }
@@ -125,16 +127,16 @@ public class SessionServerHolder {
     /**
      * 发送群消息
      */
-    public <T extends GroupMsgModel> int sendGroupMsq(T msg) {
+    public int sendGroupMsq(NimMsg msg) {
         String timeLineId = "msg_g:" + msg.to;
 
         //获取群信息
-        List<GroupMemberModel> memList = that.userService.getGroupMembers(msg.groupId);
+        List<GroupMemberModel> memList = that.userService.getGroupMembers(msg.getGroupId());
         if (memList == null) {
-            boolean check = that.userService.checkGroup(msg.groupId);
+            boolean check = that.userService.checkGroup(msg.getGroupId());
             if (!check) {
                 //TODO 如果groupId不存在 则丢弃 否则缓存
-                System.err.println("不存在的groupId  MSG_GROUP==>" + msg.groupId);
+                System.err.println("不存在的groupId  MSG_GROUP==>" + msg.getGroupId());
                 return Errcode.NO_GROUP;
             }
         }
@@ -145,26 +147,33 @@ public class SessionServerHolder {
         //获取所有的在线成员 并将相同queueName的成员
         List<SessionRedisModel> memSessionList = getSessionRedis(uuidList);
         if (!memSessionList.isEmpty()) {
-            Map<String, GroupMsgModel> gMap = new HashMap<>();
+            Map<String, NimMsg> gMap = new HashMap<>();
             for (SessionRedisModel srm : memSessionList) {
                 //先推送连接本服务器的客户端
                 if (srm.queueName.equals(ApplicationRunnerImpl.MQ_NAME)
                         && srm.clientToken != msg.fromToken) {
-                    GroupMsgModel groupMsg = GroupMsgModel.createG(msg.from, srm.uuid);
-                    SessionHolder.sendMsg(groupMsg, false);
+                    NimMsg tmpMsg = msg.copy();
+                    tmpMsg.to = srm.uuid;
+                    SessionHolder.sendMsg(tmpMsg, false);
                 } else {
                     //将相同服务器的所有目标uuid打包 统一发送
-                    GroupMsgModel gmm = gMap.get(srm.queueName);
+                    NimMsg gmm = gMap.get(srm.queueName);
+                    Set<String> toSet = null;
                     if (gmm == null) {
-                        gmm = new GroupMsgModel();
+                        gmm = msg.copy();
                         gMap.put(srm.queueName, gmm);
                     }
-                    gmm.toSet.add(srm.uuid);
+                    toSet = gmm.msgGet(MsgType.KEY_UNIFY_SERVICE_GROUP_UUID_LIST);
+                    if (toSet == null) {
+                        toSet = new HashSet<>();
+                        gmm.msgPut(MsgType.KEY_UNIFY_SERVICE_GROUP_UUID_LIST, toSet);
+                    }
+                    toSet.add(srm.uuid);
                 }
             }
             //发送到其他服务器
-            for (Map.Entry<String, GroupMsgModel> entry : gMap.entrySet())
-                that.rabbit.convertAndSend(entry.getKey(), gson.toJson(new MQWrapper(MsgType.MSG_CMD_REQ, gson.toJson(entry.getValue()))));
+            for (Map.Entry<String, NimMsg> entry : gMap.entrySet())
+                that.rabbit.convertAndSend(entry.getKey(), entry.getValue());
         }
 
         saveMsg(timeLineId, msg);
@@ -175,7 +184,7 @@ public class SessionServerHolder {
     /**
      * 发送单条消息
      */
-    public <T extends BaseMsgModel> int sendMsq(T msg, Channel channel, String timeLintTag, boolean self) {
+    public int sendMsg(NimMsg msg, Channel channel, String timeLintTag, boolean self) {
         //查找接受用户的uuid 获取信息
         List<String> uuidList = new ArrayList<>();
         uuidList.add(msg.to);
@@ -232,8 +241,8 @@ public class SessionServerHolder {
     /**
      * 保存离线消息
      */
-    public void saveOfflineMsgId(Channel channel, BaseMsgModel msgModel, String timeLine) {
-        that.redisTemplate.opsForHash().put(MSGID_OFFLINE + msgModel.to, msgModel.msgId, timeLine);
+    public void saveOfflineMsgId(Channel channel, NimMsg msg, String timeLine) {
+        that.redisTemplate.opsForHash().put(MSGID_OFFLINE + msg.to, msg.msgId, timeLine);
 
         //TODO 离线回复已发送 可以和SEND_SUC一起回复
         ReceiptMsgModel receiptModel = ReceiptMsgModel.create(msgModel.to, msgModel.from, msgModel.msgId, Constant.SERVER_TOKEN);

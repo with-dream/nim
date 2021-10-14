@@ -1,13 +1,12 @@
 package netty.entity;
 
-import com.sun.tools.javac.util.StringUtils;
 import io.netty.util.internal.StringUtil;
 import utils.UUIDUtil;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class NimMsg {
+public class NimMsg implements Cloneable {
     //消息id 保证唯一 规则
     public long msgId;
     //发送者uuid
@@ -30,6 +29,10 @@ public class NimMsg {
     //需要另一端返回的数据
     public Map<Integer, Object> receipt;
 
+    public String getGroupId() {
+        return (String) msg.get(MsgType.KEY_UNIFY_GROUP_ID);
+    }
+
     public synchronized void recPut(Integer key, Object value) {
         if (receipt == null)
             receipt = new HashMap<>();
@@ -48,6 +51,12 @@ public class NimMsg {
         msg.put(key, value);
     }
 
+    public synchronized <T> T msgGet(Integer key) {
+        if(msg == null || !msg.containsKey(key))
+            return null;
+        return (T) msg.get(key);
+    }
+
     public synchronized void msgRemove(Integer key) {
         if (msg == null)
             return;
@@ -64,5 +73,17 @@ public class NimMsg {
         }
 
         return token;
+    }
+
+    public NimMsg copy() {
+        NimMsg res = null;
+        try {
+            res = (NimMsg) this.clone();
+            res.tryCount = 0;
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+
+        return res;
     }
 }

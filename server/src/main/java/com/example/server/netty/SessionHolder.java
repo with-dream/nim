@@ -1,6 +1,7 @@
 package com.example.server.netty;
 
 import com.example.server.utils.Const;
+import entity.Entity;
 import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
 import netty.entity.MsgType;
@@ -14,6 +15,19 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 当前服务器的推送及基础业务
+ *
+ * 由客户端消息标识控制严苛级别
+ *
+ * 消息分级别
+ * 1 当前端将数据发送出去即完成 只有异常 才回执
+ * 2 消息发送后 在客户端进行缓存 目标客户端收到消息回执 如果未收到回执 则重发
+ * 3 消息从客户端->服务器 服务器->目标客户端 每级都有消息回执 确保发送成功
+ *
+ * 1 客户端发送 客户端根据msgId缓存一份
+ * 2 服务器接收到客户端的消息 查找所有目标客户端的uuid 然后分发 分发前缓存一份 需要记录所有需要发送的客户端
+*       2.1 如果是普通模式
+ *       2.1 如果每个客户端不在同一个服务器 则各自发送
+ *       2.2 如果多个客户端在同一个服务器
  */
 public class SessionHolder {
     public static final AttributeKey<SessionModel> UUID_CHANNEL = AttributeKey.valueOf("uuid_channel_map");
@@ -81,6 +95,7 @@ public class SessionHolder {
      * @param self 是否给自己的其他客户端推送
      */
     public static void sendMsg(NimMsg msg, boolean self) {
+        //查找需要发送的客户端信息
         List<SessionModel> sessionModelList = new ArrayList<>();
         for (ConcurrentHashMap<String, SessionModel> map : session.values()) {
             SessionModel smTo = map.get(msg.to);
@@ -88,7 +103,7 @@ public class SessionHolder {
                 sessionModelList.add(smTo);
             if (self) {
                 SessionModel smFrom = map.get(msg.from);
-                //不需要发给发送着
+                //不需要发给发送者
                 if (smFrom != null && smFrom.clientToken != msg.fromToken)
                     sessionModelList.add(smFrom);
             }
@@ -103,6 +118,14 @@ public class SessionHolder {
             //加入回执缓存
             receiptMsg.put(msg.tokenService(), msg);
         }
+    }
+
+    public static class SendMsgCache {
+        public NimMsg msg;
+        public int deviceType;
+        public long sendTime;
+        public int tryCount;
+        public WeakReference<Channel> channel;
     }
 
     public static class SyncObj {

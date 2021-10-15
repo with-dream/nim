@@ -43,9 +43,11 @@ public class MsgType {
      * 回执消息
      */
     public static final int TYPE_RECEIPT = 5;
-    public static final int KEY_RECEIPT_MSG_ID = 501; //接收到的消息id
-    public static final int KEY_RECEIPT_TYPE = 502; //回执类型
-    public static final int KEY_RECEIPT_STATE = 503; //消息的状态
+    //服务器的回执消息
+    public static final int TYPE_RECEIPT_SERVICE = 500;
+    public static final int KEY_RECEIPT_MSG_ID = 503; //接收到的消息id
+    public static final int KEY_RECEIPT_TYPE = 504; //回执类型
+    public static final int KEY_RECEIPT_STATE = 505; //消息的状态
 
     /**
      * 打包消息
@@ -56,7 +58,8 @@ public class MsgType {
     /**
      * 心跳消息
      */
-    public static final int TYPE_HEART = 10;
+    public static final int TYPE_HEART_PING = 10;
+    public static final int TYPE_HEART_PONG = 11;
 
     public static final int KEY_UNIFY_GROUP_ID = 10001;//群id
     public static final int KEY_UNIFY_MSG_TOKEN = 10002;//消息的token 用于消息回执

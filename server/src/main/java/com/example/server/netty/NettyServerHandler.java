@@ -78,7 +78,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, NimMsg msg) {
-        msgService.process(msg, ctx.channel(), Constant.TCP);
+        msgService.process(msg, ctx.channel());
     }
 
     @Override

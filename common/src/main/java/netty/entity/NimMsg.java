@@ -21,13 +21,17 @@ public class NimMsg implements Cloneable {
     public int msgType;
     //消息等级
     public int level;
-    //重发计数
-    public int tryCount;
 
     //消息
     public Map<Integer, Object> msg;
     //需要另一端返回的数据
     public Map<Integer, Object> receipt;
+
+    public void swapUuid() {
+        String tmp = from;
+        from = to;
+        to = tmp;
+    }
 
     public String getGroupId() {
         return (String) msg.get(MsgType.KEY_UNIFY_GROUP_ID);
@@ -52,7 +56,7 @@ public class NimMsg implements Cloneable {
     }
 
     public synchronized <T> T msgGet(Integer key) {
-        if(msg == null || !msg.containsKey(key))
+        if (msg == null || !msg.containsKey(key))
             return null;
         return (T) msg.get(key);
     }
@@ -79,7 +83,6 @@ public class NimMsg implements Cloneable {
         NimMsg res = null;
         try {
             res = (NimMsg) this.clone();
-            res.tryCount = 0;
         } catch (CloneNotSupportedException e) {
             e.printStackTrace();
         }

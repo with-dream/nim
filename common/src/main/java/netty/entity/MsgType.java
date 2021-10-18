@@ -72,11 +72,12 @@ public class MsgType {
     public static final int KEY_UNIFY_CLIENT_SEND_TIME = 20001;//客户端发送时间
     public static final int KEY_UNIFY_CLIENT_SEND_CHANNEL = 20002;//客户端channel
     public static final int KEY_UNIFY_CLIENT_MSG_TOKEN = 20003;//客户端的临时token
+    public static final int KEY_UNIFY_CLIENT_SEND_SELF = 20005;//消息是否需要转发给发送者的其他客户端 用于消息同步
 
     public static final int KEY_UNIFY_SERVICE_SEND_TIME = 30001;//服务器端发送时间
     public static final int KEY_UNIFY_SERVICE_SEND_CHANNEL = 30002;//服务器channel
     public static final int KEY_UNIFY_SERVICE_MSG_TOKEN = 30003;//服务端的临时token
-    public static final int KEY_UNIFY_SERVICE_GROUP_UUID_LIST = 30004; //服务器集群时 同一条消息需要发送到同一台服务器的uuid集合 使用HSet<String>
+    public static final int KEY_UNIFY_SERVICE_UUID_Set = 30004; //服务器集群时 同一条消息需要发送到同一台服务器的多个uuid(群消息) 使用HSet<String>
 
     //离线消息
     public static final String CACHE_OFFLINE_MSG = "c_off";

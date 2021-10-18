@@ -1,6 +1,7 @@
 package com.example.server.service;
 
 import com.example.server.netty.MsgCacheHolder;
+import com.example.server.netty.SendHolder;
 import com.example.server.netty.SessionHolder;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -21,6 +22,9 @@ public class MsgService {
 
     @Resource
     RequestService reqService;
+
+    @Resource
+    SendHolder sendHolder;
 
     /**
      * 1 先缓存消息
@@ -46,14 +50,15 @@ public class MsgService {
             case MsgType.TYPE_CMD:
 
                 break;
-            case MsgType.TYPE_MSG:
-            case MsgType.TYPE_RECEIPT:
-
-                break;
             case MsgType.TYPE_CMD_GROUP:
-            case MsgType.TYPE_GROUP:
 
                 break;
+            case MsgType.TYPE_MSG:
+            case MsgType.TYPE_GROUP:
+            case MsgType.TYPE_RECEIPT:
+                sendHolder.sendMsg(msg);
+                break;
+
             default:
 
                 break;

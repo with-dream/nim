@@ -5,6 +5,7 @@ import utils.UUIDUtil;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class NimMsg implements Cloneable {
     //消息id 保证唯一 规则
@@ -23,9 +24,9 @@ public class NimMsg implements Cloneable {
     public int level;
 
     //消息
-    public Map<Integer, Object> msg;
+    private ConcurrentHashMap<Integer, Object> msg;
     //需要另一端返回的数据
-    public Map<Integer, Object> receipt;
+    private ConcurrentHashMap<Integer, Object> receipt;
 
     public void swapUuid() {
         String tmp = from;
@@ -33,53 +34,29 @@ public class NimMsg implements Cloneable {
         to = tmp;
     }
 
-    public String tm() {
-        return from.compareTo(to) < 0? from + to : to + from;
-    }
-
     public String getGroupId() {
-        return (String) msg.get(MsgType.KEY_UNIFY_GROUP_ID);
+        return (String) getMsgMap().get(MsgType.KEY_UNIFY_GROUP_ID);
     }
 
-    public synchronized void recPut(Integer key, Object value) {
-        if (receipt == null)
-            receipt = new HashMap<>();
-        receipt.put(key, value);
-    }
-
-    public synchronized void recRemove(Integer key) {
-        if (receipt == null)
-            return;
-        receipt.remove(key);
-    }
-
-    public synchronized void msgPut(Integer key, Object value) {
+    public synchronized Map<Integer, Object> getMsgMap() {
         if (msg == null)
-            msg = new HashMap<>();
-        msg.put(key, value);
+            msg = new ConcurrentHashMap<>();
+        return msg;
     }
 
-    public synchronized <T> T msgGet(Integer key) {
-        if (msg == null || !msg.containsKey(key))
-            return null;
-        return (T) msg.get(key);
+    public synchronized Map<Integer, Object> getRecMap() {
+        if (receipt == null)
+            receipt = new ConcurrentHashMap<>();
+        return receipt;
     }
 
-    public synchronized void msgRemove(Integer key) {
-        if (msg == null)
-            return;
-        msg.remove(key);
-    }
-
-    public synchronized String tokenService() {
-        String token = "";
-        if (receipt != null && receipt.containsKey(MsgType.KEY_UNIFY_SERVICE_MSG_TOKEN))
-            token = (String) receipt.get(MsgType.KEY_UNIFY_SERVICE_MSG_TOKEN);
-        if (StringUtil.isNullOrEmpty(token)) {
-            token = UUIDUtil.getUid();
-            recPut(MsgType.KEY_UNIFY_SERVICE_MSG_TOKEN, token);
-        }
-
+    /**
+     * 为msg临时添加一个token
+     * 同一条消息的msgId是固定的 如果发送给同一个用户的不同客户端 无法精准知道哪个客户端没有收到 所以添加临时token
+     * */
+    public String newTokenService() {
+        String token = UUIDUtil.getUid();
+        getRecMap().put(MsgType.KEY_UNIFY_SERVICE_MSG_TOKEN, token);
         return token;
     }
 

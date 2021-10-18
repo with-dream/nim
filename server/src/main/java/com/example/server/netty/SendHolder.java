@@ -2,38 +2,38 @@ package com.example.server.netty;
 
 import com.example.server.ApplicationRunnerImpl;
 import com.example.server.entity.GroupMemberModel;
+import com.example.server.entity.RecCacheEntity;
 import com.example.server.service.UserService;
-import com.example.server.utils.Const;
-import com.google.gson.Gson;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.util.AttributeKey;
-import io.netty.util.internal.ConcurrentSet;
-import netty.MQWrapper;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
+import netty.entity.MsgLevel;
 import netty.entity.MsgType;
 import netty.entity.NimMsg;
-import org.redisson.Redisson;
 import org.redisson.api.RSet;
 import org.redisson.api.RSetMultimap;
-import org.springframework.amqp.core.AmqpTemplate;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-import utils.Constant;
-import utils.Errcode;
-import utils.L;
-import utils.StrUtil;
+import utils.*;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * 整个服务器的消息发送
  */
 @Component
 public class SendHolder {
+    public static boolean COLONY = true;
     public static final String UUID_MQ_MAP = "mq_map";
     public static final AttributeKey<String> UUID_CHANNEL_MAP = AttributeKey.newInstance("key_uuid_channel_map");
 
@@ -45,24 +45,32 @@ public class SendHolder {
     }
 
     @Resource
-    public AmqpTemplate rabbit;
-
-    @Resource
-    public RedisTemplate<String, Object> redisTemplate;
+    public RedissonClient redisson;
 
     @Resource
     public UserService userService;
 
-    @Resource
-    public Redisson redisson;
-
-    private Gson gson = new Gson();
+    /**
+     * 缓存uuid和客户端的映射
+     * 同一个uuid会对应多个客户端
+     */
     public ConcurrentMap<String, Set<SessionModel>> session = new ConcurrentHashMap<>();
+
+    /**
+     * 已发送的消息缓存 用于消息重发
+     * key为NimMsg的临时token
+     */
+    public static Map<String, RecCacheEntity> receiptMap = new HashMap<>();
+
+    /**
+     * 服务器客户端的名称-channel映射 用于服务器间传消息
+     */
+    public Map<String, Channel> transferMap = new HashMap<>();
 
     /**
      * 1 如果所在客户端平台已登录 则强制退出
      * 2 将uuid和channel做映射 用于消息推送
-     * 3 将uuid和mq做映射 用于将消息路由到本服务器进行推送
+     * 3 将uuid和mq做映射 用于将消息路由到本服务器中转到channel所在的服务器
      */
     public void login(Channel channel, NimMsg msg) {
         SessionRedisModel sessionModel = new SessionRedisModel();
@@ -71,7 +79,7 @@ public class SendHolder {
         sessionModel.uuid = msg.from;
         sessionModel.queueName = ApplicationRunnerImpl.MQ_NAME;
 
-        RSetMultimap<String, SessionRedisModel> multimap = redisson.getSetMultimap(UUID_MQ_MAP);
+        RSetMultimap<String, SessionRedisModel> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
         RSet<SessionRedisModel> sessionModels = multimap.get(msg.from);
         //重复登录
         if (sessionModels.contains(sessionModel))
@@ -113,7 +121,7 @@ public class SendHolder {
         }
         localSet.remove(cacheSM);
 
-        RSetMultimap<String, SessionRedisModel> multimap = redisson.getSetMultimap(UUID_MQ_MAP);
+        RSetMultimap<String, SessionRedisModel> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
         RSet<SessionRedisModel> sessionModels = multimap.get(uuid);
         if (CollectionUtils.isEmpty(sessionModels)) {
             throw new RuntimeException("uuid丢失redis缓存");
@@ -136,7 +144,7 @@ public class SendHolder {
                 if (ApplicationRunnerImpl.MQ_NAME.equals(sm.redisModel.queueName)) {
                     smIt.remove();
                     //删除redis中的session
-                    RSetMultimap<String, SessionRedisModel> multimap = redisson.getSetMultimap(UUID_MQ_MAP);
+                    RSetMultimap<String, SessionRedisModel> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
                     RSet<SessionRedisModel> sessionModels = multimap.get(sm.redisModel.uuid);
                     if (CollectionUtils.isEmpty(sessionModels)) {
                         throw new RuntimeException("uuid丢失redis缓存");
@@ -155,200 +163,248 @@ public class SendHolder {
     }
 
     /**
-     * 缓存消息
+     * 推送消息
      */
-    public boolean saveMsg(String timeLine, NimMsg msg) {
-        Long index = that.redisTemplate.opsForList().rightPush(timeLine, msg);
-        if (index == null) {
-            L.e("saveMsg==>存储消息失败");
-            return false;
-        }
-        that.redisTemplate.opsForList().rightPush(MSGID_MAP + timeLine, msg.msgId);
-
-        return true;
+    public void sendMsg(NimMsg msg) {
+        if (COLONY)
+            sendMsgServiceColony(msg);
+        else sendMsgLocal(msg);
     }
 
-    /**
-     * 根据uuid 获取所有在线客户端信息
-     * <p>
-     * 已经丢弃了本机的queueName 本服务器不需要转发
-     */
-    public List<SessionRedisModel> getSessionRedis(List<String> uuidList) {
-        List<SessionRedisModel> sessionList = new ArrayList<>();
-        for (String tag : Const.mqTagList()) {
-            for (String uuid : uuidList) {
-                Object model = that.redisTemplate.opsForHash().get(tag, uuid);
-                //queueName相同 表示在本机 丢弃
-                if (model != null && !((SessionRedisModel) model).queueName.equals(ApplicationRunnerImpl.MQ_NAME))
-                    sessionList.add((SessionRedisModel) model);
-            }
-        }
-        return sessionList;
-    }
-
-    /**
-     * 发送群消息
-     */
-    public int sendGroupMsq(NimMsg msg) {
-        String timeLineId = "msg_g:" + msg.to;
-
-        //获取群信息
-        List<GroupMemberModel> memList = that.userService.getGroupMembers(msg.getGroupId());
-        if (memList == null) {
-            boolean check = that.userService.checkGroup(msg.getGroupId());
-            if (!check) {
-                //TODO 如果groupId不存在 则丢弃 否则缓存
-                System.err.println("不存在的groupId  MSG_GROUP==>" + msg.getGroupId());
-                return Errcode.NO_GROUP;
-            }
-        }
-        //获取群成员
-        List<String> uuidList = new ArrayList<>();
-        for (GroupMemberModel m : memList)
-            uuidList.add(m.uuid);
-        //获取所有的在线成员 并将相同queueName的成员
-        List<SessionRedisModel> memSessionList = getSessionRedis(uuidList);
-        if (!memSessionList.isEmpty()) {
-            Map<String, NimMsg> gMap = new HashMap<>();
-            for (SessionRedisModel srm : memSessionList) {
-                //先推送连接本服务器的客户端
-                if (srm.queueName.equals(ApplicationRunnerImpl.MQ_NAME)
-                        && srm.clientToken != msg.fromToken) {
-                    NimMsg tmpMsg = msg.copy();
-                    tmpMsg.to = srm.uuid;
-                    SessionHolder.sendMsg(tmpMsg, false);
-                } else {
-                    //将相同服务器的所有目标uuid打包 统一发送
-                    NimMsg gmm = gMap.get(srm.queueName);
-                    Set<String> toSet = null;
-                    if (gmm == null) {
-                        gmm = msg.copy();
-                        gMap.put(srm.queueName, gmm);
-                    }
-                    toSet = gmm.msgGet(MsgType.KEY_UNIFY_SERVICE_GROUP_UUID_LIST);
-                    if (toSet == null) {
-                        toSet = new HashSet<>();
-                        gmm.msgPut(MsgType.KEY_UNIFY_SERVICE_GROUP_UUID_LIST, toSet);
-                    }
-                    toSet.add(srm.uuid);
-                }
-            }
-            //发送到其他服务器
-            for (Map.Entry<String, NimMsg> entry : gMap.entrySet())
-                that.rabbit.convertAndSend(entry.getKey(), entry.getValue());
-        }
-
-        saveMsg(timeLineId, msg);
-
-        return Errcode.SUCC;
-    }
-
-    /**
-     * 发送单条消息
-     */
-    public int sendMsg(NimMsg msg, Channel channel, String timeLintTag, boolean self) {
-        //查找接受用户的uuid 获取信息
-        List<String> uuidList = new ArrayList<>();
-        uuidList.add(msg.to);
-        if (self)
-            uuidList.add(msg.from);
-        List<SessionRedisModel> sessionList = getSessionRedis(uuidList);
-
-        String timeLineId = StrUtil.getTimeLine(msg.from, msg.to, timeLintTag);
-
-        if (Const.DEBUG) {
-            L.p("sendMsq==>" + sessionList);
-        }
-
-        //检查其他服务器是否有此用户
-        boolean toEmpty = true;
-        for (SessionRedisModel srm : sessionList)
-            if (srm.uuid.equals(msg.to)) {
-                toEmpty = false;
+    private void sendMsgServiceSingle(NimMsg msg) {
+        Set<String> uuidSet = new HashSet<>();
+        switch (msg.msgType) {
+            case MsgType.TYPE_GROUP:
+            case MsgType.TYPE_CMD_GROUP:
+                List<GroupMemberModel> memList = userService.getGroupMembers(msg.getGroupId());
+                for (GroupMemberModel gmm : memList)
+                    uuidSet.add(gmm.uuid);
+                msg.getMsgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_Set, uuidSet);
+                sendMsgLocal(msg);
                 break;
+            case MsgType.TYPE_CMD:
+            case MsgType.TYPE_MSG:
+            case MsgType.TYPE_RECEIPT:
+                if (NullUtil.isTrue(msg.getMsgMap().get(MsgType.KEY_UNIFY_CLIENT_SEND_SELF)))
+                    uuidSet.add(msg.from);
+                uuidSet.add(msg.to);
+                msg.getMsgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_Set, uuidSet);
+                sendMsgLocal(msg);
+                break;
+            case MsgType.TYPE_ROOT:
+                sendMsgRoot(msg);
+                break;
+        }
+    }
+
+    //TODO 发送到其他服务器中转客户端 需要缓存消息 用于重发
+    private void sendMsgServiceColony(NimMsg msg) {
+        Set<SessionRedisModel> set = new HashSet<>();
+        RSetMultimap<String, SessionRedisModel> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
+
+        switch (msg.msgType) {
+            case MsgType.TYPE_GROUP:
+            case MsgType.TYPE_CMD_GROUP:
+                List<GroupMemberModel> memList = userService.getGroupMembers(msg.getGroupId());
+                for (GroupMemberModel gmm : memList) {
+                    set.addAll(multimap.get(gmm.uuid));
+                }
+                sendMsgServiceNormal(msg, set);
+                break;
+            case MsgType.TYPE_CMD:
+            case MsgType.TYPE_MSG:
+            case MsgType.TYPE_RECEIPT:
+                if (NullUtil.isTrue(msg.getMsgMap().get(MsgType.KEY_UNIFY_CLIENT_SEND_SELF)))
+                    set.addAll(multimap.get(msg.from));
+                set.addAll(multimap.get(msg.to));
+                sendMsgServiceNormal(msg, set);
+                break;
+            case MsgType.TYPE_ROOT:
+                sendMsgServiceRoot(msg);
+                break;
+        }
+    }
+
+    private void sendMsgServiceRoot(NimMsg msg) {
+        for (Map.Entry<String, Channel> entry : transferMap.entrySet()) {
+            if (entry.getKey().equals(ApplicationRunnerImpl.MQ_NAME)) {
+                sendMsgLocal(msg);
+            } else {
+                ChannelFuture future = entry.getValue().writeAndFlush(entry.getValue());
+                future.addListener(new GenericFutureListener<Future<? super Void>>() {
+                    @Override
+                    public void operationComplete(Future<? super Void> f) {
+                        if (f.isSuccess()) {
+
+                        } else {
+                            //TODO 发送失败
+                            L.e("transferMap转发失败");
+                        }
+                        future.removeListener(this);
+                    }
+                });
             }
-        //检查本服务器是否有此用户
-        if (toEmpty)
-            toEmpty = SessionHolder.checkSession(msg.to);
-        if (toEmpty) {
-            int check = that.userService.checkUser(msg.to);
-            if (check == 0) {
-                //TODO 如果uuid不存在 则丢弃 否则缓存
-                System.err.println("不存在的uuid  MSG_CMD_REQ==>" + msg.to);
-                return Errcode.NOBODY;
+        }
+    }
+
+    private void sendMsgServiceNormal(NimMsg msg, Set<SessionRedisModel> set) {
+        // queueName用于标识一个服务器
+        // 将所有queueName相同的消息合并为一个 使用KEY_UNIFY_SERVICE_GROUP_UUID_LIST保存所有的目标uuid
+        Map<String, NimMsg> sendTmpMsg = new HashMap<>();
+        for (SessionRedisModel srm : set) {
+            Set<String> uuidSet = null;
+            if (!sendTmpMsg.containsKey(srm.queueName)) {
+                NimMsg tmpMsg = msg.copy();
+                uuidSet = new HashSet<>();
+                tmpMsg.getMsgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_Set, uuidSet);
+                sendTmpMsg.put(srm.queueName, tmpMsg);
+            } else {
+                NimMsg tmpMsg = sendTmpMsg.get(srm.queueName);
+                uuidSet = (Set<String>) tmpMsg.getMsgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_Set);
             }
-            msg.status = BaseMsgModel.OFFLINE;
-            saveOfflineMsgId(channel, msg, timeLineId);
-            return Errcode.OFFLINE;
+
+            uuidSet.add(srm.uuid);
         }
 
-        SessionHolder.sendMsg(msg, self);
+        for (Map.Entry<String, NimMsg> entry : sendTmpMsg.entrySet()) {
+            if (entry.getKey().equals(ApplicationRunnerImpl.MQ_NAME)) {
+                sendMsgLocal(msg);
+            } else {
+                ChannelFuture future = transferMap.get(entry.getKey()).writeAndFlush(entry.getValue());
+                future.addListener(new GenericFutureListener<Future<? super Void>>() {
+                    @Override
+                    public void operationComplete(Future<? super Void> f) throws Exception {
+                        if (f.isSuccess()) {
 
-        //转发到其他服务器
-        Set<String> queueTmp = new HashSet<>();
-        for (SessionRedisModel session : sessionList) {
-            //如果多个客户端在同一个服务器 只需要发送一份
-            if (queueTmp.contains(session.queueName))
-                continue;
-            queueTmp.add(session.queueName);
-
-            that.rabbit.convertAndSend(session.queueName, gson.toJson(new MQWrapper(msg.type, gson.toJson(msg))));
+                        } else {
+                            //TODO 发送失败
+                            L.e("transferMap转发失败");
+                        }
+                        future.removeListener(this);
+                    }
+                });
+            }
         }
-        //缓存消息
-        saveMsg(timeLineId, msg);
-
-        return Errcode.SUCC;
     }
 
     /**
-     * 保存离线消息
+     * 将消息推送给连接此服务器的客户端
      */
-    public void saveOfflineMsgId(Channel channel, NimMsg msg, String timeLine) {
-        that.redisTemplate.opsForHash().put(MSGID_OFFLINE + msg.to, msg.msgId, timeLine);
+    private void sendMsgLocal(NimMsg msg) {
+        Set<String> toList = new HashSet<>();
 
-        //TODO 离线回复已发送 可以和SEND_SUC一起回复
-        ReceiptMsgModel receiptModel = ReceiptMsgModel.create(msgModel.to, msgModel.from, msgModel.msgId, Constant.SERVER_TOKEN);
-        receiptModel.cmd = MsgCmd.CLIENT_RECEIVED;
-        receiptModel.sendMsgType = msgModel.type;
-        receiptModel.toToken = msgModel.fromToken;
-        channel.writeAndFlush(receiptModel);
+        switch (msg.msgType) {
+            case MsgType.TYPE_GROUP:
+            case MsgType.TYPE_CMD_GROUP:
+            case MsgType.TYPE_CMD:
+            case MsgType.TYPE_MSG:
+            case MsgType.TYPE_RECEIPT:
+                toList.addAll(NullUtil.isSet(msg.getMsgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_Set)));
+                sendMsgNormal(msg, toList);
+                break;
+            case MsgType.TYPE_ROOT:
+                sendMsgRoot(msg);
+                break;
+        }
     }
 
-    //TODO 用于离线后再次上线 拉取缓存消息 不完善
-    public void sendOfflineMsg(String uuid) {
-        Map<Object, Object> offMsg = that.redisTemplate.opsForHash().entries(MSGID_OFFLINE + uuid);
-        if (offMsg.isEmpty())
-            return;
-        PackMsgModel msgModel = PackMsgModel.create(Constant.SERVER_UID, uuid, Constant.SERVER_TOKEN);
+    private void sendMsgRoot(NimMsg msg) {
+        for (Set<SessionModel> set : session.values())
+            for (SessionModel sm : set) {
+                //发送者所在客户端 不需要发送给自己
+                if (sm.redisModel.uuid.equals(msg.from) && sm.redisModel.clientToken == msg.fromToken)
+                    continue;
+                sendMsgReal(msg, sm);
+            }
+    }
 
-        Map<String, List<Long>> tmpMap = new HashMap<>();
-        for (Map.Entry<Object, Object> entry : offMsg.entrySet()) {
-            String timeline = (String) entry.getValue();
-            List<Long> list = tmpMap.computeIfAbsent(timeline, k -> new ArrayList<>());
-            list.add((Long) entry.getKey());
+    private void sendMsgNormal(NimMsg msg, Set<String> toList) {
+        Set<SessionModel> smSet = new HashSet<>();
+        for (String to : toList)
+            smSet.addAll(session.get(to));
+        if (CollectionUtils.isEmpty(smSet)) {
+            L.e("sendMsgLocal 查找uuid错误");
         }
 
-        for (Map.Entry<String, List<Long>> entry : tmpMap.entrySet()) {
-            String timeLineMap = MSGID_MAP + entry.getKey();
-            String timeLineMsg = entry.getKey();
-            List<Long> list = tmpMap.get(entry.getKey());
-            for (long msgId : list) {
-                Long index = that.redisTemplate.opsForList().indexOf(timeLineMap, msgId);
-                if (index == null) continue;
+        for (SessionModel sm : smSet) {
+            //发送者所在客户端 不需要发送给自己
+            if (sm.redisModel.uuid.equals(msg.from) && sm.redisModel.clientToken == msg.fromToken)
+                continue;
+            sendMsgReal(msg, sm);
+        }
+    }
 
-                BaseMsgModel msg = (BaseMsgModel) that.redisTemplate.opsForList().index(timeLineMsg, index);
-                if (msg != null) {
-//                    msgModel.addMsg(gson.toJson(msg));
-                } else {
-                    L.e("sendOfflineMsg获取msg为null==>" + index);
+    private void sendMsgReal(NimMsg msg, SessionModel sm) {
+        NimMsg tmpMsg = msg.copy();
+        String token = tmpMsg.newTokenService();
+        ChannelFuture future = sm.channel.writeAndFlush(tmpMsg);
+
+        if (msg.level != MsgLevel.LEVEL_LOW) {
+            RecCacheEntity rce = new RecCacheEntity(0, new WeakReference<>(sm), msg);
+            rce.token = token;
+            rce.updateTime();
+            receiptMap.put(token, rce);
+        }
+
+        //不重要的消息 如果成功不操作 如果失败则重发 只有失败才操作
+        if (msg.level == MsgLevel.LEVEL_LOW) {
+            future.addListener(new GenericFutureListener<Future<? super Void>>() {
+                @Override
+                public void operationComplete(Future<? super Void> f) {
+                    if (!f.isSuccess()) {
+                        RecCacheEntity rce = new RecCacheEntity(0, new WeakReference<>(sm), msg);
+                        rce.token = token;
+                        rce.updateTime();
+                        receiptMap.put(token, rce);
+                    }
+
+                    future.removeListener(this);
                 }
+            });
+        }
+    }
 
+    static class ReceiptThread extends Thread {
+        private boolean run = true;
+        public PriorityBlockingQueue<RecCacheEntity> receiptQueue = new PriorityBlockingQueue<>();
+
+        @Override
+        public void run() {
+            super.run();
+            while (run) {
+                if (receiptQueue.isEmpty())
+                    LockSupport.park();
+
+                RecCacheEntity recF = receiptQueue.peek();
+                if (recF.unpackTime - System.currentTimeMillis() <= 50) {
+                    Iterator<RecCacheEntity> it = receiptQueue.iterator();
+                    while (it.hasNext()) {
+                        RecCacheEntity rce = it.next();
+                        if (rce.isTimeout()) {
+                            //TODO 超时处理
+                            receiptMap.remove(rce.token);
+                            it.remove();
+                        } else if (rce.sm.get() != null
+                                && rce.unpackTime - System.currentTimeMillis() <= 50) {
+                            rce.sm.get().channel.writeAndFlush(rce.msg);
+                            rce.updateTime();
+                        } else
+                            break;
+                    }
+                } else
+                    LockSupport.parkUntil(recF.unpackTime - System.currentTimeMillis());
             }
         }
 
-        L.e("sendOfflineMsg==>" + msgModel.toString());
+        public void exit() {
+            run = false;
+        }
 
-//        sendReceiptMsq(msgModel, )
+        public void addCache(RecCacheEntity cacheEntity) {
+            receiptQueue.add(cacheEntity);
+            if (receiptQueue.size() > 1)
+                if (receiptQueue.peek().unpackTime < cacheEntity.unpackTime)
+                    LockSupport.unpark(this);
+        }
     }
-
 }

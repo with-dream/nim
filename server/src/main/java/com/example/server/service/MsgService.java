@@ -44,6 +44,8 @@ public class MsgService {
                 channel.writeAndFlush(msg);
                 break;
             case MsgType.TYPE_CMD:
+
+                break;
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_RECEIPT:
 

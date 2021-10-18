@@ -17,6 +17,7 @@ public class MsgType {
      * 请求的命令消息
      */
     public static final int TYPE_CMD = 1;
+    public static final String CACHE_CMD = "c_cmd";
     public static final int KEY_CMD = 101; //cmd命令 参照MsgCmd
     public static final int KEY_EXTRA = 102; //cmd命令的附加信息
 
@@ -24,6 +25,7 @@ public class MsgType {
      * 请求的群命令消息
      */
     public static final int TYPE_CMD_GROUP = 2;
+    public static final String CACHE_CMD_GROUP = "c_cmd_g";
     public static final int KEY_CMD_GROUP = 202;
     public static final int KEY_EXTRA_GROUP = 203;
 
@@ -31,18 +33,21 @@ public class MsgType {
      * 普通消息
      */
     public static final int TYPE_MSG = 3;
+    public static final String CACHE_MSG = "c_msg";
     public static final int KEY_MSG = 301; //普通消息
 
     /**
      * 群消息
      */
     public static final int TYPE_GROUP = 4;
+    public static final String CACHE_GROUP = "c_msg_g";
     public static final int KEY_MSG_GROUP = 402; //普通消息
 
     /**
      * 回执消息
      */
     public static final int TYPE_RECEIPT = 5;
+    public static final String CACHE_RECEIPT = "c_rec";
     //服务器的回执消息
     public static final int TYPE_RECEIPT_SERVICE = 500;
     public static final int KEY_RECEIPT_MSG_ID = 503; //接收到的消息id
@@ -58,8 +63,8 @@ public class MsgType {
     /**
      * 心跳消息
      */
-    public static final int TYPE_HEART_PING = 10;
-    public static final int TYPE_HEART_PONG = 11;
+    public static final int TYPE_HEART_PING = 20;
+    public static final int TYPE_HEART_PONG = 21;
 
     public static final int KEY_UNIFY_GROUP_ID = 10001;//群id
     public static final int KEY_UNIFY_MSG_TOKEN = 10002;//消息的token 用于消息回执
@@ -72,4 +77,8 @@ public class MsgType {
     public static final int KEY_UNIFY_SERVICE_SEND_CHANNEL = 30002;//服务器channel
     public static final int KEY_UNIFY_SERVICE_MSG_TOKEN = 30003;//服务端的临时token
     public static final int KEY_UNIFY_SERVICE_GROUP_UUID_LIST = 30004; //服务器集群时 同一条消息需要发送到同一台服务器的uuid集合 使用HSet<String>
+
+    //离线消息
+    public static final String CACHE_OFFLINE_MSG = "c_off";
+
 }

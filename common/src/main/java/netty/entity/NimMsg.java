@@ -33,6 +33,10 @@ public class NimMsg implements Cloneable {
         to = tmp;
     }
 
+    public String tm() {
+        return from.compareTo(to) < 0? from + to : to + from;
+    }
+
     public String getGroupId() {
         return (String) msg.get(MsgType.KEY_UNIFY_GROUP_ID);
     }

@@ -1,16 +1,18 @@
 package utils;
 
 public class StrUtil {
-    public static String[] getStr(String a, String b) {
-        String[] str = new String[2];
+    public static UuidCompare uuidCompare(String a, String b) {
+        UuidCompare compare = new UuidCompare();
         if (a.compareTo(b) < 0) {
-            str[0] = a;
-            str[1] = b;
+            compare.low = a;
+            compare.high = b;
+            compare.invert = false;
         } else {
-            str[0] = b;
-            str[1] = a;
+            compare.low = b;
+            compare.high = a;
+            compare.invert = true;
         }
-        return str;
+        return compare;
     }
 
     public static String getTimeLine(String a, String b, String tag) {
@@ -23,5 +25,11 @@ public class StrUtil {
         }
 
         return sb.toString();
+    }
+
+    public static class UuidCompare {
+        public String low;
+        public String high;
+        public boolean invert;
     }
 }

@@ -3,6 +3,8 @@ package com.example.server.service;
 import com.example.server.netty.SessionServerHolder;
 import com.example.server.redis.TagList;
 import io.netty.channel.Channel;
+import netty.entity.MsgType;
+import netty.entity.NimMsg;
 import netty.entity.RequestMsgModel;
 import org.springframework.stereotype.Component;
 import com.example.server.entity.FriendModel;
@@ -30,10 +32,15 @@ public class RequestService {
     @Resource
     public SessionServerHolder holder;
 
-    public boolean requestMsg(RequestMsgModel reqMsg, Channel channel) {
-        switch (reqMsg.cmd) {
+    public boolean requestMsg(NimMsg msg, Channel channel) {
+        Integer cmd = msg.msgGet(MsgType.KEY_CMD);
+        if (cmd == null) {
+            L.e("requestMsg cmd = null");
+            return false;
+        }
+        switch (cmd) {
             case RequestMsgModel.REQUEST_FRIEND:
-                requestFriend(reqMsg, channel);
+                requestFriend(msg, channel);
                 break;
             case RequestMsgModel.GROUP_ADD:
                 GroupInfoModel group = that.userService.getGroupInfo(reqMsg.groupId);
@@ -102,8 +109,8 @@ public class RequestService {
         return true;
     }
 
-    private void requestFriend(RequestMsgModel msgModel, Channel channel) {
-        FriendModel friendModel = that.userService.checkFriend(msgModel.from, msgModel.to, true);
+    private int requestFriend(NimMsg msg, Channel channel) {
+        FriendModel friendModel = that.userService.checkFriend(msg.from, msg.to);
         //空表示不是好友 且没有被拉黑
         if (friendModel == null || (!friendModel.isFriend && !friendModel.isBlock)) {
             that.holder.sendMsq(msgModel, channel, TagList.TAG_REQ, true);

@@ -48,11 +48,15 @@ public class MsgType {
      */
     public static final int TYPE_RECEIPT = 5;
     public static final String CACHE_RECEIPT = "c_rec";
-    //服务器的回执消息
-    public static final int TYPE_RECEIPT_SERVICE = 500;
-    public static final int KEY_RECEIPT_MSG_ID = 503; //接收到的消息id
+    public static final int KEY_RECEIPT_SERVICE = 500;//来自服务器的回执消息
+    public static final int KEY_RECEIPT_CLIENT = 501;//来自目标客户端的回执消息
+    public static final int KEY_RECEIPT_MSG_ID = 503; //目标客户端接收到的消息id回执到发送端
     public static final int KEY_RECEIPT_TYPE = 504; //回执类型
     public static final int KEY_RECEIPT_STATE = 505; //消息的状态
+    public static final int STATE_RECEIPT_CLIENT_SUCCESS = 0; //消息的状态 客户端接收成功
+    public static final int STATE_RECEIPT_SERVER_SUCCESS = 1; //消息的状态 服务器接收成功
+    public static final int STATE_RECEIPT_OFFLINE = 5; //消息的状态 目标客户端离线
+    public static final int STATE_RECEIPT_FAIL = 6; //消息的状态 发送到目标客户端失败
 
     /**
      * 打包消息
@@ -77,9 +81,8 @@ public class MsgType {
     public static final int KEY_UNIFY_SERVICE_SEND_TIME = 30001;//服务器端发送时间
     public static final int KEY_UNIFY_SERVICE_SEND_CHANNEL = 30002;//服务器channel
     public static final int KEY_UNIFY_SERVICE_MSG_TOKEN = 30003;//服务端的临时token
-    public static final int KEY_UNIFY_SERVICE_UUID_Set = 30004; //服务器集群时 同一条消息需要发送到同一台服务器的多个uuid(群消息) 使用HSet<String>
+    public static final int KEY_UNIFY_SERVICE_UUID_SET = 30004; //服务器集群时 同一条消息需要发送到同一台服务器的多个uuid(群消息) 使用HSet<String>
 
     //离线消息
     public static final String CACHE_OFFLINE_MSG = "c_off";
-
 }

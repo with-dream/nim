@@ -1,9 +1,11 @@
 package com.example.imlib.netty;
 
+import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.example.imlib.utils.L;
+import com.example.imlib.utils.MsgBuild;
 import com.example.imlib.utils.StrUtil;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
@@ -13,6 +15,10 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
+import netty.entity.MsgCmd;
+import netty.entity.MsgLevel;
+import netty.entity.MsgType;
+import netty.entity.NimMsg;
 import utils.Constant;
 
 
@@ -45,7 +51,7 @@ public class NettyClient {
                 future = bootstrap.connect(ip[0], Integer.parseInt(ip[1])).sync();
                 if (future.isSuccess()) {
                     reconnCount = 0;
-                    IMContext.getInstance().channel = future.channel();
+                    IMContext.instance().channel = new WeakReference<>(future.channel());
                     L.p("==>客户端成功....");
 
                     Thread.sleep(200);
@@ -69,7 +75,7 @@ public class NettyClient {
         group.schedule(new Runnable() {
             @Override
             public void run() {
-                IMContext.getInstance().connect();
+                IMContext.instance().connect();
             }
         }, time, TimeUnit.SECONDS);
         reconnCount++;
@@ -78,23 +84,19 @@ public class NettyClient {
     }
 
     private void login() {
-        MsgModel cmdMsgModel = MsgModel.createCmd(IMContext.getInstance().uuid, Constant.SERVER_UID, 0);
-        cmdMsgModel.type = MsgType.MSG_CMD;
-        cmdMsgModel.cmd = MsgCmd.LOGIN;
-        cmdMsgModel.timestamp = System.currentTimeMillis();
-        cmdMsgModel.fromToken = IMContext.getInstance().clientToken;
-        cmdMsgModel.deviceType = Constant.ANDROID;
-        L.e("login==>");
+        NimMsg loginMsg = MsgBuild.build(MsgType.TYPE_CMD, Constant.SERVER_UID, MsgLevel.LEVEL_STRICT);
+        loginMsg.getMsgMap().put(MsgType.KEY_CMD, MsgCmd.LOGIN);
 
-        ChannelFuture cmdFuture = IMContext.getInstance().channel.writeAndFlush(cmdMsgModel);
+        ChannelFuture cmdFuture = IMContext.instance().channel.get().writeAndFlush(loginMsg);
         cmdFuture.addListener(new GenericFutureListener<Future<? super Void>>() {
             @Override
             public void operationComplete(Future<? super Void> future) throws Exception {
                 System.err.println("client cmd send succ");
-                if (IMContext.getInstance().getCallback() != null) {
-                    IMContext.getInstance().getCallback().login(future.isSuccess()
+                if (IMContext.instance().getCallback() != null) {
+                    IMContext.instance().getCallback().login(future.isSuccess()
                             ? Constant.SUCC : Constant.FAILED);
                 }
+                cmdFuture.removeListener(this);
             }
         });
     }

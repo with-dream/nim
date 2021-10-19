@@ -15,6 +15,7 @@ import netty.entity.NimMsg;
 import org.redisson.api.RSet;
 import org.redisson.api.RSetMultimap;
 import org.redisson.api.RedissonClient;
+import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import utils.*;
@@ -50,6 +51,10 @@ public class SendHolder {
     @Resource
     public UserService userService;
 
+    //TODO 需要添加消息确认
+    @Resource
+    public AmqpTemplate rabbit;
+
     /**
      * 缓存uuid和客户端的映射
      * 同一个uuid会对应多个客户端
@@ -65,14 +70,15 @@ public class SendHolder {
     /**
      * 服务器客户端的名称-channel映射 用于服务器间传消息
      */
-    public Map<String, Channel> transferMap = new HashMap<>();
+    public Map<String, String> transferMap = new HashMap<>();
 
     /**
      * 1 如果所在客户端平台已登录 则强制退出
      * 2 将uuid和channel做映射 用于消息推送
      * 3 将uuid和mq做映射 用于将消息路由到本服务器中转到channel所在的服务器
      */
-    public void login(Channel channel, NimMsg msg) {
+    public int login(Channel channel, NimMsg msg) {
+        int ret = 0;
         SessionRedisModel sessionModel = new SessionRedisModel();
         sessionModel.clientToken = msg.fromToken;
         sessionModel.deviceType = msg.deviceType;
@@ -82,33 +88,55 @@ public class SendHolder {
         RSetMultimap<String, SessionRedisModel> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
         RSet<SessionRedisModel> sessionModels = multimap.get(msg.from);
         //重复登录
-        if (sessionModels.contains(sessionModel))
-            return;
-
+        if (sessionModels.contains(sessionModel)) {
+            boolean add = true;
+            Set<SessionModel> set = session.get(msg.from);
+            if (!CollectionUtils.isEmpty(set))
+                for (SessionModel sm : set) {
+                    if (sm.redisModel.equals(sessionModel)) {
+                        add = false;
+                        break;
+                    }
+                }
+            if (add) {
+                ret = addSession(channel, msg, sessionModel);
+            }
+            return ret;
+        }
         //TODO 验证强制退出操作
 
         boolean res = multimap.put(msg.from, sessionModel);
         if (res) {
-            SessionModel sm = new SessionModel();
-            sm.redisModel = sessionModel;
-            sm.channel = channel;
-            Set<SessionModel> set = session.get(msg.from);
-            if (set == null) {
-                synchronized (session) {
-                    if (set == null) {
-                        set = Collections.synchronizedSet(new HashSet<>());
-                        session.put(msg.from, set);
-                    }
-                }
-            }
-            //重复登录
-            if (set.contains(sm)) return;
-
-            channel.attr(UUID_CHANNEL_MAP).set(msg.from);
+            ret = addSession(channel, msg, sessionModel);
         }
+
+        return ret;
     }
 
-    public void logout(Channel channel) {
+    private int addSession(Channel channel, NimMsg msg, SessionRedisModel sessionModel) {
+        SessionModel sm = new SessionModel();
+        sm.redisModel = sessionModel;
+        sm.channel = channel;
+        Set<SessionModel> set = session.get(msg.from);
+        if (set == null) {
+            synchronized (session) {
+                if (set == null) {
+                    set = Collections.synchronizedSet(new HashSet<>());
+                    session.put(msg.from, set);
+                }
+            }
+        }
+        channel.attr(UUID_CHANNEL_MAP).set(msg.from);
+        //重复登录
+        if (set.contains(sm))
+            return -1;
+        else
+            set.add(sm);
+
+        return 0;
+    }
+
+    public int logout(Channel channel) {
         String uuid = channel.attr(UUID_CHANNEL_MAP).get();
 
         Set<SessionModel> localSet = session.get(uuid);
@@ -132,6 +160,8 @@ public class SendHolder {
         }
 
         channel.close();
+
+        return 0;
     }
 
     //关闭服务器操作
@@ -179,7 +209,7 @@ public class SendHolder {
                 List<GroupMemberModel> memList = userService.getGroupMembers(msg.getGroupId());
                 for (GroupMemberModel gmm : memList)
                     uuidSet.add(gmm.uuid);
-                msg.getMsgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_Set, uuidSet);
+                msg.getMsgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_SET, uuidSet);
                 sendMsgLocal(msg);
                 break;
             case MsgType.TYPE_CMD:
@@ -188,7 +218,7 @@ public class SendHolder {
                 if (NullUtil.isTrue(msg.getMsgMap().get(MsgType.KEY_UNIFY_CLIENT_SEND_SELF)))
                     uuidSet.add(msg.from);
                 uuidSet.add(msg.to);
-                msg.getMsgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_Set, uuidSet);
+                msg.getMsgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_SET, uuidSet);
                 sendMsgLocal(msg);
                 break;
             case MsgType.TYPE_ROOT:
@@ -226,23 +256,11 @@ public class SendHolder {
     }
 
     private void sendMsgServiceRoot(NimMsg msg) {
-        for (Map.Entry<String, Channel> entry : transferMap.entrySet()) {
+        for (Map.Entry<String, String> entry : transferMap.entrySet()) {
             if (entry.getKey().equals(ApplicationRunnerImpl.MQ_NAME)) {
                 sendMsgLocal(msg);
             } else {
-                ChannelFuture future = entry.getValue().writeAndFlush(entry.getValue());
-                future.addListener(new GenericFutureListener<Future<? super Void>>() {
-                    @Override
-                    public void operationComplete(Future<? super Void> f) {
-                        if (f.isSuccess()) {
-
-                        } else {
-                            //TODO 发送失败
-                            L.e("transferMap转发失败");
-                        }
-                        future.removeListener(this);
-                    }
-                });
+                rabbit.convertAndSend(entry.getValue(), msg);
             }
         }
     }
@@ -256,11 +274,11 @@ public class SendHolder {
             if (!sendTmpMsg.containsKey(srm.queueName)) {
                 NimMsg tmpMsg = msg.copy();
                 uuidSet = new HashSet<>();
-                tmpMsg.getMsgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_Set, uuidSet);
+                tmpMsg.getMsgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_SET, uuidSet);
                 sendTmpMsg.put(srm.queueName, tmpMsg);
             } else {
                 NimMsg tmpMsg = sendTmpMsg.get(srm.queueName);
-                uuidSet = (Set<String>) tmpMsg.getMsgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_Set);
+                uuidSet = (Set<String>) tmpMsg.getMsgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_SET);
             }
 
             uuidSet.add(srm.uuid);
@@ -270,19 +288,7 @@ public class SendHolder {
             if (entry.getKey().equals(ApplicationRunnerImpl.MQ_NAME)) {
                 sendMsgLocal(msg);
             } else {
-                ChannelFuture future = transferMap.get(entry.getKey()).writeAndFlush(entry.getValue());
-                future.addListener(new GenericFutureListener<Future<? super Void>>() {
-                    @Override
-                    public void operationComplete(Future<? super Void> f) throws Exception {
-                        if (f.isSuccess()) {
-
-                        } else {
-                            //TODO 发送失败
-                            L.e("transferMap转发失败");
-                        }
-                        future.removeListener(this);
-                    }
-                });
+                rabbit.convertAndSend(transferMap.get(entry.getKey()), msg);
             }
         }
     }
@@ -290,7 +296,7 @@ public class SendHolder {
     /**
      * 将消息推送给连接此服务器的客户端
      */
-    private void sendMsgLocal(NimMsg msg) {
+    public void sendMsgLocal(NimMsg msg) {
         Set<String> toList = new HashSet<>();
 
         switch (msg.msgType) {
@@ -299,7 +305,8 @@ public class SendHolder {
             case MsgType.TYPE_CMD:
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_RECEIPT:
-                toList.addAll(NullUtil.isSet(msg.getMsgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_Set)));
+            case MsgType.TYPE_PACK:
+                toList.addAll(NullUtil.isSet(msg.getMsgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_SET)));
                 sendMsgNormal(msg, toList);
                 break;
             case MsgType.TYPE_ROOT:
@@ -366,7 +373,7 @@ public class SendHolder {
 
     static class ReceiptThread extends Thread {
         private boolean run = true;
-        public PriorityBlockingQueue<RecCacheEntity> receiptQueue = new PriorityBlockingQueue<>();
+        public PriorityBlockingQueue<WeakReference<RecCacheEntity>> receiptQueue = new PriorityBlockingQueue<>();
 
         @Override
         public void run() {
@@ -375,19 +382,22 @@ public class SendHolder {
                 if (receiptQueue.isEmpty())
                     LockSupport.park();
 
-                RecCacheEntity recF = receiptQueue.peek();
+                RecCacheEntity recF = receiptQueue.peek().get();
+                if (recF == null) continue;
+
                 if (recF.unpackTime - System.currentTimeMillis() <= 50) {
-                    Iterator<RecCacheEntity> it = receiptQueue.iterator();
+                    Iterator<WeakReference<RecCacheEntity>> it = receiptQueue.iterator();
                     while (it.hasNext()) {
-                        RecCacheEntity rce = it.next();
-                        if (rce.isTimeout()) {
+                        WeakReference<RecCacheEntity> rce = it.next();
+                        if (rce.get() == null) continue;
+                        if (rce.get().isTimeout()) {
                             //TODO 超时处理
-                            receiptMap.remove(rce.token);
+                            receiptMap.remove(rce.get().token);
                             it.remove();
-                        } else if (rce.sm.get() != null
-                                && rce.unpackTime - System.currentTimeMillis() <= 50) {
-                            rce.sm.get().channel.writeAndFlush(rce.msg);
-                            rce.updateTime();
+                        } else if (rce.get().sm.get() != null
+                                && rce.get().unpackTime - System.currentTimeMillis() <= 50) {
+                            rce.get().sm.get().channel.writeAndFlush(rce.get().msg);
+                            rce.get().updateTime();
                         } else
                             break;
                     }
@@ -401,9 +411,9 @@ public class SendHolder {
         }
 
         public void addCache(RecCacheEntity cacheEntity) {
-            receiptQueue.add(cacheEntity);
+            receiptQueue.add(new WeakReference<RecCacheEntity>(cacheEntity));
             if (receiptQueue.size() > 1)
-                if (receiptQueue.peek().unpackTime < cacheEntity.unpackTime)
+                if (receiptQueue.peek().get().unpackTime < cacheEntity.unpackTime)
                     LockSupport.unpark(this);
         }
     }

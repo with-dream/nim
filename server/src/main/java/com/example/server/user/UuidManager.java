@@ -19,7 +19,7 @@ public class UuidManager {
 //    private UuidManager() {
 //    }
 //
-//    public static UuidManager getInstance() {
+//    public static UuidManager instance() {
 //        return UuidManagerHoler.instance;
 //    }
 

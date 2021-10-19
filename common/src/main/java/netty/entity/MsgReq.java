@@ -1,6 +1,6 @@
 package netty.entity;
 
-public class RequestMsgModel {
+public class MsgReq {
     public static final int REQUEST_FRIEND = 2;
     public static final int REQUEST_FRIEND_AGREE = 4;
     public static final int REQUEST_FRIEND_REFUSE = 5;
@@ -17,5 +17,4 @@ public class RequestMsgModel {
     public static final int GROUP_OUT = 16; //剔出群
     public static final int GROUP_ADD_AGREE = 17;
     public static final int GROUP_ADD_REFUSE = 18;
-
 }

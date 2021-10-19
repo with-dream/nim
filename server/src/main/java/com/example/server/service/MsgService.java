@@ -2,21 +2,28 @@ package com.example.server.service;
 
 import com.example.server.netty.MsgCacheHolder;
 import com.example.server.netty.SendHolder;
-import com.example.server.netty.SessionHolder;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
+import netty.entity.MsgCmd;
 import netty.entity.MsgLevel;
 import netty.entity.MsgType;
 import netty.entity.NimMsg;
 import org.springframework.stereotype.Component;
 import utils.Constant;
+import utils.NullUtil;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
 @Component
 public class MsgService {
+
+    private static MsgService that;
+
+    @PostConstruct
+    public void init() {
+        that = this;
+    }
+
     @Resource
     MsgCacheHolder cacheHolder;
 
@@ -41,6 +48,7 @@ public class MsgService {
      * 命令消息单独存储 因为是小概率事件
      */
     public void process(NimMsg msg, Channel channel) {
+        boolean cache = true;
         switch (msg.msgType) {
             case MsgType.TYPE_HEART_PING:
                 msg.swapUuid();
@@ -48,7 +56,17 @@ public class MsgService {
                 channel.writeAndFlush(msg);
                 break;
             case MsgType.TYPE_CMD:
-
+                int cmd = NullUtil.isInt(msg.getMsgMap().get(MsgType.KEY_CMD));
+                switch (cmd) {
+                    case MsgCmd.LOGIN:
+                        cache = false;
+                        that.sendHolder.login(channel, msg);
+                        break;
+                    case MsgCmd.LOGOUT:
+                        cache = false;
+                        that.sendHolder.logout(channel);
+                        break;
+                }
                 break;
             case MsgType.TYPE_CMD_GROUP:
 
@@ -56,20 +74,27 @@ public class MsgService {
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_GROUP:
             case MsgType.TYPE_RECEIPT:
-                sendHolder.sendMsg(msg);
+            case MsgType.TYPE_ROOT:
+                that.sendHolder.sendMsg(msg);
                 break;
-
             default:
 
                 break;
         }
+
         if (msg.level == MsgLevel.LEVEL_STRICT) {
             NimMsg recMsg = new NimMsg();
             recMsg.from = Constant.SERVER_UID;
             recMsg.to = msg.from;
+            recMsg.msgType = MsgType.TYPE_RECEIPT;
+            recMsg.getRecMap().put(MsgType.KEY_RECEIPT_TYPE, msg.msgType);
+            recMsg.getRecMap().put(MsgType.KEY_RECEIPT_MSG_ID, msg.msgId);
+            recMsg.getRecMap().put(MsgType.KEY_RECEIPT_STATE, MsgType.STATE_RECEIPT_SERVER_SUCCESS);
             channel.writeAndFlush(recMsg);
         }
 
-        boolean res = cacheHolder.cacheMsg(msg);
+        if (cache) {
+            boolean res = that.cacheHolder.cacheMsg(msg);
+        }
     }
 }

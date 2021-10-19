@@ -51,7 +51,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
                 SendHolder.receiptMap.forEach((k, v) -> {
                     if (v.tryCount >= TRY_COUNT_MAX) {
                         L.e("重发失败 channel为空==>" + v.toString());
-                        SessionHolder.receiptMsg.remove(k);
+                        SendHolder.receiptMap.remove(k);
                     }
                 });
             }
@@ -60,7 +60,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, NimMsg msg) {
-        msgService.process(msg, ctx.channel());
+        that.msgService.process(msg, ctx.channel());
     }
 
     @Override

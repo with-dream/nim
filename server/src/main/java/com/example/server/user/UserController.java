@@ -6,7 +6,6 @@ import com.example.server.entity.UserCheckModel;
 import org.apache.commons.lang.StringUtils;
 import com.example.server.entity.UserModel;
 import com.example.server.service.UserService;
-import com.google.gson.Gson;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,8 +23,6 @@ import java.util.*;
 @RestController
 @RequestMapping("/user")
 public class UserController {
-    Gson gson = new Gson();
-
     @Resource
     UserService userService;
 

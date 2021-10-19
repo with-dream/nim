@@ -13,4 +13,14 @@ public class NullUtil {
         if (obj == null) return new HashSet<>();
         return (Set<T>) obj;
     }
+
+    public static int isInt(Object obj) {
+        if (obj == null) return Integer.MIN_VALUE;
+        return (int) obj;
+    }
+
+    public static long isLong(Object obj) {
+        if (obj == null) return Long.MIN_VALUE;
+        return (long) obj;
+    }
 }

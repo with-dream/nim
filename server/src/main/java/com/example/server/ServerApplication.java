@@ -32,7 +32,7 @@ public class ServerApplication {
         SpringApplication.run(ServerApplication.class, args);
 
         //TODO 初始化时 初始uuid
-//        UuidManager.getInstance().init();
+//        UuidManager.instance().init();
 
         NettyServer nettyServer = new NettyServer();
         nettyServer.start(new InetSocketAddress("127.0.0.1", port));

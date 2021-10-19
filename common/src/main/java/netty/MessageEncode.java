@@ -1,6 +1,6 @@
 package netty;
 
-import com.google.gson.Gson;
+import com.alibaba.fastjson.JSON;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
@@ -8,13 +8,12 @@ import netty.entity.NimMsg;
 import utils.L;
 
 public class MessageEncode extends MessageToByteEncoder<NimMsg> {
-    private Gson gson = new Gson();
 
     @Override
     protected void encode(ChannelHandlerContext channelHandlerContext, NimMsg o, ByteBuf byteBuf) throws Exception {
         String ss = null;
         try {
-            ss = gson.toJson(o);
+            ss = JSON.toJSONString(o);
         } catch (Exception e) {
             System.err.println(String.format("%s  %s", "encode e==>" + e.toString(), o));
         }

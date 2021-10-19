@@ -2,52 +2,45 @@ package com.example.imlib.netty;
 
 import com.example.imlib.Context;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
-import netty.entity.Message;
-import utils.Constant;
-import utils.UUIDUtil;
+import netty.entity.NimMsg;
 
+import java.lang.ref.WeakReference;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class IMContext {
     public String uuid;
     private List<String> ipList;
-    public Channel channel;
-    public Context context;
+    public WeakReference<Channel> channel;
     private IMConnCallback callback;
     private IMMsgCallback msgCallback;
     public int clientToken;
     public boolean logout = false;
+
     private NettyClient nettyClient = new NettyClient();
-    public ConcurrentHashMap<Long, BaseMsgModel> receiptMsg = new ConcurrentHashMap<>();
+    public SendHolder sendHolder = new SendHolder();
+
+    private IMContext() {
+    }
+
+    private static class IMManagerHolder {
+        private static IMContext instance = new IMContext();
+    }
+
+    public static IMContext instance() {
+        return IMManagerHolder.instance;
+    }
 
     public void setIpList(List<String> ipList) {
         this.ipList = ipList;
     }
 
-    public void sendMsg(BaseMsgModel msg) {
-        this.sendMsg(msg, false);
+    public void sendMsg(NimMsg msg) {
+        sendHolder.send(channel.get(), msg);
     }
 
-    public void sendMsg(BaseMsgModel msg, boolean receipt) {
-        if (receipt) {
-            msg.delayTime = System.currentTimeMillis();
-            receiptMsg.put(msg.msgId, msg);
-        }
-        ChannelFuture future = channel.writeAndFlush(msg);
-        future.addListener(new GenericFutureListener<Future<? super Void>>() {
-            @Override
-            public void operationComplete(Future<? super Void> future) throws Exception {
-
-            }
-        });
-    }
-
-    public void init(Context context) {
-        this.context = context;
+    public void receiveMsg(NimMsg msg) {
+        if (msgCallback != null)
+            msgCallback.receive(msg);
     }
 
     public IMConnCallback getCallback() {
@@ -66,19 +59,14 @@ public class IMContext {
         this.msgCallback = callback;
     }
 
+    public boolean checkChannel() {
+        if (channel == null || channel.get() == null || !channel.get().isActive())
+            return false;
+        return true;
+    }
+
     public void clear() {
         channel = null;
-    }
-
-    private static class IMManagerHoler {
-        private static IMContext instance = new IMContext();
-    }
-
-    private IMContext() {
-    }
-
-    public static IMContext getInstance() {
-        return IMManagerHoler.instance;
     }
 
     public static void main(String[] args) {
@@ -87,23 +75,5 @@ public class IMContext {
 
     public int connect() {
         return nettyClient.connect(this.ipList);
-    }
-
-    public static <T> Message<T> createMsg(String to, int msgType, T msg) {
-        Message<T> msgNormal = new Message<>();
-        msgNormal.msgId = UUIDUtil.getMsgId();
-
-        RouteInfo ri = new RouteInfo();
-        ri.from = IMContext.getInstance().uuid;
-        ri.fromToken = IMContext.getInstance().clientToken;
-        ri.deviceType = Constant.ANDROID;
-        ri.to = to;
-        msgNormal.routeInfo = ri;
-
-        msgNormal.msg = msg;
-        msgNormal.msgType = msgType;
-
-        Analyse analyse = new Analyse();
-        return msgNormal;
     }
 }

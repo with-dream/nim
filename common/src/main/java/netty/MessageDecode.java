@@ -1,17 +1,15 @@
 package netty;
 
-import com.google.gson.Gson;
+import com.alibaba.fastjson.JSON;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import netty.entity.NimMsg;
-import netty.entity.RequestMsgModel;
 
 import java.util.List;
 
 public class MessageDecode extends ByteToMessageDecoder {
     public static final int HEAD_LENGTH = 4 + 4;
-    private Gson gson = new Gson();
 
     @Override
     protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list) {
@@ -31,8 +29,10 @@ public class MessageDecode extends ByteToMessageDecoder {
 
         byte[] body = new byte[dataLength];
         byteBuf.readBytes(body);
-
-        NimMsg msg = gson.fromJson(new String(body), NimMsg.class);
+        String tmp = new String(body);
+        NimMsg msg = JSON.parseObject(tmp, NimMsg.class);
+        msg.sync();
         list.add(msg);
     }
 }
+//Can not set ConcurrentHashMap field  to java.util.HashMap

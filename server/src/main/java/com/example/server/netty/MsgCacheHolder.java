@@ -3,15 +3,24 @@ package com.example.server.netty;
 import netty.entity.MsgType;
 import netty.entity.NimMsg;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.redisson.api.RedissonClient;
+import org.springframework.stereotype.Component;
 import utils.StrUtil;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+@Component
 public class MsgCacheHolder {
+    private static MsgCacheHolder that;
+
+    @PostConstruct
+    public void init() {
+        that = this;
+    }
 
     @Resource
-    public RedisTemplate<String, Object> redisTemplate;
+    public RedissonClient redisson;
 
     /**
      * 缓存消息
@@ -41,7 +50,7 @@ public class MsgCacheHolder {
             return false;
         }
         String tl = StrUtil.getTimeLine(msg.from, msg.to, timeLineTag);
-        redisTemplate.opsForList().rightPush(tl, msg);
+        that.redisson.getList(tl).add(msg);
         return true;
     }
 
@@ -49,7 +58,7 @@ public class MsgCacheHolder {
      * 保存离线消息 群消息不能保存为离线消息
      */
     public boolean saveOfflineMsg(NimMsg msg) {
-        redisTemplate.opsForList().rightPush(MsgType.CACHE_OFFLINE_MSG + msg.to, msg);
+        that.redisson.getList(MsgType.CACHE_OFFLINE_MSG + msg.to).add(msg);
         return true;
     }
 }

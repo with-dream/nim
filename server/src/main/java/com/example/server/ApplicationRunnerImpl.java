@@ -1,7 +1,5 @@
 package com.example.server;
 
-import com.example.server.netty.SessionHolder;
-import com.example.server.netty.SessionModel;
 import com.example.server.rabbitmq.DynamicManagerQueueService;
 import com.example.server.rabbitmq.QueueDto;
 import com.example.server.rabbitmq.RabbitListener;

@@ -1,12 +1,18 @@
 package netty.entity;
 
-import io.netty.util.internal.StringUtil;
 import utils.UUIDUtil;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * 存储消息
+ * 为了使消息更加灵活 以及减少体积 除必要内容 全部放在Map中
+ * 由于会有并发操作 所以Map会使用Collections.synchronizedMap加锁
+ * <p>
+ * 反序列化时 只能获取到HashMap 需要调用sync()方法重新初始化锁
+ */
 public class NimMsg implements Cloneable {
     //消息id 保证唯一 规则
     public long msgId;
@@ -24,9 +30,9 @@ public class NimMsg implements Cloneable {
     public int level;
 
     //消息
-    private ConcurrentHashMap<Integer, Object> msg;
+    private Map<Integer, Object> msg;
     //需要另一端返回的数据
-    private ConcurrentHashMap<Integer, Object> receipt;
+    public Map<Integer, Object> receipt;
 
     public void swapUuid() {
         String tmp = from;
@@ -38,22 +44,28 @@ public class NimMsg implements Cloneable {
         return (String) getMsgMap().get(MsgType.KEY_UNIFY_GROUP_ID);
     }
 
-    public synchronized Map<Integer, Object> getMsgMap() {
+    public Map<Integer, Object> getMsgMap() {
         if (msg == null)
-            msg = new ConcurrentHashMap<>();
+            synchronized (this) {
+                if (msg == null)
+                    msg = Collections.synchronizedMap(new HashMap<>());
+            }
         return msg;
     }
 
-    public synchronized Map<Integer, Object> getRecMap() {
+    public Map<Integer, Object> getRecMap() {
         if (receipt == null)
-            receipt = new ConcurrentHashMap<>();
+            synchronized (this) {
+                if (receipt == null)
+                    receipt = Collections.synchronizedMap(new HashMap<>());
+            }
         return receipt;
     }
 
     /**
      * 为msg临时添加一个token
      * 同一条消息的msgId是固定的 如果发送给同一个用户的不同客户端 无法精准知道哪个客户端没有收到 所以添加临时token
-     * */
+     */
     public String newTokenService() {
         String token = UUIDUtil.getUid();
         getRecMap().put(MsgType.KEY_UNIFY_SERVICE_MSG_TOKEN, token);
@@ -69,5 +81,33 @@ public class NimMsg implements Cloneable {
         }
 
         return res;
+    }
+
+    /**
+     * 用于反序列化 增加Map同步
+     */
+    public void sync() {
+        if (msg == null)
+            msg = new HashMap<>();
+        msg = Collections.synchronizedMap(msg);
+
+        if (receipt == null)
+            receipt = new HashMap<>();
+        receipt = Collections.synchronizedMap(receipt);
+    }
+
+    @Override
+    public String toString() {
+        return "NimMsg{" +
+                "msgType=" + msgType +
+                ", level=" + level +
+                ", from='" + from + '\'' +
+                ", to='" + to + '\'' +
+                ", msgId=" + msgId +
+                ", msg=" + msg +
+                ", receipt=" + receipt +
+                ", deviceType=" + deviceType +
+                ", fromToken=" + fromToken +
+                '}';
     }
 }

@@ -1,17 +1,17 @@
 package com.example.imlib.netty;
 
+import com.example.imlib.entity.RecCacheEntity;
 import com.example.imlib.utils.L;
-import io.netty.channel.ChannelFuture;
+import com.example.imlib.utils.MsgBuild;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleStateEvent;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
-import netty.entity.RequestMsgModel;
-import utils.Constant;
+import netty.entity.MsgType;
+import netty.entity.NimMsg;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -19,18 +19,16 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * 客户端处理器
  **/
-public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel> {
-    private static final int TRY_COUNT_MAX = 5;
-    private Map<Long, BaseMsgModel> tmpMap = new HashMap<>();
+public class NettyClientHandler extends SimpleChannelInboundHandler<NimMsg> {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         super.channelInactive(ctx);
-        IMContext.getInstance().clear();
+        IMContext.instance().clear();
         ctx.channel().close();
 
-        if (!IMContext.getInstance().logout)
-            IMContext.getInstance().connect();
+        if (!IMContext.instance().logout)
+            IMContext.instance().connect();
     }
 
     @Override
@@ -38,98 +36,53 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
         super.channelActive(ctx);
 
         ctx.executor().scheduleAtFixedRate(() -> {
-            if (!IMContext.getInstance().receiptMsg.isEmpty()) {
-                IMContext.getInstance().receiptMsg.forEach((k, v) -> {
-                    IMContext.getInstance().channel.writeAndFlush(v);
-                    v.tryCount++;
+            if (!IMContext.instance().sendHolder.recMsg.isEmpty()) {
+                Set<Long> set = IMContext.instance().sendHolder.recMsg.keySet();
+                Iterator<Long> it = set.iterator();
+                while (it.hasNext()) {
+                    long key = it.next();
+                    RecCacheEntity v = IMContext.instance().sendHolder.recMsg.get(key);
+                    if (v.unpackTime - System.currentTimeMillis() <= 0) {
+                        if (IMContext.instance().checkChannel()) {
+                            IMContext.instance().channel.get().writeAndFlush(v.msg);
 
-                    if (v.tryCount >= TRY_COUNT_MAX) {
-                        L.e("重发失败==>" + v.toString());
-                        IMContext.getInstance().receiptMsg.remove(k);
+                            if (v.isTimeout()) {
+                                L.e(new Date() + "  重发失败==>" + v.toString());
+                                IMContext.instance().sendHolder.recMsg.remove(key);
+                            }
+                        }
+                        v.updateTime();
                     }
-                });
+                }
             }
-        }, 5, 5, TimeUnit.SECONDS);
+        }, 5, 1, TimeUnit.SECONDS);
     }
 
-    protected void channelRead0(ChannelHandlerContext channelHandlerContext, BaseMsgModel baseMsgModel) throws Exception {
-        if (!(baseMsgModel instanceof MsgModel) || ((MsgModel) baseMsgModel).cmd != MsgCmd.HEART)
-            L.p(("客户端channelRead0 ==>" + baseMsgModel.toString()));
-        switch (baseMsgModel.type) {
-            case MsgType.MSG_CMD:
-                MsgModel cmdMsg = (MsgModel) baseMsgModel;
-                switch (cmdMsg.cmd) {
-                    case MsgCmd.HEART:
+    protected void channelRead0(ChannelHandlerContext channelHandlerContext, NimMsg msg) throws Exception {
+        switch (msg.msgType) {
+            case MsgType.TYPE_HEART_PONG:
 
-                        break;
-                }
                 break;
-            case MsgType.MSG_CMD_REQ:
-                RequestMsgModel reqMsg = (RequestMsgModel) baseMsgModel;
-                switch (reqMsg.cmd) {
-                    case RequestMsgModel.REQUEST_FRIEND:
-                        //请求好友 默认同意
-                        reqMsg.cmd = RequestMsgModel.REQUEST_FRIEND_AGREE;
+            case MsgType.TYPE_CMD:
+            case MsgType.TYPE_CMD_GROUP:
+                IMContext.instance().receiveMsg(msg);
+                break;
+            case MsgType.TYPE_MSG:
+            case MsgType.TYPE_GROUP:
+            case MsgType.TYPE_PACK:
+            case MsgType.TYPE_ROOT:
+                IMContext.instance().receiveMsg(msg);
 
-                        String tmp = reqMsg.from;
-                        reqMsg.from = reqMsg.to;
-                        reqMsg.to = tmp;
-                        channelHandlerContext.channel().writeAndFlush(reqMsg);
-                        break;
-                    case RequestMsgModel.FRIEND_DEL:
-                    case RequestMsgModel.FRIEND_DEL_EACH:
-                        //请求好友 默认同意
-                        L.p("删除好友 来自:" + reqMsg.from);
-                        break;
-                    case RequestMsgModel.GROUP_ADD_AGREE:
-                        L.p("加入群成功 来自:" + reqMsg.groupId);
-                        break;
-                    case RequestMsgModel.GROUP_EXIT:
-                        L.p("退出群成功 来自:" + reqMsg.from);
-                        break;
-                    case RequestMsgModel.GROUP_ADD:
-                        if (IMContext.getInstance().getMsgCallback() != null)
-                            IMContext.getInstance().getMsgCallback().receive(reqMsg);
-                        break;
-                }
-                receiptMsg(baseMsgModel);
+                NimMsg recMsg = MsgBuild.recMsg(msg.from);
+                recMsg.receipt = msg.receipt;
+                recMsg.getRecMap().put(MsgType.KEY_RECEIPT_TYPE, msg.msgType);
+                recMsg.getRecMap().put(MsgType.KEY_RECEIPT_MSG_ID, msg.msgId);
+                recMsg.getRecMap().put(MsgType.KEY_RECEIPT_STATE, MsgType.STATE_RECEIPT_CLIENT_SUCCESS);
+                IMContext.instance().sendMsg(recMsg);
                 break;
-            case MsgType.MSG_PERSON:
-                MsgModel person = (MsgModel) baseMsgModel;
-                if (IMContext.getInstance().getMsgCallback() != null)
-                    IMContext.getInstance().getMsgCallback().receive(person);
-                receiptMsg(baseMsgModel);
-                break;
-            case MsgType.MSG_GROUP:
-                if (IMContext.getInstance().getMsgCallback() != null)
-                    IMContext.getInstance().getMsgCallback().receive(baseMsgModel);
-                receiptMsg(baseMsgModel);
-                break;
-            case MsgType.MSG_PACK:
-                PackMsgModel packModel = (PackMsgModel) baseMsgModel;
-
-                if (IMContext.getInstance().getMsgCallback() != null)
-                    IMContext.getInstance().getMsgCallback().receive(packModel);
-                receiptMsg(baseMsgModel);
-                break;
-            case MsgType.MSG_RECEIPT:
-                //将回执消息存储
-                ReceiptMsgModel receiptMsgModel = (ReceiptMsgModel) baseMsgModel;
-                switch (receiptMsgModel.cmd) {
-                    case MsgCmd.SERVER_RECEIVED:
-                        BaseMsgModel tmpMsgModel = IMContext.getInstance().receiptMsg.remove(receiptMsgModel.sendMsgId);
-//                        tmpMap.put(receiptMsgModel.sendMsgId, tmpMsgModel);
-//                        if (tmpMsgModel != null)
-//                            L.p("时间==>" + (System.currentTimeMillis() - tmpMsgModel.sendTime));
-                        L.p("消息已发送到服务器==>" + receiptMsgModel.seq);
-                        break;
-                    case MsgCmd.CLIENT_RECEIVED:
-//                        BaseMsgModel msgModel = tmpMap.remove(receiptMsgModel.sendMsgId);
-//                        if (msgModel != null)
-//                            L.p("时间==>" + (System.currentTimeMillis() - msgModel.sendTime));
-                        L.p("消息已发送到目标客户端==>" + receiptMsgModel.toString());
-                        break;
-                }
+            case MsgType.TYPE_RECEIPT:
+                IMContext.instance().sendHolder.recMsg(msg);
+                IMContext.instance().receiveMsg(msg);
                 break;
         }
     }
@@ -149,9 +102,8 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
 
                     break;
                 case ALL_IDLE:
-                    MsgModel heart = MsgModel.createCmd(IMContext.getInstance().uuid, Constant.SERVER_UID, IMContext.getInstance().clientToken);
-                    heart.cmd = MsgCmd.HEART;
-                    IMContext.getInstance().sendMsg(heart);
+                    NimMsg heart = MsgBuild.heart();
+                    IMContext.instance().sendMsg(heart);
                     break;
             }
         }
@@ -161,25 +113,5 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<BaseMsgModel
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         cause.printStackTrace();
         ctx.close();
-    }
-
-    public void receiptMsg(BaseMsgModel baseMsgModel, int type) {
-        //消息回执
-        ReceiptMsgModel receiptModel = ReceiptMsgModel.create(baseMsgModel.to, baseMsgModel.from, baseMsgModel.msgId, IMContext.getInstance().clientToken);
-        receiptModel.cmd = type;
-        receiptModel.sendMsgType = baseMsgModel.type;
-        receiptModel.toToken = baseMsgModel.fromToken;
-        ChannelFuture msgFuture = IMContext.getInstance().channel.writeAndFlush(receiptModel);
-        msgFuture.addListener(new GenericFutureListener<Future<? super Void>>() {
-            public void operationComplete(Future<? super Void> future) throws Exception {
-                if (!future.isSuccess()) {
-
-                }
-            }
-        });
-    }
-
-    public void receiptMsg(BaseMsgModel baseMsgModel) {
-        this.receiptMsg(baseMsgModel, MsgCmd.CLIENT_RECEIVED);
     }
 }

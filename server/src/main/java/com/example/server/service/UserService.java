@@ -26,14 +26,17 @@ public class UserService {
         return userMapper.checkUser(uuid);
     }
 
+    public UserModel userInfo(String uuid) {
+        return userMapper.userInfo(uuid);
+    }
+
     public FriendModel checkFriend(String userId, String friendId) {
         StrUtil.UuidCompare compare = StrUtil.uuidCompare(userId, friendId);
         FriendModel model = userMapper.checkFriend(compare.low, compare.high);
         if (model == null) return null;
 
-        model.isBlock = model.status == FriendModel.FRIEND_BLOCK_EACH || model.status == (compare.invert ? FriendModel.FRIEND_BLOCK_OTHER : FriendModel.FRIEND_BLOCK_SELF);
-        if (!model.isBlock)
-            model.isFriend = model.status == FriendModel.FRIEND_NORMAL || model.status == (compare.invert ? FriendModel.FRIEND_OTHER : FriendModel.FRIEND_SELF);
+        model.isBlock = model.block == FriendModel.FRIEND_BLOCK_EACH || model.block == (compare.invert ? FriendModel.FRIEND_BLOCK_OTHER : FriendModel.FRIEND_BLOCK_SELF);
+        model.isFriend = model.friend == FriendModel.FRIEND_NORMAL || model.friend == (compare.invert ? FriendModel.FRIEND_OTHER : FriendModel.FRIEND_SELF);
         return model;
     }
 

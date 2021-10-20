@@ -297,7 +297,7 @@ public class SendHolder {
         for (SessionRedisModel srm : set) {
             Set<String> uuidSet = null;
             if (!sendTmpMsg.containsKey(srm.queueName)) {
-                NimMsg tmpMsg = msg.copy();
+                NimMsg tmpMsg = msg.copyDeep();
                 uuidSet = new HashSet<>();
                 tmpMsg.msgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_SET, uuidSet);
                 sendTmpMsg.put(srm.queueName, tmpMsg);
@@ -367,7 +367,7 @@ public class SendHolder {
     }
 
     private void sendMsgReal(NimMsg msg, SessionModel sm) {
-        NimMsg tmpMsg = msg.copy();
+        NimMsg tmpMsg = msg.copyDeep();
         String token = tmpMsg.newTokenService(NimMsg.isRecMsg(msg));
         ChannelFuture future = sm.channel.writeAndFlush(tmpMsg);
 

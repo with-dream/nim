@@ -76,10 +76,32 @@ public class NimMsg implements Cloneable {
         return token;
     }
 
-    public NimMsg copy() {
+//    public NimMsg copy() {
+//        NimMsg res = null;
+//        try {
+//            res = (NimMsg) this.clone();
+//        } catch (CloneNotSupportedException e) {
+//            e.printStackTrace();
+//        }
+//
+//        return res;
+//    }
+
+    /**
+     * map中的对象没有进行深clone 不过目前已经够用了
+     * */
+    public NimMsg copyDeep() {
         NimMsg res = null;
         try {
             res = (NimMsg) this.clone();
+            if (msg != null) {
+                res.msg = Collections.synchronizedMap(new HashMap<>());
+                res.msg.putAll(msg);
+            }
+            if (receipt != null) {
+                res.receipt = Collections.synchronizedMap(new HashMap<>());
+                res.receipt.putAll(receipt);
+            }
         } catch (CloneNotSupportedException e) {
             e.printStackTrace();
         }

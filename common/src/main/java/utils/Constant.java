@@ -27,7 +27,6 @@ public class Constant {
     public static final int APP = 0;
     public static final int PC = 1;
     public static final int WEB = 2;
-    public static final int[] clientType = {APP, PC, WEB};
 
     public static final int MAC = 10;
     public static final int WINDOW = 11;

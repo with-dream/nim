@@ -58,6 +58,9 @@ public class MsgType {
     public static final int STATE_RECEIPT_SERVER_SUCCESS = 1; //消息的状态 服务器接收成功
     public static final int STATE_RECEIPT_OFFLINE = 5; //消息的状态 目标客户端离线
     public static final int STATE_RECEIPT_FAIL = 6; //消息的状态 发送到目标客户端失败
+    public static final int KEY_RECEIPT_EXTRA_CODE = 506; //cmd消息的返回状态
+    public static final int KEY_RECEIPT_EXTRA_MSG = 507; //cmd消息的返回信息
+
 
     /**
      * 打包消息

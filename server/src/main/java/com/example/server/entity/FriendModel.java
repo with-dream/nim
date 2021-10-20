@@ -8,13 +8,15 @@ public class FriendModel extends Entity {
     public static final int FRIEND_SELF = 2;
     public static final int FRIEND_OTHER = 3;
     public static final int FRIEND_DEL_EACH = 4;
-    public static final int FRIEND_BLOCK_SELF = 5;
-    public static final int FRIEND_BLOCK_OTHER = 6;
-    public static final int FRIEND_BLOCK_EACH = 7;
+    public static final int FRIEND_BLOCK_NORMAL = 1;
+    public static final int FRIEND_BLOCK_SELF = 2;
+    public static final int FRIEND_BLOCK_OTHER = 3;
+    public static final int FRIEND_BLOCK_EACH = 4;
 
     public String userId;
     public String friendId;
-    public int status;
+    public int friend;
+    public int block;
     public String userInfo;
     public String friendInfo;
     public boolean isFriend;
@@ -25,7 +27,8 @@ public class FriendModel extends Entity {
         return "FriendModel{" +
                 "userId=" + userId +
                 ", friendId=" + friendId +
-                ", status=" + status +
+                ", friend=" + friend +
+                ", block=" + block +
                 ", userInfo='" + userInfo + '\'' +
                 ", friendInfo='" + friendInfo + '\'' +
                 '}';

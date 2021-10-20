@@ -5,12 +5,17 @@
         insert into user(name, pwd, uuid, registerTime) values (#{name}, #{pwd}, #{uuid}, #{registerTime});
     </insert>
 
-    <select id="login" resultType="com.example.server.entity.UserCheckModel" parameterType="com.example.server.entity.UserModel">
+    <select id="login" resultType="com.example.server.entity.UserCheckModel"
+            parameterType="com.example.server.entity.UserModel">
         SELECT * FROM user_info where name=#{name} and pwd=#{pwd};
     </select>
 
     <select id="checkUser" resultType="int">
         SELECT count(*) FROM user where uuid = #{uuid};
+    </select>
+
+    <select id="userInfo" resultType="com.example.server.entity.UserModel">
+        SELECT * FROM user where uuid = #{uuid};
     </select>
 
     <select id="checkFriend" resultType="com.example.server.entity.FriendModel">

@@ -37,4 +37,6 @@ public interface UserMapper {
     int delGroup(GroupInfoModel groupModel);
 
     List<GroupInfoModel> getAllGroup(@Param(value = "uuid") String uuid);
+
+    UserModel userInfo(@Param(value = "uuid") String uuid);
 }

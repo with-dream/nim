@@ -39,7 +39,7 @@ public class SendHolder {
     public static boolean COLONY = true;
     public static final String UUID_MQ_MAP = "mq_map";
     public static final AttributeKey<String> UUID_CHANNEL_MAP = AttributeKey.newInstance("key_uuid_channel_map");
-    private static final boolean LOGIN_DEBUG = false;
+    private static final boolean LOGIN_DEBUG = true;
 
     private static SendHolder that;
 
@@ -272,6 +272,7 @@ public class SendHolder {
                 if (NullUtil.isTrue(msg.msgMap().get(MsgType.KEY_UNIFY_CLIENT_SEND_SELF)))
                     set.addAll(multimap.get(msg.from));
                 set.addAll(multimap.get(msg.to));
+                L.p("redisSession==>" + set);
                 sendMsgServiceNormal(msg, set);
                 break;
             case MsgType.TYPE_ROOT:

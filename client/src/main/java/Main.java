@@ -18,6 +18,7 @@ import utils.Constant;
 import utils.UUIDUtil;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -222,7 +223,8 @@ public class Main {
                 if (res.success()) {
                     UserCheckModel userModel = res.data;
                     System.err.println("resModel==>" + userModel.toString());
-                    IMContext.instance().setIpList(userModel.serviceList);
+//                    IMContext.instance().setIpList(userModel.serviceList);
+                    IMContext.instance().setIpList(Arrays.asList("127.0.0.1:8091"));
                     IMContext.instance().uuid = userModel.uuid;
                     IMContext.instance().clientToken = UUIDUtil.getClientToken();
                     new Thread(() -> IMContext.instance().connect()).start();

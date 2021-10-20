@@ -49,7 +49,6 @@ public class MsgService {
      * 命令消息单独存储 因为是小概率事件
      */
     public void process(NimMsg msg, Channel channel) {
-        boolean cache = true;
         switch (msg.msgType) {
             case MsgType.TYPE_HEART_PING:
                 msg.swapUuid();
@@ -60,23 +59,22 @@ public class MsgService {
                 int cmd = NullUtil.isInt(msg.msgMap().get(MsgType.KEY_CMD));
                 switch (cmd) {
                     case MsgCmd.LOGIN:
-                        cache = false;
                         that.sendHolder.login(channel, msg);
                         break;
                     case MsgCmd.LOGOUT:
-                        cache = false;
                         that.sendHolder.logout(channel);
                         break;
                 }
                 break;
             case MsgType.TYPE_CMD_GROUP:
-
+                that.cacheHolder.cacheMsg(msg);
                 break;
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_GROUP:
             case MsgType.TYPE_ROOT:
                 that.sendHolder.sendMsg(msg);
                 buildRecMsg(channel, msg);
+                that.cacheHolder.cacheMsg(msg);
                 break;
             case MsgType.TYPE_RECEIPT:
                 //要确保调用顺序
@@ -89,15 +87,13 @@ public class MsgService {
                 that.sendHolder.sendMsg(msg);
                 //最后返回确认消息
                 buildRecMsg(channel, msg);
+                that.cacheHolder.cacheMsg(msg);
                 break;
             default:
 
                 break;
         }
 
-        if (cache) {
-            boolean res = that.cacheHolder.cacheMsg(msg);
-        }
     }
 
     private void clearServerKey(NimMsg msg) {

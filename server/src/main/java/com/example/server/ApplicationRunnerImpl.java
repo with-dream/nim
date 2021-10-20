@@ -1,12 +1,15 @@
 package com.example.server;
 
+import com.example.server.netty.SendHolder;
+import com.example.server.netty.entity.SessionRedisModel;
 import com.example.server.rabbitmq.DynamicManagerQueueService;
 import com.example.server.rabbitmq.QueueDto;
 import com.example.server.rabbitmq.RabbitListener;
-import com.example.server.utils.Const;
+import org.redisson.api.RList;
+import org.redisson.api.RSetMultimap;
+import org.redisson.api.RedissonClient;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import utils.L;
 
@@ -21,35 +24,35 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
     DynamicManagerQueueService queueService;
 
     @Resource
-    private RedisTemplate<String, Object> redisTemplate;
+    RedissonClient redisson;
 
     @Override
     public void run(ApplicationArguments args) {
-        String mqName = null;
-        for (String str : args.getNonOptionArgs()) {
-            String[] s = str.split("&");
-            for (String tmp : s) {
-                String[] ss = str.split("=");
-                switch (ss[0]) {
-                    case "mq":
-                        mqName = ss[1];
-                        break;
-                }
-                L.p("str3==>" + str);
-            }
-        }
-        MQ_NAME = mqName;
+//        String mqName = null;
+//        for (String str : args.getNonOptionArgs()) {
+//            String[] s = str.split("&");
+//            for (String tmp : s) {
+//                String[] ss = str.split("=");
+//                switch (ss[0]) {
+//                    case "mq":
+//                        mqName = ss[1];
+//                        break;
+//                }
+//                L.p("str3==>" + str);
+//            }
+//        }
+//        MQ_NAME = mqName;
 
         clearMQ();
 
         QueueDto queueDto = new QueueDto();
-        queueDto.queueName = mqName;
+        queueDto.queueName = MQ_NAME;
         queueDto.exchange = "exchange";
         queueDto.routingKey = "routingKey";
         queueDto.listener = RabbitListener.LISTENER_TAG;
 
         if (queueService.createQueue(queueDto)) {
-            MQ_NAME = mqName;
+//            MQ_NAME = mqName;
         } else {
             throw new RuntimeException("==>创建mq失败");
         }
@@ -57,14 +60,10 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
 
     //重新绑定mq 需要将redis中的缓存数据清除
     private void clearMQ() {
-        Set<Object> cacheUUid = redisTemplate.opsForSet().members(ApplicationRunnerImpl.MQ_NAME);
-        if (cacheUUid != null && !cacheUUid.isEmpty()) {
-            for (Object obj : cacheUUid) {
-                String[] item = ((String) obj).split(":");
-                String uuid = item[0];
-                int deviceType = Integer.valueOf(item[1]);
-                redisTemplate.opsForHash().delete(Const.mqTag(deviceType), uuid);
-            }
-        }
+        RSetMultimap<String, SessionRedisModel> multimap = redisson.getSetMultimap(SendHolder.UUID_MQ_MAP);
+        if (multimap.isEmpty()) return;
+        Set<Map.Entry<String, SessionRedisModel>> setEntry = multimap.entries();
+        if (setEntry.isEmpty()) return;
+        setEntry.removeIf(entry -> entry.getValue().queueName.equals(MQ_NAME));
     }
 }

@@ -5,6 +5,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import netty.entity.MsgType;
 import netty.entity.NimMsg;
 import org.redisson.api.RAtomicLong;
 import org.redisson.api.RedissonClient;
@@ -65,12 +66,17 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, NimMsg msg) {
-        setSeq(msg);
+        if (msg.msgType == MsgType.TYPE_MSG
+                || msg.msgType == MsgType.TYPE_RECEIPT
+                || msg.msgType == MsgType.TYPE_GROUP)
+            setSeq(msg);
         that.msgService.process(msg, ctx.channel());
     }
 
     private void setSeq(NimMsg msg) {
-        RAtomicLong atomicLong = redisson.getAtomicLong(MsgCacheHolder.getTimeLine(msg));
+        String tl = MsgCacheHolder.getTimeLine(msg);
+        L.e("==>setSeq");
+        RAtomicLong atomicLong = that.redisson.getAtomicLong(tl);
         msg.seq = atomicLong.getAndIncrement();
     }
 

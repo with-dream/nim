@@ -4,8 +4,10 @@ import netty.entity.MsgType;
 import netty.entity.NimMsg;
 import org.apache.commons.lang.StringUtils;
 import org.redisson.api.RAtomicLong;
+import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
+import utils.L;
 import utils.StrUtil;
 
 import javax.annotation.PostConstruct;
@@ -56,7 +58,10 @@ public class MsgCacheHolder {
      * 缓存消息
      */
     public boolean cacheMsg(NimMsg msg) {
-        return that.redisson.getList(getTimeLine(msg)).add(msg);
+        L.e("==>cacheMsg");
+//        RList<NimMsg> list = that.redisson.getList(getTimeLine(msg));
+//        return list.add(msg);
+        return true;
     }
 
     /**

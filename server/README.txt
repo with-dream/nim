@@ -36,6 +36,23 @@ redis-server  启动
 redis-cli -h 127.0.0.1 -p 6379
 flushall
 
+redis集群
+1 复制redis.config
+2 修改参数
+```
+#使用的端口
+port 6371
+数据库名
+dbfilename dump_6371.rdb
+#开启集群
+cluster-enabled yes
+#该节点的对应的节点配置文件
+cluster-config-file redis-6371.conf
+#集群超时时间
+cluster-node-timeout 5000
+```
+3 redis-server ./redis_6371.conf
+
 ### 2、mysql命令
 mysql.server start 启动
 

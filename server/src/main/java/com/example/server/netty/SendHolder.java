@@ -312,9 +312,9 @@ public class SendHolder {
 
         for (Map.Entry<String, NimMsg> entry : sendTmpMsg.entrySet()) {
             if (entry.getKey().equals(ApplicationRunnerImpl.MQ_NAME)) {
-                sendMsgLocal(msg);
+                sendMsgLocal(entry.getValue());
             } else {
-                rabbit.convertAndSend(transferMap.get(entry.getKey()), msg);
+                rabbit.convertAndSend(transferMap.get(entry.getKey()), entry.getValue());
             }
         }
     }

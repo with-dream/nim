@@ -30,7 +30,7 @@ public class NimMsg implements Cloneable {
     public int level;
 
     //消息
-    private Map<Integer, Object> msg;
+    public Map<Integer, Object> msg;
     //需要另一端返回的数据
     public Map<Integer, Object> receipt;
 
@@ -41,10 +41,10 @@ public class NimMsg implements Cloneable {
     }
 
     public String getGroupId() {
-        return (String) getMsgMap().get(MsgType.KEY_UNIFY_GROUP_ID);
+        return (String) msgMap().get(MsgType.KEY_UNIFY_GROUP_ID);
     }
 
-    public Map<Integer, Object> getMsgMap() {
+    public Map<Integer, Object> msgMap() {
         if (msg == null)
             synchronized (this) {
                 if (msg == null)
@@ -53,7 +53,7 @@ public class NimMsg implements Cloneable {
         return msg;
     }
 
-    public Map<Integer, Object> getRecMap() {
+    public Map<Integer, Object> recMap() {
         if (receipt == null)
             synchronized (this) {
                 if (receipt == null)
@@ -66,9 +66,10 @@ public class NimMsg implements Cloneable {
      * 为msg临时添加一个token
      * 同一条消息的msgId是固定的 如果发送给同一个用户的不同客户端 无法精准知道哪个客户端没有收到 所以添加临时token
      */
-    public String newTokenService() {
+    public String newTokenService(boolean save) {
         String token = UUIDUtil.getUid();
-        getRecMap().put(MsgType.KEY_UNIFY_SERVICE_MSG_TOKEN, token);
+        if (save)
+            recMap().put(MsgType.KEY_UNIFY_SERVICE_MSG_TOKEN, token);
         return token;
     }
 
@@ -94,6 +95,14 @@ public class NimMsg implements Cloneable {
         if (receipt == null)
             receipt = new HashMap<>();
         receipt = Collections.synchronizedMap(receipt);
+    }
+
+    /**
+     * 判断消息是否需要客户端回执
+     */
+    public static boolean isRecMsg(NimMsg msg) {
+        return msg.level == MsgLevel.LEVEL_STRICT
+                || (msg.level == MsgLevel.LEVEL_NORMAL && msg.msgType != MsgType.TYPE_RECEIPT);
     }
 
     @Override

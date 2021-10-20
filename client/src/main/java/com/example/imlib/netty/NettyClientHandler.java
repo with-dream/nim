@@ -74,10 +74,10 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<NimMsg> {
                 IMContext.instance().receiveMsg(msg);
 
                 NimMsg recMsg = MsgBuild.recMsg(msg.from);
-                recMsg.receipt = msg.receipt;
-                recMsg.getRecMap().put(MsgType.KEY_RECEIPT_TYPE, msg.msgType);
-                recMsg.getRecMap().put(MsgType.KEY_RECEIPT_MSG_ID, msg.msgId);
-                recMsg.getRecMap().put(MsgType.KEY_RECEIPT_STATE, MsgType.STATE_RECEIPT_CLIENT_SUCCESS);
+                recMsg.receipt.putAll(msg.receipt);
+                recMsg.recMap().put(MsgType.KEY_RECEIPT_TYPE, msg.msgType);
+                recMsg.recMap().put(MsgType.KEY_RECEIPT_MSG_ID, msg.msgId);
+                recMsg.recMap().put(MsgType.KEY_RECEIPT_STATE, MsgType.STATE_RECEIPT_CLIENT_SUCCESS);
                 IMContext.instance().sendMsg(recMsg);
                 break;
             case MsgType.TYPE_RECEIPT:

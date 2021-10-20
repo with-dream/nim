@@ -34,7 +34,7 @@ public class RequestService {
 //    public SendHolder sendHolder;
 //
 //    public boolean requestMsg(NimMsg msg, Channel channel) {
-//        int cmd = NullUtil.isInt(msg.getMsgMap().get(MsgType.KEY_CMD));
+//        int cmd = NullUtil.isInt(msg.msgMap().get(MsgType.KEY_CMD));
 //        switch (cmd) {
 //            case MsgReq.REQUEST_FRIEND:
 //                requestFriend(msg, channel);

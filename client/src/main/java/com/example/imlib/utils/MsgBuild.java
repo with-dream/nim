@@ -21,6 +21,7 @@ public class MsgBuild {
         msg.msgType = msgType;
         msg.deviceType = Constant.ANDROID;
         msg.level = level;
+        msg.sync();
         return msg;
     }
 

@@ -23,4 +23,9 @@ public class NullUtil {
         if (obj == null) return Long.MIN_VALUE;
         return (long) obj;
     }
+
+    public static String isStr(Object obj) {
+        if (obj == null) return "";
+        return (String) obj;
+    }
 }

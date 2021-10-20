@@ -12,6 +12,7 @@ import io.netty.util.concurrent.GenericFutureListener;
 import netty.entity.MsgLevel;
 import netty.entity.MsgType;
 import netty.entity.NimMsg;
+import org.apache.commons.lang.StringUtils;
 import org.redisson.api.RSet;
 import org.redisson.api.RSetMultimap;
 import org.redisson.api.RedissonClient;
@@ -37,8 +38,15 @@ public class SendHolder {
     public static boolean COLONY = true;
     public static final String UUID_MQ_MAP = "mq_map";
     public static final AttributeKey<String> UUID_CHANNEL_MAP = AttributeKey.newInstance("key_uuid_channel_map");
+    private static final boolean LOGIN_DEBUG = false;
 
     private static SendHolder that;
+
+    public SendHolder() {
+        L.e("构造方法==>SendHolder");
+        if (!receiptThread.isAlive())
+            receiptThread.start();
+    }
 
     @PostConstruct
     public void init() {
@@ -66,6 +74,7 @@ public class SendHolder {
      * key为NimMsg的临时token
      */
     public static Map<String, RecCacheEntity> receiptMap = new HashMap<>();
+    private ReceiptThread receiptThread = new ReceiptThread();
 
     /**
      * 服务器客户端的名称-channel映射 用于服务器间传消息
@@ -78,6 +87,10 @@ public class SendHolder {
      * 3 将uuid和mq做映射 用于将消息路由到本服务器中转到channel所在的服务器
      */
     public int login(Channel channel, NimMsg msg) {
+        if (LOGIN_DEBUG) {
+            L.p("login msg==>" + msg);
+            L.p("login session==>" + session);
+        }
         int ret = 0;
         SessionRedisModel sessionModel = new SessionRedisModel();
         sessionModel.clientToken = msg.fromToken;
@@ -87,8 +100,12 @@ public class SendHolder {
 
         RSetMultimap<String, SessionRedisModel> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
         RSet<SessionRedisModel> sessionModels = multimap.get(msg.from);
+        boolean redisCached = sessionModels.contains(sessionModel);
+        if (LOGIN_DEBUG) {
+            L.p("login redisCached==>" + redisCached);
+        }
         //重复登录
-        if (sessionModels.contains(sessionModel)) {
+        if (redisCached) {
             boolean add = true;
             Set<SessionModel> set = session.get(msg.from);
             if (!CollectionUtils.isEmpty(set))
@@ -98,8 +115,13 @@ public class SendHolder {
                         break;
                     }
                 }
+            if (LOGIN_DEBUG) {
+                L.p("login add local session==>" + add);
+            }
             if (add) {
                 ret = addSession(channel, msg, sessionModel);
+                if (LOGIN_DEBUG)
+                    L.p("login add local session ret==>" + ret);
             }
             return ret;
         }
@@ -109,7 +131,9 @@ public class SendHolder {
         if (res) {
             ret = addSession(channel, msg, sessionModel);
         }
-
+        if (LOGIN_DEBUG) {
+            L.p("login session ret==>" + session);
+        }
         return ret;
     }
 
@@ -209,16 +233,16 @@ public class SendHolder {
                 List<GroupMemberModel> memList = userService.getGroupMembers(msg.getGroupId());
                 for (GroupMemberModel gmm : memList)
                     uuidSet.add(gmm.uuid);
-                msg.getMsgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_SET, uuidSet);
+                msg.msgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_SET, uuidSet);
                 sendMsgLocal(msg);
                 break;
             case MsgType.TYPE_CMD:
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_RECEIPT:
-                if (NullUtil.isTrue(msg.getMsgMap().get(MsgType.KEY_UNIFY_CLIENT_SEND_SELF)))
+                if (NullUtil.isTrue(msg.msgMap().get(MsgType.KEY_UNIFY_CLIENT_SEND_SELF)))
                     uuidSet.add(msg.from);
                 uuidSet.add(msg.to);
-                msg.getMsgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_SET, uuidSet);
+                msg.msgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_SET, uuidSet);
                 sendMsgLocal(msg);
                 break;
             case MsgType.TYPE_ROOT:
@@ -244,7 +268,7 @@ public class SendHolder {
             case MsgType.TYPE_CMD:
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_RECEIPT:
-                if (NullUtil.isTrue(msg.getMsgMap().get(MsgType.KEY_UNIFY_CLIENT_SEND_SELF)))
+                if (NullUtil.isTrue(msg.msgMap().get(MsgType.KEY_UNIFY_CLIENT_SEND_SELF)))
                     set.addAll(multimap.get(msg.from));
                 set.addAll(multimap.get(msg.to));
                 sendMsgServiceNormal(msg, set);
@@ -274,11 +298,11 @@ public class SendHolder {
             if (!sendTmpMsg.containsKey(srm.queueName)) {
                 NimMsg tmpMsg = msg.copy();
                 uuidSet = new HashSet<>();
-                tmpMsg.getMsgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_SET, uuidSet);
+                tmpMsg.msgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_SET, uuidSet);
                 sendTmpMsg.put(srm.queueName, tmpMsg);
             } else {
                 NimMsg tmpMsg = sendTmpMsg.get(srm.queueName);
-                uuidSet = (Set<String>) tmpMsg.getMsgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_SET);
+                uuidSet = (Set<String>) tmpMsg.msgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_SET);
             }
 
             uuidSet.add(srm.uuid);
@@ -306,7 +330,7 @@ public class SendHolder {
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_RECEIPT:
             case MsgType.TYPE_PACK:
-                toList.addAll(NullUtil.isSet(msg.getMsgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_SET)));
+                toList.addAll(NullUtil.isSet(msg.msgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_SET)));
                 sendMsgNormal(msg, toList);
                 break;
             case MsgType.TYPE_ROOT:
@@ -343,18 +367,18 @@ public class SendHolder {
 
     private void sendMsgReal(NimMsg msg, SessionModel sm) {
         NimMsg tmpMsg = msg.copy();
-        String token = tmpMsg.newTokenService();
+        String token = tmpMsg.newTokenService(NimMsg.isRecMsg(msg));
         ChannelFuture future = sm.channel.writeAndFlush(tmpMsg);
 
-        if (msg.level != MsgLevel.LEVEL_LOW) {
+        if (NimMsg.isRecMsg(msg)) {
             RecCacheEntity rce = new RecCacheEntity(0, new WeakReference<>(sm), msg);
             rce.token = token;
             rce.updateTime();
-            receiptMap.put(token, rce);
+            putRecMsg(token, rce);
         }
 
         //不重要的消息 如果成功不操作 如果失败则重发 只有失败才操作
-        if (msg.level == MsgLevel.LEVEL_LOW) {
+        if (!NimMsg.isRecMsg(msg)) {
             future.addListener(new GenericFutureListener<Future<? super Void>>() {
                 @Override
                 public void operationComplete(Future<? super Void> f) {
@@ -362,7 +386,7 @@ public class SendHolder {
                         RecCacheEntity rce = new RecCacheEntity(0, new WeakReference<>(sm), msg);
                         rce.token = token;
                         rce.updateTime();
-                        receiptMap.put(token, rce);
+                        putRecMsg(token, rce);
                     }
 
                     future.removeListener(this);
@@ -371,9 +395,39 @@ public class SendHolder {
         }
     }
 
+    public void checkRecMsg(NimMsg msg) {
+        if (msg.msgType != MsgType.TYPE_RECEIPT)
+            return;
+
+        String token = NullUtil.isStr(msg.recMap().get(MsgType.KEY_UNIFY_SERVICE_MSG_TOKEN));
+        if (StringUtils.isEmpty(token)) return;
+
+        removeRecMsg(token);
+    }
+
+    public void recThreadStart() {
+        if (receiptThread.isAlive()) return;
+        receiptThread.start();
+    }
+
+    public void recThreadExit() {
+        receiptThread.exit();
+    }
+
+    public void putRecMsg(String token, RecCacheEntity value) {
+        receiptThread.addCache(value);
+        receiptMap.put(token, value);
+    }
+
+    public boolean removeRecMsg(String token) {
+        RecCacheEntity rce = receiptMap.get(token);
+        if (rce == null) return false;
+        return receiptThread.removeCache(rce);
+    }
+
     static class ReceiptThread extends Thread {
         private boolean run = true;
-        public PriorityBlockingQueue<WeakReference<RecCacheEntity>> receiptQueue = new PriorityBlockingQueue<>();
+        public Queue<RecCacheEntity> receiptQueue = new PriorityBlockingQueue<>();
 
         @Override
         public void run() {
@@ -382,22 +436,35 @@ public class SendHolder {
                 if (receiptQueue.isEmpty())
                     LockSupport.park();
 
-                RecCacheEntity recF = receiptQueue.peek().get();
+                RecCacheEntity recF = receiptQueue.peek();
                 if (recF == null) continue;
 
                 if (recF.unpackTime - System.currentTimeMillis() <= 50) {
-                    Iterator<WeakReference<RecCacheEntity>> it = receiptQueue.iterator();
+                    Iterator<RecCacheEntity> it = receiptQueue.iterator();
                     while (it.hasNext()) {
-                        WeakReference<RecCacheEntity> rce = it.next();
-                        if (rce.get() == null) continue;
-                        if (rce.get().isTimeout()) {
+                        RecCacheEntity rce = it.next();
+                        if (rce == null) continue;
+                        if (rce.isTimeout()) {
                             //TODO 超时处理
-                            receiptMap.remove(rce.get().token);
+                            receiptMap.remove(rce.token);
                             it.remove();
-                        } else if (rce.get().sm.get() != null
-                                && rce.get().unpackTime - System.currentTimeMillis() <= 50) {
-                            rce.get().sm.get().channel.writeAndFlush(rce.get().msg);
-                            rce.get().updateTime();
+                        } else if (rce.sm.get() != null
+                                && rce.unpackTime - System.currentTimeMillis() <= 50) {
+                            ChannelFuture future = rce.sm.get().channel.writeAndFlush(rce.msg);
+                            //如果不是重要的消息 则发送完成即删除
+                            if (!NimMsg.isRecMsg(rce.msg))
+                                future.addListener(new GenericFutureListener<Future<? super Void>>() {
+                                    @Override
+                                    public void operationComplete(Future<? super Void> f) throws Exception {
+                                        if (f.isSuccess()) {
+                                            receiptMap.remove(rce.token);
+                                            it.remove();
+                                        }
+
+                                        future.removeListener(this);
+                                    }
+                                });
+                            rce.updateTime();
                         } else
                             break;
                     }
@@ -411,10 +478,14 @@ public class SendHolder {
         }
 
         public void addCache(RecCacheEntity cacheEntity) {
-            receiptQueue.add(new WeakReference<RecCacheEntity>(cacheEntity));
+            receiptQueue.add(cacheEntity);
             if (receiptQueue.size() > 1)
-                if (receiptQueue.peek().get().unpackTime < cacheEntity.unpackTime)
+                if (receiptQueue.peek().unpackTime < cacheEntity.unpackTime)
                     LockSupport.unpark(this);
+        }
+
+        public boolean removeCache(RecCacheEntity cacheEntity) {
+            return receiptQueue.remove(cacheEntity);
         }
     }
 }

@@ -132,7 +132,7 @@ public class Main {
                         String[] p = strsp.split("/");
 
                         NimMsg msgP = MsgBuild.build(MsgType.TYPE_MSG, p[0]);
-                        msgP.getMsgMap().put(MsgType.KEY_MSG, p[1]);
+                        msgP.msgMap().put(MsgType.KEY_MSG, p[1]);
 
                         IMContext.instance().sendMsg(msgP);
                         break;
@@ -144,7 +144,7 @@ public class Main {
                         int count = Integer.parseInt(pl[1]);
                         for (int i = 0; i < count; i++) {
                             NimMsg msgPL = MsgBuild.build(MsgType.TYPE_MSG, pl[0]);
-                            msgPL.getMsgMap().put(MsgType.KEY_MSG, pl[1]);
+                            msgPL.msgMap().put(MsgType.KEY_MSG, pl[1]);
                             IMContext.instance().sendMsg(msgPL);
                             try {
                                 Thread.currentThread().sleep(100);
@@ -236,7 +236,7 @@ public class Main {
 
     private void logout() {
         NimMsg msg = MsgBuild.build(MsgType.TYPE_CMD, Constant.SERVER_UID);
-        msg.getMsgMap().put(MsgType.KEY_CMD, MsgCmd.LOGOUT);
+        msg.msgMap().put(MsgType.KEY_CMD, MsgCmd.LOGOUT);
         IMContext.instance().logout = true;
 
         IMContext.instance().sendMsg(msg);

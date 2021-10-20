@@ -6,7 +6,7 @@ import netty.entity.NimMsg;
 import java.lang.ref.WeakReference;
 import java.util.Comparator;
 
-public class RecCacheEntity implements Comparator<RecCacheEntity> {
+public class RecCacheEntity implements Comparable<RecCacheEntity> {
     public String token;
     public int tryCount;
     public long unpackTime;
@@ -44,8 +44,8 @@ public class RecCacheEntity implements Comparator<RecCacheEntity> {
     }
 
     @Override
-    public int compare(RecCacheEntity o1, RecCacheEntity o2) {
-        long res = o1.unpackTime - o2.unpackTime;
+    public int compareTo(RecCacheEntity o) {
+        long res = unpackTime - o.unpackTime;
         if (res > 0) return 1;
         else if (res < 0) return -1;
         return 0;

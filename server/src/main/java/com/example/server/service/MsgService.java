@@ -9,6 +9,7 @@ import netty.entity.MsgType;
 import netty.entity.NimMsg;
 import org.springframework.stereotype.Component;
 import utils.Constant;
+import utils.L;
 import utils.NullUtil;
 
 import javax.annotation.PostConstruct;
@@ -56,7 +57,7 @@ public class MsgService {
                 channel.writeAndFlush(msg);
                 break;
             case MsgType.TYPE_CMD:
-                int cmd = NullUtil.isInt(msg.getMsgMap().get(MsgType.KEY_CMD));
+                int cmd = NullUtil.isInt(msg.msgMap().get(MsgType.KEY_CMD));
                 switch (cmd) {
                     case MsgCmd.LOGIN:
                         cache = false;
@@ -73,28 +74,49 @@ public class MsgService {
                 break;
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_GROUP:
-            case MsgType.TYPE_RECEIPT:
             case MsgType.TYPE_ROOT:
                 that.sendHolder.sendMsg(msg);
+                buildRecMsg(channel, msg);
+                break;
+            case MsgType.TYPE_RECEIPT:
+                //要确保调用顺序
+                //先将超时队列中的消息移除
+                that.sendHolder.checkRecMsg(msg);
+                //再移除多余的消息
+                clearServerKey(msg);
+//                L.e("TYPE_RECEIPT msg==>" + msg);
+                //然后转发
+                that.sendHolder.sendMsg(msg);
+                //最后返回确认消息
+                buildRecMsg(channel, msg);
                 break;
             default:
 
                 break;
         }
 
+        if (cache) {
+            boolean res = that.cacheHolder.cacheMsg(msg);
+        }
+    }
+
+    private void clearServerKey(NimMsg msg) {
+        msg.recMap().remove(MsgType.KEY_UNIFY_SERVICE_MSG_TOKEN);
+    }
+
+    /**
+     * 严格模式下 服务器给客户端发送的消息收到确认
+     */
+    private void buildRecMsg(Channel channel, NimMsg msg) {
         if (msg.level == MsgLevel.LEVEL_STRICT) {
             NimMsg recMsg = new NimMsg();
             recMsg.from = Constant.SERVER_UID;
             recMsg.to = msg.from;
             recMsg.msgType = MsgType.TYPE_RECEIPT;
-            recMsg.getRecMap().put(MsgType.KEY_RECEIPT_TYPE, msg.msgType);
-            recMsg.getRecMap().put(MsgType.KEY_RECEIPT_MSG_ID, msg.msgId);
-            recMsg.getRecMap().put(MsgType.KEY_RECEIPT_STATE, MsgType.STATE_RECEIPT_SERVER_SUCCESS);
+            recMsg.recMap().put(MsgType.KEY_RECEIPT_TYPE, msg.msgType);
+            recMsg.recMap().put(MsgType.KEY_RECEIPT_MSG_ID, msg.msgId);
+            recMsg.recMap().put(MsgType.KEY_RECEIPT_STATE, MsgType.STATE_RECEIPT_SERVER_SUCCESS);
             channel.writeAndFlush(recMsg);
-        }
-
-        if (cache) {
-            boolean res = that.cacheHolder.cacheMsg(msg);
         }
     }
 }

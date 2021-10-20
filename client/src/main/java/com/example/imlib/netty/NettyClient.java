@@ -85,7 +85,7 @@ public class NettyClient {
 
     private void login() {
         NimMsg loginMsg = MsgBuild.build(MsgType.TYPE_CMD, Constant.SERVER_UID, MsgLevel.LEVEL_STRICT);
-        loginMsg.getMsgMap().put(MsgType.KEY_CMD, MsgCmd.LOGIN);
+        loginMsg.msgMap().put(MsgType.KEY_CMD, MsgCmd.LOGIN);
 
         ChannelFuture cmdFuture = IMContext.instance().channel.get().writeAndFlush(loginMsg);
         cmdFuture.addListener(new GenericFutureListener<Future<? super Void>>() {

@@ -1,21 +1,8 @@
 package com.example.server.service;
 
-import com.example.server.netty.SendHolder;
-import com.example.server.redis.TagList;
-import io.netty.channel.Channel;
-import netty.entity.MsgType;
-import netty.entity.NimMsg;
-import netty.entity.MsgReq;
 import org.springframework.stereotype.Component;
-import com.example.server.entity.FriendModel;
-import com.example.server.entity.GroupInfoModel;
-import com.example.server.entity.GroupMemberModel;
-import utils.L;
-import utils.NullUtil;
-import utils.StrUtil;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
 
 @Component
 public class RequestService {

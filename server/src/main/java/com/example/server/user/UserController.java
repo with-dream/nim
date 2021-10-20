@@ -26,21 +26,6 @@ public class UserController {
     @Resource
     UserService userService;
 
-    @Resource
-    UuidManager uuidManager;
-
-    @Resource
-    private AmqpTemplate rabbit;
-
-    @Resource
-    private RedisTemplate<String, Object> redisTemplate;
-
-    @RequestMapping(value = "/test")
-    public String test() {
-        rabbit.convertAndSend("aaa", "aaaaaa");
-        return "==>";
-    }
-
     @RequestMapping(value = "/login")
     public BaseModel<UserCheckModel> login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
             , @RequestParam(value = "deviceType") int deviceType) {

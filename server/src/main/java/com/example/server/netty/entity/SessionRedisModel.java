@@ -1,4 +1,4 @@
-package com.example.server.netty;
+package com.example.server.netty.entity;
 
 import entity.Entity;
 

@@ -18,7 +18,7 @@ public class UUIDUtil {
 
     public static long getMsgId() {
         int id = getUUIDHash();
-        long time = System.currentTimeMillis() & 0xFFFFFFFF;
+        long time = System.currentTimeMillis();
         long msgId = (time << 32) | (long) id;
         return Math.abs(msgId);
     }

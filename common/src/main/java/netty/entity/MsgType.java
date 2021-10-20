@@ -12,6 +12,7 @@ public class MsgType {
      * 系统消息
      */
     public static final int TYPE_ROOT = 0;
+    public static final String CACHE_ROOT = "c_root";
 
     /**
      * 请求的命令消息

@@ -6,6 +6,8 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import netty.entity.NimMsg;
+import org.redisson.api.RAtomicLong;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 import utils.L;
 
@@ -35,6 +37,9 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
     @Resource
     public SendHolder sendHolder;
 
+    @Resource
+    public RedissonClient redisson;
+
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         super.channelInactive(ctx);
@@ -60,7 +65,13 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, NimMsg msg) {
+        setSeq(msg);
         that.msgService.process(msg, ctx.channel());
+    }
+
+    private void setSeq(NimMsg msg) {
+        RAtomicLong atomicLong = redisson.getAtomicLong(MsgCacheHolder.getTimeLine(msg));
+        msg.seq = atomicLong.getAndIncrement();
     }
 
     @Override
@@ -81,7 +92,6 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         L.e("exceptionCaught==>" + ctx.channel().attr(SendHolder.UUID_CHANNEL_MAP).get());
-        //TODO 将崩溃放入日志
         that.sendHolder.logout(ctx.channel());
         cause.printStackTrace();
     }

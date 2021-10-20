@@ -29,6 +29,9 @@ public class NimMsg implements Cloneable {
     //消息等级
     public int level;
 
+    //消息计数
+    public long seq;
+
     //消息
     public Map<Integer, Object> msg;
     //需要另一端返回的数据

@@ -1,10 +1,9 @@
 package com.example.server.entity;
 
-import com.example.server.netty.SessionModel;
+import com.example.server.netty.entity.SessionModel;
 import netty.entity.NimMsg;
 
 import java.lang.ref.WeakReference;
-import java.util.Comparator;
 
 public class RecCacheEntity implements Comparable<RecCacheEntity> {
     public String token;

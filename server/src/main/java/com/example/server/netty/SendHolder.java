@@ -3,13 +3,14 @@ package com.example.server.netty;
 import com.example.server.ApplicationRunnerImpl;
 import com.example.server.entity.GroupMemberModel;
 import com.example.server.entity.RecCacheEntity;
+import com.example.server.netty.entity.SessionModel;
+import com.example.server.netty.entity.SessionRedisModel;
 import com.example.server.service.UserService;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import netty.entity.MsgLevel;
 import netty.entity.MsgType;
 import netty.entity.NimMsg;
 import org.apache.commons.lang.StringUtils;
@@ -222,7 +223,7 @@ public class SendHolder {
     public void sendMsg(NimMsg msg) {
         if (COLONY)
             sendMsgServiceColony(msg);
-        else sendMsgLocal(msg);
+        else sendMsgServiceSingle(msg);
     }
 
     private void sendMsgServiceSingle(NimMsg msg) {

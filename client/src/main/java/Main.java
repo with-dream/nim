@@ -39,36 +39,36 @@ public class Main {
         final Scanner input = new Scanner(System.in);
         IMContext.instance().setMsgCallback(new IMMsgCallback() {
             @Override
-            public void receive(NimMsg msgModel) {
-                L.p("receive==>" + msgModel);
+            public void receive(NimMsg msgEntity) {
+                L.p("receive==>" + msgEntity);
 
-                switch (msgModel.msgType) {
+                switch (msgEntity.msgType) {
 //                    case MsgType.MSG_PACK:
 //
 //                        break;
 //                    case MsgType.MSG_CMD_REQ:
-//                        RequestMsgModel reqMsg = (RequestMsgModel) msgModel;
+//                        RequestMsgEntity reqMsg = (RequestMsgEntity) msgEntity;
 //                        switch (reqMsg.cmd) {
-//                            case RequestMsgModel.REQUEST_FRIEND:
+//                            case RequestMsgEntity.REQUEST_FRIEND:
 //                                //请求好友 默认同意
 //                                L.p("是否同意好友请求:" + reqMsg.from + "  Y/N");
 ////                                String friendAgree = input.next();
 ////                                if (friendAgree.equals("Y"))
-//                                reqMsg.cmd = RequestMsgModel.REQUEST_FRIEND_AGREE;
+//                                reqMsg.cmd = RequestMsgEntity.REQUEST_FRIEND_AGREE;
 ////                                else
-////                                    reqMsg.cmd = RequestMsgModel.REQUEST_FRIEND_REFUSE;
+////                                    reqMsg.cmd = RequestMsgEntity.REQUEST_FRIEND_REFUSE;
 //                                String tmp = reqMsg.from;
 //                                reqMsg.from = reqMsg.to;
 //                                reqMsg.to = tmp;
 //                                IMContext.instance().sendMsg(reqMsg, true);
 //                                break;
-//                            case RequestMsgModel.GROUP_ADD:
+//                            case RequestMsgEntity.GROUP_ADD:
 //                                L.p("是否同意入群请求:" + reqMsg.from + "Y/N");
 ////                                String groupAgree = input.next();
 ////                                if (groupAgree.equals("Y"))
-//                                reqMsg.cmd = RequestMsgModel.GROUP_ADD_AGREE;
+//                                reqMsg.cmd = RequestMsgEntity.GROUP_ADD_AGREE;
 ////                                else
-////                                    reqMsg.cmd = RequestMsgModel.GROUP_ADD_REFUSE;
+////                                    reqMsg.cmd = RequestMsgEntity.GROUP_ADD_REFUSE;
 //                                String tmpGA = reqMsg.from;
 //                                reqMsg.from = reqMsg.to;
 //                                reqMsg.to = tmpGA;
@@ -110,9 +110,9 @@ public class Main {
 //                        L.p("删除好友 对方uuid/指令   1单方删除 2同时删除");
 //                        String delCmd = input.next();
 //                        String[] dc = delCmd.split("/");
-//                        int del = RequestMsgModel.FRIEND_DEL;
+//                        int del = RequestMsgEntity.FRIEND_DEL;
 //                        if ("2".equals(dc[1]))
-//                            del = RequestMsgModel.FRIEND_DEL_EACH;
+//                            del = RequestMsgEntity.FRIEND_DEL_EACH;
 //                        client.delFriend(dc[0], del);
                         break;
                     case "friendList":   //获取所有朋友
@@ -155,30 +155,30 @@ public class Main {
                         L.p("申请群 群id");
 //                        String strg = input.next();
 //
-//                        RequestMsgModel gModel = RequestMsgModel.create(IMContext.instance().uuid, Constant.SERVER_UID, IMContext.instance().clientToken);
-//                        gModel.groupId = strg;
-//                        gModel.cmd = RequestMsgModel.GROUP_ADD;
+//                        RequestMsgEntity gEntity = RequestMsgEntity.create(IMContext.instance().uuid, Constant.SERVER_UID, IMContext.instance().clientToken);
+//                        gEntity.groupId = strg;
+//                        gEntity.cmd = RequestMsgEntity.GROUP_ADD;
 //
-//                        IMContext.instance().sendMsg(gModel, true);
+//                        IMContext.instance().sendMsg(gEntity, true);
                         break;
                     case "exitG":
                         L.p("退出群 群id");
 //                        String strge = input.next();
 //
-//                        RequestMsgModel eModel = RequestMsgModel.create(IMContext.instance().uuid, Constant.SERVER_UID, IMContext.instance().clientToken);
-//                        eModel.groupId = strge;
-//                        eModel.cmd = RequestMsgModel.GROUP_EXIT;
+//                        RequestMsgEntity eEntity = RequestMsgEntity.create(IMContext.instance().uuid, Constant.SERVER_UID, IMContext.instance().clientToken);
+//                        eEntity.groupId = strge;
+//                        eEntity.cmd = RequestMsgEntity.GROUP_EXIT;
 //
-//                        IMContext.instance().sendMsg(eModel, true);
+//                        IMContext.instance().sendMsg(eEntity, true);
                         break;
                     case "sendG":
                         L.p("发送群消息 uuid/内容");
 //                        String strgs = input.next();
 //                        String[] gsp = strgs.split("/");
 //
-//                        GroupMsgModel msgModelG = GroupMsgModel.createG(IMContext.instance().uuid, gsp[0]);
-//                        msgModelG.info = gsp[1];
-//                        IMContext.instance().sendMsg(msgModelG, true);
+//                        GroupMsgEntity msgEntityG = GroupMsgEntity.createG(IMContext.instance().uuid, gsp[0]);
+//                        msgEntityG.info = gsp[1];
+//                        IMContext.instance().sendMsg(msgEntityG, true);
                         break;
                     case "createG":
                         L.p("创建群 群名称");
@@ -213,16 +213,16 @@ public class Main {
 
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 String str = response.body().string();
-                System.err.println("resModel  1111==>" + str);
+                System.err.println("resEntity  1111==>" + str);
 
-                BaseModel<UserCheckModel> res = gson.fromJson(str, new TypeToken<BaseModel<UserCheckModel>>() {
+                BaseEntity<UserCheckEntity> res = gson.fromJson(str, new TypeToken<BaseEntity<UserCheckEntity>>() {
                 }.getType());
                 if (res.success()) {
-                    UserCheckModel userModel = res.data;
-                    System.err.println("resModel==>" + userModel.toString());
-//                    IMContext.instance().setIpList(userModel.serviceList);
+                    UserCheckEntity userEntity = res.data;
+                    System.err.println("resEntity==>" + userEntity.toString());
+//                    IMContext.instance().setIpList(userEntity.serviceList);
                     IMContext.instance().setIpList(Arrays.asList(Constant.NETTY_IP));
-                    IMContext.instance().uuid = userModel.uuid;
+                    IMContext.instance().uuid = userEntity.uuid;
                     IMContext.instance().clientToken = UUIDUtil.getClientToken();
                     new Thread(() -> IMContext.instance().connect()).start();
                 } else {
@@ -254,8 +254,8 @@ public class Main {
 
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 String str = response.body().string();
-                System.err.println("resModel  1111==>" + str);
-                BaseModel<List<FriendModel>> res = gson.fromJson(str, new TypeToken<BaseModel<List<FriendModel>>>() {
+                System.err.println("resEntity  1111==>" + str);
+                BaseEntity<List<FriendEntity>> res = gson.fromJson(str, new TypeToken<BaseEntity<List<FriendEntity>>>() {
                 }.getType());
                 if (res.success()) {
                     L.p("getAllFriend==>" + res.data);
@@ -278,7 +278,7 @@ public class Main {
 
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 String res = response.body().string();
-                System.err.println("resModel  1111==>" + res);
+                System.err.println("resEntity  1111==>" + res);
 
             }
         });
@@ -298,7 +298,7 @@ public class Main {
 
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 String res = response.body().string();
-                System.err.println("resModel  1111==>" + res);
+                System.err.println("resEntity  1111==>" + res);
 
             }
         });

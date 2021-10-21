@@ -5,7 +5,7 @@ import entity.Entity;
 import java.util.Date;
 import java.util.List;
 
-public class UserModel extends Entity {
+public class UserEntity extends Entity {
     public String name;
     public String pwd;
     public String uuid;

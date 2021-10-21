@@ -2,7 +2,7 @@ package com.example.server.entity;
 
 import entity.Entity;
 
-public class FriendModel extends Entity {
+public class FriendEntity extends Entity {
     //status字段 1 双向普通好友 2 user是friend的单向好友 3 friend是user的单向好友 4 假删除好友 5 user拉黑friend  6 friend拉黑user 7 互相拉黑
     public static final int FRIEND_NORMAL = 1;
     public static final int FRIEND_SELF = 2;
@@ -24,7 +24,7 @@ public class FriendModel extends Entity {
 
     @Override
     public String toString() {
-        return "FriendModel{" +
+        return "FriendEntity{" +
                 "userId=" + userId +
                 ", friendId=" + friendId +
                 ", friend=" + friend +

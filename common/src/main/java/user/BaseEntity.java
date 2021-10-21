@@ -2,7 +2,7 @@ package user;
 
 import entity.Entity;
 
-public class BaseModel<T> extends Entity {
+public class BaseEntity<T> extends Entity {
     public static final int SUCC = 0;
     public static final int FAIL = 1;
 
@@ -14,27 +14,27 @@ public class BaseModel<T> extends Entity {
         return code == SUCC;
     }
 
-    public static BaseModel fail() {
+    public static BaseEntity fail() {
         return fail(FAIL);
     }
 
-    public static BaseModel fail(int code) {
+    public static BaseEntity fail(int code) {
         return fail(code, "fail");
     }
 
-    public static BaseModel fail(int code, String msg) {
-        BaseModel res = new BaseModel<>();
+    public static BaseEntity fail(int code, String msg) {
+        BaseEntity res = new BaseEntity<>();
         res.code = code;
         res.msg = msg;
         return res;
     }
 
-    public static BaseModel succ() {
+    public static BaseEntity succ() {
         return succ(null);
     }
 
-    public static <T> BaseModel<T> succ(T t) {
-        BaseModel<T> res = new BaseModel<>();
+    public static <T> BaseEntity<T> succ(T t) {
+        BaseEntity<T> res = new BaseEntity<>();
         res.code = SUCC;
         res.msg = "success";
         res.data = t;

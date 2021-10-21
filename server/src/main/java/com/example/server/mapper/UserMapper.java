@@ -8,35 +8,35 @@ import java.util.List;
 
 @Repository
 public interface UserMapper {
-    int register(UserModel userModel);
+    int register(UserEntity userEntity);
 
-    UserCheckModel login(UserModel userModel);
+    UserCheckEntity login(UserEntity userEntity);
 
     int checkUser(String uuid);
 
-    FriendModel checkFriend(@Param(value = "userId") String userId, @Param(value = "friendId") String friendId);
+    FriendEntity checkFriend(@Param(value = "userId") String userId, @Param(value = "friendId") String friendId);
 
-    int addFriend(FriendModel friendModel);
+    int addFriend(FriendEntity friendEntity);
 
-    int delFriend(FriendModel friendModel);
+    int delFriend(FriendEntity friendEntity);
 
-    List<FriendModel> getAllFriend(@Param(value = "uuid") String uuid);
+    List<FriendEntity> getAllFriend(@Param(value = "uuid") String uuid);
 
-    int addGroupMember(GroupMemberModel memberModel);
+    int addGroupMember(GroupMemberEntity memberEntity);
 
-    int delGroupMember(GroupMemberModel memberModel);
+    int delGroupMember(GroupMemberEntity memberEntity);
 
-    List<GroupMemberModel> getGroupMembers(@Param(value = "groupId") String groupId);
+    List<GroupMemberEntity> getGroupMembers(@Param(value = "groupId") String groupId);
 
-    int checkGroupRole(GroupMemberModel memberModel);
+    int checkGroupRole(GroupMemberEntity memberEntity);
 
-    GroupInfoModel getGroupInfo(@Param(value = "groupId") String groupId);
+    GroupInfoEntity getGroupInfo(@Param(value = "groupId") String groupId);
 
-    int createGroup(GroupInfoModel groupModel);
+    int createGroup(GroupInfoEntity groupEntity);
 
-    int delGroup(GroupInfoModel groupModel);
+    int delGroup(GroupInfoEntity groupEntity);
 
-    List<GroupInfoModel> getAllGroup(@Param(value = "uuid") String uuid);
+    List<GroupInfoEntity> getAllGroup(@Param(value = "uuid") String uuid);
 
-    UserModel userInfo(@Param(value = "uuid") String uuid);
+    UserEntity userInfo(@Param(value = "uuid") String uuid);
 }

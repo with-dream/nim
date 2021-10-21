@@ -1,7 +1,7 @@
 package com.example.server;
 
 import com.example.server.netty.SendHolder;
-import com.example.server.netty.entity.SessionRedisModel;
+import com.example.server.netty.entity.SessionRedisEntity;
 import com.example.server.rabbitmq.DynamicManagerQueueService;
 import com.example.server.rabbitmq.QueueDto;
 import com.example.server.rabbitmq.RabbitListener;
@@ -63,9 +63,9 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
 
     //重新绑定mq 需要将redis中的缓存数据清除
     private void clearMQ() {
-        RSetMultimap<String, SessionRedisModel> multimap = redisson.getSetMultimap(SendHolder.UUID_MQ_MAP);
+        RSetMultimap<String, SessionRedisEntity> multimap = redisson.getSetMultimap(SendHolder.UUID_MQ_MAP);
         if (multimap.isEmpty()) return;
-        Set<Map.Entry<String, SessionRedisModel>> setEntry = multimap.entries();
+        Set<Map.Entry<String, SessionRedisEntity>> setEntry = multimap.entries();
         if (setEntry.isEmpty()) return;
         setEntry.removeIf(entry -> entry.getValue().queueName.equals(MQ_NAME));
     }

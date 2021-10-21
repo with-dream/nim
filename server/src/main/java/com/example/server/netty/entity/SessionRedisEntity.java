@@ -2,7 +2,7 @@ package com.example.server.netty.entity;
 
 import entity.Entity;
 
-public class SessionRedisModel extends Entity {
+public class SessionRedisEntity extends Entity {
     public String uuid;
     public int clientToken;
     public int deviceType;
@@ -12,7 +12,7 @@ public class SessionRedisModel extends Entity {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        SessionRedisModel that = (SessionRedisModel) o;
+        SessionRedisEntity that = (SessionRedisEntity) o;
         return that.uuid.equals(uuid) && that.clientToken == clientToken
                 && that.deviceType == deviceType;
     }
@@ -24,7 +24,7 @@ public class SessionRedisModel extends Entity {
 
     @Override
     public String toString() {
-        return "SessionRedisModel{" +
+        return "SessionRedisEntity{" +
                 "queueName='" + queueName + '\'' +
                 ", uuid='" + uuid + '\'' +
                 ", clientToken=" + clientToken +

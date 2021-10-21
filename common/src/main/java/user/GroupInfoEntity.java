@@ -1,6 +1,6 @@
-package com.example.server.entity;
+package user;
 
-public class GroupInfoModel {
+public class GroupInfoEntity {
     public String groupId;
     public String uuid;
     public String name;

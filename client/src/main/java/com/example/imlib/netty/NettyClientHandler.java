@@ -1,6 +1,6 @@
 package com.example.imlib.netty;
 
-import com.example.imlib.entity.RecCacheEntity;
+import com.example.imlib.netty.entity.RecCacheEntity;
 import com.example.imlib.utils.L;
 import com.example.imlib.utils.MsgBuild;
 import io.netty.channel.ChannelHandlerContext;

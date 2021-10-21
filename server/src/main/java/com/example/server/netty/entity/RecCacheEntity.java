@@ -8,13 +8,13 @@ public class RecCacheEntity implements Comparable<RecCacheEntity> {
     public String token;
     public int tryCount;
     public long unpackTime;
-    public WeakReference<SessionModel> sm;
+    public WeakReference<SessionEntity> sm;
     public NimMsg msg;
 
     public RecCacheEntity() {
     }
 
-    public RecCacheEntity(int tryCount, WeakReference<SessionModel> sm, NimMsg msg) {
+    public RecCacheEntity(int tryCount, WeakReference<SessionEntity> sm, NimMsg msg) {
         this.tryCount = tryCount;
         this.sm = sm;
         this.msg = msg;

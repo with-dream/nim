@@ -1,4 +1,4 @@
-package com.example.imlib.entity;
+package com.example.imlib.netty.entity;
 
 import netty.entity.NimMsg;
 

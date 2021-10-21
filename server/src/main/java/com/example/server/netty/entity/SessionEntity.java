@@ -5,28 +5,28 @@ import io.netty.channel.Channel;
 
 import java.util.Objects;
 
-public class SessionModel extends Entity {
-    public SessionRedisModel redisModel;
+public class SessionEntity extends Entity {
+    public SessionRedisEntity redisEntity;
     public Channel channel;
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        SessionModel that = (SessionModel) o;
-        return Objects.equals(redisModel, that.redisModel) &&
+        SessionEntity that = (SessionEntity) o;
+        return Objects.equals(redisEntity, that.redisEntity) &&
                 Objects.equals(channel, that.channel);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(redisModel, channel);
+        return Objects.hash(redisEntity, channel);
     }
 
     @Override
     public String toString() {
-        return "SessionModel{" +
-                "redisModel=" + redisModel +
+        return "SessionEntity{" +
+                "redisEntity=" + redisEntity +
                 '}';
     }
 }

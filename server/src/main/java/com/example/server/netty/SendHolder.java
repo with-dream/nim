@@ -3,8 +3,8 @@ package com.example.server.netty;
 import com.alibaba.fastjson.JSON;
 import com.example.server.ApplicationRunnerImpl;
 import com.example.server.netty.entity.RecCacheEntity;
-import com.example.server.netty.entity.SessionModel;
-import com.example.server.netty.entity.SessionRedisModel;
+import com.example.server.netty.entity.SessionEntity;
+import com.example.server.netty.entity.SessionRedisEntity;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.AttributeKey;
@@ -68,7 +68,7 @@ public class SendHolder {
      * 缓存uuid和客户端的映射
      * 同一个uuid会对应多个客户端
      */
-    public ConcurrentMap<String, Set<SessionModel>> session = new ConcurrentHashMap<>();
+    public ConcurrentMap<String, Set<SessionEntity>> session = new ConcurrentHashMap<>();
 
     /**
      * 已发送的消息缓存 用于消息重发
@@ -92,25 +92,25 @@ public class SendHolder {
             L.p("login session==>" + session);
         }
         int ret = 0;
-        SessionRedisModel sessionModel = new SessionRedisModel();
-        sessionModel.clientToken = msg.fromToken;
-        sessionModel.deviceType = msg.deviceType;
-        sessionModel.uuid = msg.from;
-        sessionModel.queueName = ApplicationRunnerImpl.MQ_NAME;
+        SessionRedisEntity sessionEntity = new SessionRedisEntity();
+        sessionEntity.clientToken = msg.fromToken;
+        sessionEntity.deviceType = msg.deviceType;
+        sessionEntity.uuid = msg.from;
+        sessionEntity.queueName = ApplicationRunnerImpl.MQ_NAME;
 
-        RSetMultimap<String, SessionRedisModel> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
-        RSet<SessionRedisModel> sessionModels = multimap.get(msg.from);
-        boolean redisCached = sessionModels.contains(sessionModel);
+        RSetMultimap<String, SessionRedisEntity> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
+        RSet<SessionRedisEntity> sessionEntitys = multimap.get(msg.from);
+        boolean redisCached = sessionEntitys.contains(sessionEntity);
         if (LOGIN_DEBUG) {
             L.p("login redisCached==>" + redisCached);
         }
         //重复登录
         if (redisCached) {
             boolean add = true;
-            Set<SessionModel> set = session.get(msg.from);
+            Set<SessionEntity> set = session.get(msg.from);
             if (!CollectionUtils.isEmpty(set))
-                for (SessionModel sm : set) {
-                    if (sm.redisModel.equals(sessionModel)) {
+                for (SessionEntity sm : set) {
+                    if (sm.redisEntity.equals(sessionEntity)) {
                         add = false;
                         break;
                     }
@@ -119,7 +119,7 @@ public class SendHolder {
                 L.p("login add local session==>" + add);
             }
             if (add) {
-                ret = addSession(channel, msg, sessionModel);
+                ret = addSession(channel, msg, sessionEntity);
                 if (LOGIN_DEBUG)
                     L.p("login add local session ret==>" + ret);
             }
@@ -127,9 +127,9 @@ public class SendHolder {
         }
         //TODO 验证强制退出操作
 
-        boolean res = multimap.put(msg.from, sessionModel);
+        boolean res = multimap.put(msg.from, sessionEntity);
         if (res) {
-            ret = addSession(channel, msg, sessionModel);
+            ret = addSession(channel, msg, sessionEntity);
         }
         if (LOGIN_DEBUG) {
             L.p("login session ret==>" + session);
@@ -137,11 +137,11 @@ public class SendHolder {
         return ret;
     }
 
-    private int addSession(Channel channel, NimMsg msg, SessionRedisModel sessionModel) {
-        SessionModel sm = new SessionModel();
-        sm.redisModel = sessionModel;
+    private int addSession(Channel channel, NimMsg msg, SessionRedisEntity sessionEntity) {
+        SessionEntity sm = new SessionEntity();
+        sm.redisEntity = sessionEntity;
         sm.channel = channel;
-        Set<SessionModel> set = session.get(msg.from);
+        Set<SessionEntity> set = session.get(msg.from);
         if (set == null) {
             synchronized (session) {
                 if (set == null) {
@@ -163,9 +163,9 @@ public class SendHolder {
     public int logout(Channel channel) {
         String uuid = channel.attr(UUID_CHANNEL_MAP).get();
 
-        Set<SessionModel> localSet = session.get(uuid);
-        SessionModel cacheSM = null;
-        for (SessionModel sm : localSet) {
+        Set<SessionEntity> localSet = session.get(uuid);
+        SessionEntity cacheSM = null;
+        for (SessionEntity sm : localSet) {
             if (sm.channel == channel) {
                 cacheSM = sm;
                 break;
@@ -173,14 +173,14 @@ public class SendHolder {
         }
         localSet.remove(cacheSM);
 
-        RSetMultimap<String, SessionRedisModel> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
-        RSet<SessionRedisModel> sessionModels = multimap.get(uuid);
-        if (CollectionUtils.isEmpty(sessionModels)) {
+        RSetMultimap<String, SessionRedisEntity> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
+        RSet<SessionRedisEntity> sessionEntitys = multimap.get(uuid);
+        if (CollectionUtils.isEmpty(sessionEntitys)) {
             throw new RuntimeException("uuid丢失redis缓存");
         }
-        boolean res = sessionModels.remove(cacheSM.redisModel);
+        boolean res = sessionEntitys.remove(cacheSM.redisEntity);
         if (!res) {
-            L.e("==>sessionModels.remove fail");
+            L.e("==>sessionEntitys.remove fail");
         }
 
         channel.close();
@@ -190,22 +190,22 @@ public class SendHolder {
 
     //关闭服务器操作
     public void closeMQ() {
-        for (Iterator<Map.Entry<String, Set<SessionModel>>> it = session.entrySet().iterator(); it.hasNext(); ) {
-            Map.Entry<String, Set<SessionModel>> set = it.next();
+        for (Iterator<Map.Entry<String, Set<SessionEntity>>> it = session.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<String, Set<SessionEntity>> set = it.next();
 
-            for (Iterator<SessionModel> smIt = set.getValue().iterator(); smIt.hasNext(); ) {
-                SessionModel sm = smIt.next();
-                if (ApplicationRunnerImpl.MQ_NAME.equals(sm.redisModel.queueName)) {
+            for (Iterator<SessionEntity> smIt = set.getValue().iterator(); smIt.hasNext(); ) {
+                SessionEntity sm = smIt.next();
+                if (ApplicationRunnerImpl.MQ_NAME.equals(sm.redisEntity.queueName)) {
                     smIt.remove();
                     //删除redis中的session
-                    RSetMultimap<String, SessionRedisModel> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
-                    RSet<SessionRedisModel> sessionModels = multimap.get(sm.redisModel.uuid);
-                    if (CollectionUtils.isEmpty(sessionModels)) {
+                    RSetMultimap<String, SessionRedisEntity> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
+                    RSet<SessionRedisEntity> sessionEntitys = multimap.get(sm.redisEntity.uuid);
+                    if (CollectionUtils.isEmpty(sessionEntitys)) {
                         throw new RuntimeException("uuid丢失redis缓存");
                     }
-                    boolean res = sessionModels.remove(sm.redisModel);
+                    boolean res = sessionEntitys.remove(sm.redisEntity);
                     if (!res) {
-                        L.e("==>sessionModels.remove fail");
+                        L.e("==>sessionEntitys.remove fail");
                     }
 
                     sm.channel.close();
@@ -252,8 +252,8 @@ public class SendHolder {
 
     //TODO 发送到其他服务器中转客户端 需要缓存消息 用于重发
     private void sendMsgServiceColony(NimMsg msg) {
-        Set<SessionRedisModel> set = new HashSet<>();
-        RSetMultimap<String, SessionRedisModel> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
+        Set<SessionRedisEntity> set = new HashSet<>();
+        RSetMultimap<String, SessionRedisEntity> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
 
         switch (msg.msgType) {
             case MsgType.TYPE_GROUP:
@@ -291,11 +291,11 @@ public class SendHolder {
         }
     }
 
-    private void sendMsgServiceNormal(NimMsg msg, Set<SessionRedisModel> set) {
+    private void sendMsgServiceNormal(NimMsg msg, Set<SessionRedisEntity> set) {
         // queueName用于标识一个服务器
         // 将所有queueName相同的消息合并为一个 使用KEY_UNIFY_SERVICE_GROUP_UUID_LIST保存所有的目标uuid
         Map<String, NimMsg> sendTmpMsg = new HashMap<>();
-        for (SessionRedisModel srm : set) {
+        for (SessionRedisEntity srm : set) {
             List<String> uuidList = null;
             if (!sendTmpMsg.containsKey(srm.queueName)) {
                 NimMsg tmpMsg = msg.copyDeep();
@@ -344,32 +344,32 @@ public class SendHolder {
     }
 
     private void sendMsgRoot(NimMsg msg) {
-        for (Set<SessionModel> set : session.values())
-            for (SessionModel sm : set) {
+        for (Set<SessionEntity> set : session.values())
+            for (SessionEntity sm : set) {
                 //发送者所在客户端 不需要发送给自己
-                if (sm.redisModel.uuid.equals(msg.from) && sm.redisModel.clientToken == msg.fromToken)
+                if (sm.redisEntity.uuid.equals(msg.from) && sm.redisEntity.clientToken == msg.fromToken)
                     continue;
                 sendMsgReal(msg, sm);
             }
     }
 
     private void sendMsgNormal(NimMsg msg, Set<String> toList) {
-        Set<SessionModel> smSet = new HashSet<>();
+        Set<SessionEntity> smSet = new HashSet<>();
         for (String to : toList)
             smSet.addAll(session.get(to));
         if (CollectionUtils.isEmpty(smSet)) {
             L.e("sendMsgLocal 查找uuid错误");
         }
 
-        for (SessionModel sm : smSet) {
+        for (SessionEntity sm : smSet) {
             //发送者所在客户端 不需要发送给自己
-            if (sm.redisModel.uuid.equals(msg.from) && sm.redisModel.clientToken == msg.fromToken)
+            if (sm.redisEntity.uuid.equals(msg.from) && sm.redisEntity.clientToken == msg.fromToken)
                 continue;
             sendMsgReal(msg, sm);
         }
     }
 
-    private void sendMsgReal(NimMsg msg, SessionModel sm) {
+    private void sendMsgReal(NimMsg msg, SessionEntity sm) {
         NimMsg tmpMsg = msg.copyDeep();
         String token = tmpMsg.newTokenService(NimMsg.isRecMsg(msg));
         ChannelFuture future = sm.channel.writeAndFlush(tmpMsg);

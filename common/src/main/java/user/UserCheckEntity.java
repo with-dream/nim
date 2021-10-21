@@ -1,10 +1,12 @@
-package com.example.server.entity;
+package user;
 
 import entity.Entity;
 
+import java.sql.Date;
+import java.util.Arrays;
 import java.util.List;
 
-public class UserCheckModel extends Entity {
+public class UserCheckEntity extends Entity {
     public String name;
     public String uuid;
     public long registerTime;
@@ -12,7 +14,7 @@ public class UserCheckModel extends Entity {
 
     @Override
     public String toString() {
-        return "UserResultModel{" +
+        return "UserResultEntity{" +
                 ", name='" + name + '\'' +
                 ", uuid='" + uuid + '\'' +
                 ", registerTime=" + registerTime +

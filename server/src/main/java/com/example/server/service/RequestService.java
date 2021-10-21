@@ -1,6 +1,6 @@
 package com.example.server.service;
 
-import com.example.server.entity.FriendModel;
+import com.example.server.entity.FriendEntity;
 import com.example.server.netty.SendHolder;
 import com.example.server.netty.MsgBuild;
 import netty.entity.MsgReq;
@@ -48,12 +48,12 @@ public class RequestService {
 
                 break;
             case MsgReq.REQUEST_FRIEND_AGREE:
-                FriendModel friendModel = new FriendModel();
+                FriendEntity friendEntity = new FriendEntity();
                 StrUtil.UuidCompare compare = StrUtil.uuidCompare(msg.to, msg.from);
-                friendModel.userId = compare.low;
-                friendModel.friendId = compare.high;
-                friendModel.friend = FriendModel.FRIEND_NORMAL;
-                int res = that.userService.addFriend(friendModel);
+                friendEntity.userId = compare.low;
+                friendEntity.friendId = compare.high;
+                friendEntity.friend = FriendEntity.FRIEND_NORMAL;
+                int res = that.userService.addFriend(friendEntity);
                 if (res > 0) {
                     that.sendHolder.sendMsg(msg);
                 }
@@ -62,33 +62,33 @@ public class RequestService {
             case MsgReq.FRIEND_DEL_EACH:
             case MsgReq.FRIEND_DEL_BLOCK:
             case MsgReq.FRIEND_DEL_UNBLOCK:
-                FriendModel delModel = new FriendModel();
-                FriendModel resCheck = that.userService.checkFriend(msg.from, msg.to);
+                FriendEntity delEntity = new FriendEntity();
+                FriendEntity resCheck = that.userService.checkFriend(msg.from, msg.to);
                 int msgReq = NullUtil.isInt(msg.msgMap().get(MsgType.KEY_CMD));
                 //如果是双向好友
-                if (resCheck.friend == FriendModel.FRIEND_NORMAL) {
+                if (resCheck.friend == FriendEntity.FRIEND_NORMAL) {
                     if (MsgReq.FRIEND_DEL == msgReq)
-                        delModel.friend = FriendModel.FRIEND_OTHER;
+                        delEntity.friend = FriendEntity.FRIEND_OTHER;
                     else if (MsgReq.FRIEND_DEL_EACH == msgReq)
-                        delModel.friend = FriendModel.FRIEND_DEL_EACH;
+                        delEntity.friend = FriendEntity.FRIEND_DEL_EACH;
                     //如果是单向好友
-                } else if (resCheck.friend == FriendModel.FRIEND_SELF)
-                    delModel.friend = FriendModel.FRIEND_DEL_EACH;
+                } else if (resCheck.friend == FriendEntity.FRIEND_SELF)
+                    delEntity.friend = FriendEntity.FRIEND_DEL_EACH;
                     //拉黑操作
                 else if (MsgReq.FRIEND_DEL_BLOCK == msgReq) {
-                    if (resCheck.block == FriendModel.FRIEND_BLOCK_OTHER)
-                        delModel.block = FriendModel.FRIEND_BLOCK_EACH;
-                    else if (resCheck.block != FriendModel.FRIEND_BLOCK_EACH)
-                        delModel.friend = FriendModel.FRIEND_SELF;
+                    if (resCheck.block == FriendEntity.FRIEND_BLOCK_OTHER)
+                        delEntity.block = FriendEntity.FRIEND_BLOCK_EACH;
+                    else if (resCheck.block != FriendEntity.FRIEND_BLOCK_EACH)
+                        delEntity.friend = FriendEntity.FRIEND_SELF;
                     //解除拉黑 解除拉黑后 为删除好友的状态
                 } else if (MsgReq.FRIEND_DEL_UNBLOCK == msgReq) {
-                    if (resCheck.block == FriendModel.FRIEND_BLOCK_EACH)
-                        delModel.friend = FriendModel.FRIEND_OTHER;
-                    else if (resCheck.block == FriendModel.FRIEND_BLOCK_SELF)
-                        delModel.friend = FriendModel.FRIEND_DEL_EACH;
+                    if (resCheck.block == FriendEntity.FRIEND_BLOCK_EACH)
+                        delEntity.friend = FriendEntity.FRIEND_OTHER;
+                    else if (resCheck.block == FriendEntity.FRIEND_BLOCK_SELF)
+                        delEntity.friend = FriendEntity.FRIEND_DEL_EACH;
                 }
 
-                int delRes = that.userService.delFriend(delModel);
+                int delRes = that.userService.delFriend(delEntity);
                 if (delRes > 0) {
                     that.sendHolder.sendMsg(msg);
                 }
@@ -99,21 +99,21 @@ public class RequestService {
     }
 
     private int requestFriend(NimMsg msg) {
-        FriendModel friendModel = that.userService.checkFriend(msg.from, msg.to);
-        if (friendModel == null || !friendModel.isFriend) {
+        FriendEntity friendEntity = that.userService.checkFriend(msg.from, msg.to);
+        if (friendEntity == null || !friendEntity.isFriend) {
             //TODO 检查添加权限
-//            UserModel user =that.userService.userInfo(msg.to);
+//            UserEntity user =that.userService.userInfo(msg.to);
 
             that.sendHolder.sendMsg(msg);
             return 0;
         }
         //如果已经被拉黑 则直接返回
-        if (friendModel.isBlock || friendModel.isFriend) {
+        if (friendEntity.isBlock || friendEntity.isFriend) {
             NimMsg recMsg = MsgBuild.recMsg(msg);
             int recCode = 0;
-            if (friendModel.isBlock)
+            if (friendEntity.isBlock)
                 recCode = MsgReq.REQUEST_FRIEND_BLOCK;
-            else if (friendModel.isFriend)
+            else if (friendEntity.isFriend)
                 recCode = MsgReq.REQUEST_FRIEND_FRIEND;
 
             recMsg.msgMap().put(MsgType.KEY_RECEIPT_EXTRA_CODE, recCode);

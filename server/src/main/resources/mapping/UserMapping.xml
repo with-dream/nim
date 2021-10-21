@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.server.mapper.UserMapper">
-    <insert id="register" parameterType="com.example.server.entity.UserModel">
+    <insert id="register" parameterType="com.example.server.entity.UserEntity">
         insert into user(name, pwd, uuid, registerTime) values (#{name}, #{pwd}, #{uuid}, #{registerTime});
     </insert>
 
-    <select id="login" resultType="com.example.server.entity.UserCheckModel"
-            parameterType="com.example.server.entity.UserModel">
+    <select id="login" resultType="com.example.server.entity.UserCheckEntity"
+            parameterType="com.example.server.entity.UserEntity">
         SELECT * FROM user_info where name=#{name} and pwd=#{pwd};
     </select>
 
@@ -14,57 +14,57 @@
         SELECT count(*) FROM user where uuid = #{uuid};
     </select>
 
-    <select id="userInfo" resultType="com.example.server.entity.UserModel">
+    <select id="userInfo" resultType="com.example.server.entity.UserEntity">
         SELECT * FROM user where uuid = #{uuid};
     </select>
 
-    <select id="checkFriend" resultType="com.example.server.entity.FriendModel">
+    <select id="checkFriend" resultType="com.example.server.entity.FriendEntity">
         SELECT * FROM friend where user_id = #{userId} and friend_id = #{friendId};
     </select>
 
-    <insert id="addFriend" parameterType="com.example.server.entity.FriendModel">
+    <insert id="addFriend" parameterType="com.example.server.entity.FriendEntity">
         insert into friend(user_id, friend_id, status, user_info, friend_info)
         values(#{userId}, #{friendId}, #{status}, #{userInfo}, #{friendInfo});
     </insert>
 
-    <update id="delFriend" parameterType="com.example.server.entity.FriendModel">
+    <update id="delFriend" parameterType="com.example.server.entity.FriendEntity">
         update friend set status=#{status} where user_id = #{userId} and friend_id = #{friendId};
     </update>
 
-    <select id="getAllFriend" resultType="com.example.server.entity.FriendModel" parameterType="java.lang.String">
+    <select id="getAllFriend" resultType="com.example.server.entity.FriendEntity" parameterType="java.lang.String">
         SELECT * FROM friend_info where user_id = #{uuid} or friend_id = #{uuid};
     </select>
 
-    <select id="getGroupMembers" resultType="com.example.server.entity.GroupMemberModel"
+    <select id="getGroupMembers" resultType="com.example.server.entity.GroupMemberEntity"
             parameterType="java.lang.String">
         SELECT * FROM group_member where groupId= #{groupId};
     </select>
 
-    <insert id="addGroupMember" parameterType="com.example.server.entity.GroupMemberModel">
+    <insert id="addGroupMember" parameterType="com.example.server.entity.GroupMemberEntity">
         insert into group_member(uuid, groupId, role, level, insertTime, lastTime) values(#{uuid}, #{groupId}, #{role}, #{level}, #{insertTime}, #{lastTime});
     </insert>
 
-    <delete id="delGroupMember" parameterType="com.example.server.entity.GroupMemberModel">
+    <delete id="delGroupMember" parameterType="com.example.server.entity.GroupMemberEntity">
         delete from group_member where uuid=#{uuid} and groupId=#{groupId};
     </delete>
 
-    <select id="checkGroupRole" resultType="int" parameterType="com.example.server.entity.GroupMemberModel">
+    <select id="checkGroupRole" resultType="int" parameterType="com.example.server.entity.GroupMemberEntity">
         SELECT role FROM group_member where group_id = #{groupId} and uuid=#{uuid};
     </select>
 
-    <select id="getGroupInfo" resultType="com.example.server.entity.GroupInfoModel" parameterType="java.lang.String">
+    <select id="getGroupInfo" resultType="com.example.server.entity.GroupInfoEntity" parameterType="java.lang.String">
         SELECT * FROM group_info where group_id = #{groupId};
     </select>
 
-    <insert id="createGroup" parameterType="com.example.server.entity.GroupInfoModel">
+    <insert id="createGroup" parameterType="com.example.server.entity.GroupInfoEntity">
         insert into group_info(name, uuid, groupId, memberCount) values(#{name}, #{uuid}, #{groupId}, #{memberCount});
     </insert>
 
-    <delete id="delGroup" parameterType="com.example.server.entity.GroupMemberModel">
+    <delete id="delGroup" parameterType="com.example.server.entity.GroupMemberEntity">
         delete from group_info where groupId=#{groupId};
     </delete>
 
-    <select id="getAllGroup" resultType="com.example.server.entity.GroupInfoModel" parameterType="java.lang.String">
+    <select id="getAllGroup" resultType="com.example.server.entity.GroupInfoEntity" parameterType="java.lang.String">
         SELECT * FROM group_info where uuid = #{uuid};
     </select>
 </mapper>

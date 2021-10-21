@@ -1,10 +1,10 @@
 package com.example.server.user;
 
-import com.example.server.entity.FriendModel;
-import com.example.server.entity.GroupInfoModel;
-import com.example.server.entity.UserCheckModel;
+import com.example.server.entity.FriendEntity;
+import com.example.server.entity.GroupInfoEntity;
+import com.example.server.entity.UserCheckEntity;
 import org.apache.commons.lang.StringUtils;
-import com.example.server.entity.UserModel;
+import com.example.server.entity.UserEntity;
 import com.example.server.service.UserService;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
-import user.BaseModel;
+import user.BaseEntity;
 import utils.Constant;
 import utils.L;
 import utils.UUIDUtil;
@@ -27,18 +27,18 @@ public class UserController {
     UserService userService;
 
     @RequestMapping(value = "/login")
-    public BaseModel<UserCheckModel> login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
+    public BaseEntity<UserCheckEntity> login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
             , @RequestParam(value = "deviceType") int deviceType) {
-        UserModel userModel = new UserModel();
-        userModel.name = name;
-        userModel.pwd = pwd;
-        UserCheckModel res = userService.login(userModel);
+        UserEntity userEntity = new UserEntity();
+        userEntity.name = name;
+        userEntity.pwd = pwd;
+        UserCheckEntity res = userService.login(userEntity);
         boolean loginSuccess = res != null && StringUtils.isNotEmpty(res.uuid);
         if (loginSuccess) {
             res.serviceList = Constant.SERVER_LIST;
         }
 
-        return loginSuccess ? BaseModel.succ(res) : BaseModel.fail();
+        return loginSuccess ? BaseEntity.succ(res) : BaseEntity.fail();
     }
 
     @RequestMapping(value = "/unlogin")
@@ -49,39 +49,39 @@ public class UserController {
 
     @RequestMapping(value = "/register")
     @ResponseBody
-    public BaseModel register(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd) {
-        UserModel userModel = new UserModel();
-        userModel.name = name;
-        userModel.pwd = pwd;
-        userModel.uuid = UUIDUtil.getUid();
-        userModel.registerTime = new Date();
-        int res = userService.register(userModel);
-        return res == 1 ? BaseModel.succ() : BaseModel.fail();
+    public BaseEntity register(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd) {
+        UserEntity userEntity = new UserEntity();
+        userEntity.name = name;
+        userEntity.pwd = pwd;
+        userEntity.uuid = UUIDUtil.getUid();
+        userEntity.registerTime = new Date();
+        int res = userService.register(userEntity);
+        return res == 1 ? BaseEntity.succ() : BaseEntity.fail();
     }
 
     @RequestMapping(value = "/getAllFriend")
     @ResponseBody
-    public BaseModel<List<FriendModel>> getAllFriend(@RequestParam(value = "uuid") String uuid) {
-        List<FriendModel> res = userService.getAllFriend(uuid);
-        return BaseModel.succ(res);
+    public BaseEntity<List<FriendEntity>> getAllFriend(@RequestParam(value = "uuid") String uuid) {
+        List<FriendEntity> res = userService.getAllFriend(uuid);
+        return BaseEntity.succ(res);
     }
 
     @RequestMapping(value = "/getAllGroup")
     @ResponseBody
-    public BaseModel<List<GroupInfoModel>> getAllGroup(@RequestParam(value = "uuid") String uuid) {
-        List<GroupInfoModel> res = userService.getAllGroup(uuid);
-        return BaseModel.succ(res);
+    public BaseEntity<List<GroupInfoEntity>> getAllGroup(@RequestParam(value = "uuid") String uuid) {
+        List<GroupInfoEntity> res = userService.getAllGroup(uuid);
+        return BaseEntity.succ(res);
     }
 
     @RequestMapping(value = "/createGroup")
     @ResponseBody
-    public BaseModel<GroupInfoModel> createGroup(@RequestParam(value = "uuid") String uuid, @RequestParam(value = "groupName") String groupName) {
-        GroupInfoModel groupModel = new GroupInfoModel();
-        groupModel.groupId = UUIDUtil.getUid();
-        groupModel.uuid = uuid;
-        groupModel.name = groupName;
-        groupModel.memberCount = 1;
-        int res = userService.createGroup(groupModel);
-        return res == 1 ? BaseModel.succ(groupModel) : BaseModel.fail();
+    public BaseEntity<GroupInfoEntity> createGroup(@RequestParam(value = "uuid") String uuid, @RequestParam(value = "groupName") String groupName) {
+        GroupInfoEntity groupEntity = new GroupInfoEntity();
+        groupEntity.groupId = UUIDUtil.getUid();
+        groupEntity.uuid = uuid;
+        groupEntity.name = groupName;
+        groupEntity.memberCount = 1;
+        int res = userService.createGroup(groupEntity);
+        return res == 1 ? BaseEntity.succ(groupEntity) : BaseEntity.fail();
     }
 }

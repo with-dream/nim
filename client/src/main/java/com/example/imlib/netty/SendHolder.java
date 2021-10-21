@@ -1,6 +1,6 @@
 package com.example.imlib.netty;
 
-import com.example.imlib.entity.RecCacheEntity;
+import com.example.imlib.netty.entity.RecCacheEntity;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.Future;

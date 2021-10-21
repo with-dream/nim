@@ -28,86 +28,86 @@ public class UserService {
         });
     }
 
-    public int register(UserModel userModel) {
-        return userMapper.register(userModel);
+    public int register(UserEntity userEntity) {
+        return userMapper.register(userEntity);
     }
 
-    public UserCheckModel login(UserModel userModel) {
-        return userMapper.login(userModel);
+    public UserCheckEntity login(UserEntity userEntity) {
+        return userMapper.login(userEntity);
     }
 
     public int checkUser(String uuid) {
         return userMapper.checkUser(uuid);
     }
 
-    public UserModel userInfo(String uuid) {
+    public UserEntity userInfo(String uuid) {
         return userMapper.userInfo(uuid);
     }
 
-    public FriendModel checkFriend(String userId, String friendId) {
+    public FriendEntity checkFriend(String userId, String friendId) {
         StrUtil.UuidCompare compare = StrUtil.uuidCompare(userId, friendId);
-        FriendModel model = userMapper.checkFriend(compare.low, compare.high);
+        FriendEntity model = userMapper.checkFriend(compare.low, compare.high);
         if (model == null) return null;
 
-        model.isBlock = model.block == FriendModel.FRIEND_BLOCK_EACH || model.block == (compare.invert ? FriendModel.FRIEND_BLOCK_OTHER : FriendModel.FRIEND_BLOCK_SELF);
-        model.isFriend = model.friend == FriendModel.FRIEND_NORMAL || model.friend == (compare.invert ? FriendModel.FRIEND_OTHER : FriendModel.FRIEND_SELF);
+        model.isBlock = model.block == FriendEntity.FRIEND_BLOCK_EACH || model.block == (compare.invert ? FriendEntity.FRIEND_BLOCK_OTHER : FriendEntity.FRIEND_BLOCK_SELF);
+        model.isFriend = model.friend == FriendEntity.FRIEND_NORMAL || model.friend == (compare.invert ? FriendEntity.FRIEND_OTHER : FriendEntity.FRIEND_SELF);
         return model;
     }
 
-    public int addFriend(FriendModel friendModel) {
-        return userMapper.addFriend(friendModel);
+    public int addFriend(FriendEntity friendEntity) {
+        return userMapper.addFriend(friendEntity);
     }
 
-    public int delFriend(FriendModel friendModel) {
-        return userMapper.delFriend(friendModel);
+    public int delFriend(FriendEntity friendEntity) {
+        return userMapper.delFriend(friendEntity);
     }
 
-    public List<FriendModel> getAllFriend(String uuid) {
+    public List<FriendEntity> getAllFriend(String uuid) {
         return userMapper.getAllFriend(uuid);
     }
 
-    public List<GroupInfoModel> getAllGroup(String uuid) {
+    public List<GroupInfoEntity> getAllGroup(String uuid) {
         return userMapper.getAllGroup(uuid);
     }
 
-    public GroupInfoModel getGroupInfo(String groupId) {
+    public GroupInfoEntity getGroupInfo(String groupId) {
         return userMapper.getGroupInfo(groupId);
     }
 
     //TODO 需要更新群成员数量
-    public int addGroupMember(GroupMemberModel memberModel) {
-        int res = userMapper.addGroupMember(memberModel);
+    public int addGroupMember(GroupMemberEntity memberEntity) {
+        int res = userMapper.addGroupMember(memberEntity);
         return res;
     }
 
     /**
      * @param type 退群 踢出群
      */
-    public int delGroupMember(GroupMemberModel memberModel, int type) {
-        int role = userMapper.checkGroupRole(memberModel);
-        if (role == GroupMemberModel.OWNER) {
+    public int delGroupMember(GroupMemberEntity memberEntity, int type) {
+        int role = userMapper.checkGroupRole(memberEntity);
+        if (role == GroupMemberEntity.OWNER) {
             return -1;
         }
         int res = 0;
         if (type == 1)
-            res = userMapper.delGroupMember(memberModel);
+            res = userMapper.delGroupMember(memberEntity);
         return res;
     }
 
-    public List<GroupMemberModel> getGroupMembers(String groupId) {
+    public List<GroupMemberEntity> getGroupMembers(String groupId) {
         return userMapper.getGroupMembers(groupId);
     }
 
     @Transactional
-    public int createGroup(GroupInfoModel groupModel) {
-        int res = userMapper.createGroup(groupModel);
+    public int createGroup(GroupInfoEntity groupEntity) {
+        int res = userMapper.createGroup(groupEntity);
 
-        GroupMemberModel memberModel = new GroupMemberModel();
-        memberModel.groupId = groupModel.groupId;
-        memberModel.uuid = groupModel.uuid;
-        memberModel.role = GroupMemberModel.OWNER;
-        memberModel.level = 0;
-        addGroupMember(memberModel);
+        GroupMemberEntity memberEntity = new GroupMemberEntity();
+        memberEntity.groupId = groupEntity.groupId;
+        memberEntity.uuid = groupEntity.uuid;
+        memberEntity.role = GroupMemberEntity.OWNER;
+        memberEntity.level = 0;
+        addGroupMember(memberEntity);
         return res;
     }
 
@@ -115,15 +115,15 @@ public class UserService {
      * TODO 需要回滚操作 不完善
      */
     @Transactional
-    public int delGroup(GroupInfoModel groupModel) {
-        List<GroupMemberModel> memList = getGroupMembers(groupModel.groupId);
-        for (GroupMemberModel gmm : memList) {
+    public int delGroup(GroupInfoEntity groupEntity) {
+        List<GroupMemberEntity> memList = getGroupMembers(groupEntity.groupId);
+        for (GroupMemberEntity gmm : memList) {
             int res = userMapper.delGroupMember(gmm);
             if (res != 1) {
                 return -1;
             }
         }
-        return userMapper.delGroup(groupModel);
+        return userMapper.delGroup(groupEntity);
     }
 
     public boolean checkGroup(String groupId) {

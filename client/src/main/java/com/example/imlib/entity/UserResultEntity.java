@@ -1,9 +1,9 @@
-package com.example.imlib.user;
+package com.example.imlib.entity;
 
 import java.sql.Date;
 import java.util.Arrays;
 
-public class UserResultModel {
+public class UserResultEntity {
     public String[] imUrl;
     public String name;
     public long uuid;
@@ -12,7 +12,7 @@ public class UserResultModel {
 
     @Override
     public String toString() {
-        return "UserResultModel{" +
+        return "UserResultEntity{" +
                 "imUrl=" + (imUrl == null ? "" : Arrays.toString(imUrl)) +
                 ", name='" + name + '\'' +
                 ", uuid=" + uuid +

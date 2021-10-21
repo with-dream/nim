@@ -228,20 +228,26 @@ public class SendHolder {
 
     private int sendMsgServiceSingle(NimMsg msg) {
         Set<String> uuidSet = new HashSet<>();
+        int ret = MsgType.STATE_RECEIPT_SERVER_SUCCESS;
         switch (msg.msgType) {
             case MsgType.TYPE_GROUP:
             case MsgType.TYPE_CMD_GROUP:
-                if (this.groupMember != null)
-                    uuidSet.addAll(this.groupMember.memberUuid(msg.getGroupId()));
+                if (this.groupMember == null)
+                    throw new RuntimeException("需要通过groupId获取组员uuid");
+                uuidSet.addAll(this.groupMember.memberUuid(msg.getGroupId()));
                 msg.msgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_LIST, new ArrayList<>(uuidSet));
                 sendMsgLocal(msg);
                 break;
             case MsgType.TYPE_CMD:
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_RECEIPT:
+                if (CollectionUtils.isEmpty(session.get(msg.to))) {
+                    ret = MsgType.STATE_RECEIPT_OFFLINE;
+                    //TODO TYPE_CMD/TYPE_MSG 添加离线
+                }
+                uuidSet.add(msg.to);
                 if (NullUtil.isTrue(msg.msgMap().get(MsgType.KEY_UNIFY_CLIENT_SEND_SELF)))
                     uuidSet.add(msg.from);
-                uuidSet.add(msg.to);
                 msg.msgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_LIST, new ArrayList<>(uuidSet));
                 sendMsgLocal(msg);
                 break;
@@ -249,10 +255,12 @@ public class SendHolder {
                 sendMsgRoot(msg);
                 break;
         }
+        return ret;
     }
 
     //TODO 发送到其他服务器中转客户端 需要缓存消息 用于重发
     private int sendMsgServiceColony(NimMsg msg) {
+        int ret = MsgType.STATE_RECEIPT_SERVER_SUCCESS;
         Set<SessionRedisEntity> set = new HashSet<>();
         RSetMultimap<String, SessionRedisEntity> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
 
@@ -262,14 +270,18 @@ public class SendHolder {
                 if (this.groupMember != null)
                     for (String uuid : this.groupMember.memberUuid(msg.getGroupId()))
                         set.addAll(multimap.get(uuid));
+                if (CollectionUtils.isEmpty(set))
+                    ret = MsgType.STATE_RECEIPT_OFFLINE;
                 sendMsgServiceNormal(msg, set);
                 break;
             case MsgType.TYPE_CMD:
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_RECEIPT:
+                set.addAll(multimap.get(msg.to));
+                if (CollectionUtils.isEmpty(set))
+                    ret = MsgType.STATE_RECEIPT_OFFLINE;
                 if (NullUtil.isTrue(msg.msgMap().get(MsgType.KEY_UNIFY_CLIENT_SEND_SELF)))
                     set.addAll(multimap.get(msg.from));
-                set.addAll(multimap.get(msg.to));
                 L.p("redisSession==>" + set);
                 sendMsgServiceNormal(msg, set);
                 break;
@@ -277,6 +289,8 @@ public class SendHolder {
                 sendMsgServiceRoot(msg);
                 break;
         }
+
+        return ret;
     }
 
     private void sendMsgServiceRoot(NimMsg msg) {

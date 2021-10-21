@@ -5,6 +5,6 @@ public class Const {
     /**
      * true 集群模式  false 单机模式
      */
-    public static boolean COLONY = true;
+    public static boolean COLONY = false;
 
 }

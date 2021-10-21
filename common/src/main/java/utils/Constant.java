@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Constant {
-    static int test = 2;
+    static int test = 0;
     public static final String LOCAL_IP = "127.0.0.1:808" + test;
     public static final String NETTY_IP = "127.0.0.1:809" + test;
     public static final int PORT = 8090 + test;

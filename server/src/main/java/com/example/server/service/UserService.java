@@ -2,17 +2,31 @@ package com.example.server.service;
 
 import com.example.server.entity.*;
 import com.example.server.mapper.UserMapper;
+import com.example.server.netty.SendHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 import utils.StrUtil;
 
 import javax.annotation.Resource;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class UserService {
     @Resource
     public UserMapper userMapper;
+
+    @Resource
+    SendHolder sendHolder;
+
+    public void init() {
+        sendHolder.setGroupMember((groupId) -> {
+            Set<String> uuids = new HashSet<>();
+            this.getGroupMembers(groupId).forEach(it -> uuids.add(it.uuid));
+            return uuids;
+        });
+    }
 
     public int register(UserModel userModel) {
         return userMapper.register(userModel);

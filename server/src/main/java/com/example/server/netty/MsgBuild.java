@@ -1,4 +1,4 @@
-package com.example.server.utils;
+package com.example.server.netty;
 
 import netty.entity.MsgLevel;
 import netty.entity.MsgType;

@@ -1,6 +1,5 @@
-package com.example.server.entity;
+package com.example.server.netty.entity;
 
-import com.example.server.netty.entity.SessionModel;
 import netty.entity.NimMsg;
 
 import java.lang.ref.WeakReference;

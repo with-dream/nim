@@ -2,7 +2,7 @@ package com.example.server.service;
 
 import com.example.server.entity.FriendModel;
 import com.example.server.netty.SendHolder;
-import com.example.server.utils.MsgBuild;
+import com.example.server.netty.MsgBuild;
 import netty.entity.MsgReq;
 import netty.entity.MsgType;
 import netty.entity.NimMsg;

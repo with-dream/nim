@@ -2,11 +2,9 @@ package com.example.server.netty;
 
 import com.alibaba.fastjson.JSON;
 import com.example.server.ApplicationRunnerImpl;
-import com.example.server.entity.GroupMemberModel;
-import com.example.server.entity.RecCacheEntity;
+import com.example.server.netty.entity.RecCacheEntity;
 import com.example.server.netty.entity.SessionModel;
 import com.example.server.netty.entity.SessionRedisModel;
-import com.example.server.service.UserService;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.AttributeKey;
@@ -44,6 +42,7 @@ public class SendHolder {
     public static final String MQ_SET = "mq_set";
     public static final AttributeKey<String> UUID_CHANNEL_MAP = AttributeKey.newInstance("key_uuid_channel_map");
     private static final boolean LOGIN_DEBUG = true;
+    private GroupMember groupMember;
 
     private static SendHolder that;
 
@@ -61,9 +60,6 @@ public class SendHolder {
     @Resource
     public RedissonClient redisson;
 
-    @Resource
-    public UserService userService;
-
     //TODO 需要添加消息确认
     @Resource
     public AmqpTemplate rabbit;
@@ -80,6 +76,10 @@ public class SendHolder {
      */
     public static Map<String, RecCacheEntity> receiptMap = new HashMap<>();
     private ReceiptThread receiptThread = new ReceiptThread();
+
+    public void setGroupMember(GroupMember groupMember) {
+        this.groupMember = groupMember;
+    }
 
     /**
      * 1 如果所在客户端平台已登录 则强制退出
@@ -230,9 +230,8 @@ public class SendHolder {
         switch (msg.msgType) {
             case MsgType.TYPE_GROUP:
             case MsgType.TYPE_CMD_GROUP:
-                List<GroupMemberModel> memList = userService.getGroupMembers(msg.getGroupId());
-                for (GroupMemberModel gmm : memList)
-                    uuidSet.add(gmm.uuid);
+                if (this.groupMember != null)
+                    uuidSet.addAll(this.groupMember.memberUuid(msg.getGroupId()));
                 msg.msgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_LIST, new ArrayList<>(uuidSet));
                 sendMsgLocal(msg);
                 break;
@@ -259,10 +258,9 @@ public class SendHolder {
         switch (msg.msgType) {
             case MsgType.TYPE_GROUP:
             case MsgType.TYPE_CMD_GROUP:
-                List<GroupMemberModel> memList = userService.getGroupMembers(msg.getGroupId());
-                for (GroupMemberModel gmm : memList) {
-                    set.addAll(multimap.get(gmm.uuid));
-                }
+                if (this.groupMember != null)
+                    for (String uuid : this.groupMember.memberUuid(msg.getGroupId()))
+                        set.addAll(multimap.get(uuid));
                 sendMsgServiceNormal(msg, set);
                 break;
             case MsgType.TYPE_CMD:
@@ -493,5 +491,12 @@ public class SendHolder {
         public boolean removeCache(RecCacheEntity cacheEntity) {
             return receiptQueue.remove(cacheEntity);
         }
+    }
+
+    public interface GroupMember {
+        /**
+         * 获取群组的uuid 用于群成员的消息推送
+         */
+        Set<String> memberUuid(String groupId);
     }
 }

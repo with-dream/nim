@@ -5,9 +5,6 @@ import com.example.imlib.utils.MsgBuild;
 import com.example.imlib.utils.StrUtil;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import io.netty.channel.ChannelFuture;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
 import netty.entity.MsgCmd;
 import netty.entity.MsgType;
 import netty.entity.NimMsg;
@@ -205,7 +202,7 @@ public class Main {
         final Gson gson = new Gson();
 
         Request request = new Request.Builder()
-                .url(String.format("http://%s/user/login?name=%s&pwd=%s&deviceType=%d", Conf.LOCAL_IP, name, pwd, 1))
+                .url(String.format("http://%s/user/login?name=%s&pwd=%s&deviceType=%d", Constant.LOCAL_IP, name, pwd, 1))
                 .get()
                 .build();
 
@@ -224,7 +221,7 @@ public class Main {
                     UserCheckModel userModel = res.data;
                     System.err.println("resModel==>" + userModel.toString());
 //                    IMContext.instance().setIpList(userModel.serviceList);
-                    IMContext.instance().setIpList(Arrays.asList("127.0.0.1:8091"));
+                    IMContext.instance().setIpList(Arrays.asList(Constant.NETTY_IP));
                     IMContext.instance().uuid = userModel.uuid;
                     IMContext.instance().clientToken = UUIDUtil.getClientToken();
                     new Thread(() -> IMContext.instance().connect()).start();
@@ -246,7 +243,7 @@ public class Main {
 
     private void getFriedList(String uuid) {
         Request request = new Request.Builder()
-                .url(String.format("http://%s/user/getAllFriend?uuid=%s", Conf.LOCAL_IP, uuid))
+                .url(String.format("http://%s/user/getAllFriend?uuid=%s", Constant.LOCAL_IP, uuid))
                 .get()
                 .build();
 
@@ -270,7 +267,7 @@ public class Main {
     private void createGroup(String groupName) {
         Request request = new Request.Builder()
                 .url(String.format("http://%s/user/createGroup?uuid=%d&groupName=%s"
-                        , Conf.LOCAL_IP, IMContext.instance().uuid, groupName))
+                        , Constant.LOCAL_IP, IMContext.instance().uuid, groupName))
                 .get()
                 .build();
 
@@ -290,7 +287,7 @@ public class Main {
     private void delGroup(long groupId) {
         Request request = new Request.Builder()
                 .url(String.format("http://%s/user/delGroup?uuid=%d&groupId=%d"
-                        , Conf.LOCAL_IP, IMContext.instance().uuid, groupId))
+                        , Constant.LOCAL_IP, IMContext.instance().uuid, groupId))
                 .get()
                 .build();
 
@@ -309,7 +306,7 @@ public class Main {
 
     private void getGroupList(String uuid) {
         Request request = new Request.Builder()
-                .url(String.format("http://%s/user/getAllGroup?uuid=%s", Conf.LOCAL_IP, uuid))
+                .url(String.format("http://%s/user/getAllGroup?uuid=%s", Constant.LOCAL_IP, uuid))
                 .get()
                 .build();
 
@@ -336,7 +333,7 @@ public class Main {
         final Gson gson = new Gson();
 
         Request request = new Request.Builder()
-                .url(String.format("http://%s/user/register?name=%s&pwd=%s", Conf.LOCAL_IP, userName, pwd))
+                .url(String.format("http://%s/user/register?name=%s&pwd=%s", Constant.LOCAL_IP, userName, pwd))
                 .get()
                 .build();
 

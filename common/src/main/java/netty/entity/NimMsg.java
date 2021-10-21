@@ -2,6 +2,7 @@ package netty.entity;
 
 import utils.UUIDUtil;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,7 +14,7 @@ import java.util.Map;
  * <p>
  * 反序列化时 只能获取到HashMap 需要调用sync()方法重新初始化锁
  */
-public class NimMsg implements Cloneable {
+public class NimMsg implements Cloneable, Serializable {
     //消息id 保证唯一 规则
     public long msgId;
     //发送者uuid

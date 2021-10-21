@@ -5,6 +5,7 @@ import com.example.server.ApplicationRunnerImpl;
 import com.example.server.netty.entity.RecCacheEntity;
 import com.example.server.netty.entity.SessionEntity;
 import com.example.server.netty.entity.SessionRedisEntity;
+import com.example.server.utils.Const;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.AttributeKey;
@@ -37,7 +38,6 @@ import java.util.concurrent.locks.LockSupport;
  */
 @Component
 public class SendHolder {
-    public static boolean COLONY = true;
     public static final String UUID_MQ_MAP = "mq_map";
     public static final String MQ_SET = "mq_set";
     public static final AttributeKey<String> UUID_CHANNEL_MAP = AttributeKey.newInstance("key_uuid_channel_map");
@@ -219,13 +219,14 @@ public class SendHolder {
     /**
      * 推送消息
      */
-    public void sendMsg(NimMsg msg) {
-        if (COLONY)
-            sendMsgServiceColony(msg);
-        else sendMsgServiceSingle(msg);
+    public int sendMsg(NimMsg msg) {
+        if (Const.COLONY)
+            return sendMsgServiceColony(msg);
+        else
+            return sendMsgServiceSingle(msg);
     }
 
-    private void sendMsgServiceSingle(NimMsg msg) {
+    private int sendMsgServiceSingle(NimMsg msg) {
         Set<String> uuidSet = new HashSet<>();
         switch (msg.msgType) {
             case MsgType.TYPE_GROUP:
@@ -251,7 +252,7 @@ public class SendHolder {
     }
 
     //TODO 发送到其他服务器中转客户端 需要缓存消息 用于重发
-    private void sendMsgServiceColony(NimMsg msg) {
+    private int sendMsgServiceColony(NimMsg msg) {
         Set<SessionRedisEntity> set = new HashSet<>();
         RSetMultimap<String, SessionRedisEntity> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
 

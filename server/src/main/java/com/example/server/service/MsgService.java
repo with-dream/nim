@@ -57,13 +57,17 @@ public class MsgService {
                 break;
             case MsgType.TYPE_CMD:
                 int cmd = NullUtil.isInt(msg.msgMap().get(MsgType.KEY_CMD));
-                switch (cmd) {
-                    case MsgCmd.LOGIN:
-                        that.sendHolder.login(channel, msg);
-                        break;
-                    case MsgCmd.LOGOUT:
-                        that.sendHolder.logout(channel);
-                        break;
+                if (cmd > 1000 && cmd < 3000) {
+                    reqService.requestMsg(msg);
+                } else {
+                    switch (cmd) {
+                        case MsgCmd.LOGIN:
+                            that.sendHolder.login(channel, msg);
+                            break;
+                        case MsgCmd.LOGOUT:
+                            that.sendHolder.logout(channel);
+                            break;
+                    }
                 }
                 break;
             case MsgType.TYPE_CMD_GROUP:

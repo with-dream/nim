@@ -41,8 +41,8 @@ public class UserController {
         return loginSuccess ? BaseEntity.succ(res) : BaseEntity.fail();
     }
 
-    @RequestMapping(value = "/unlogin")
-    public String unlogin(@RequestParam(value = "uuid") String uuid) {
+    @RequestMapping(value = "/logout")
+    public String logout(@RequestParam(value = "uuid") String uuid) {
 
         return "";
     }

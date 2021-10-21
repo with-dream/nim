@@ -116,6 +116,8 @@ public class DynamicManagerQueueService {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(new Jackson2JsonMessageConverter());
+        //手动确认
+        factory.setAcknowledgeMode(AcknowledgeMode.MANUAL);
         if (concurrentConsumers > 1) {
             factory.setPrefetchCount(5);
             factory.setConcurrentConsumers(concurrentConsumers);

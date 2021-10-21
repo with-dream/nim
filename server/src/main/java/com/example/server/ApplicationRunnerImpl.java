@@ -6,6 +6,7 @@ import com.example.server.rabbitmq.DynamicManagerQueueService;
 import com.example.server.rabbitmq.QueueDto;
 import com.example.server.rabbitmq.RabbitListener;
 import org.redisson.api.RList;
+import org.redisson.api.RSet;
 import org.redisson.api.RSetMultimap;
 import org.redisson.api.RedissonClient;
 import org.springframework.boot.ApplicationArguments;
@@ -53,6 +54,8 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
 
         if (queueService.createQueue(queueDto)) {
 //            MQ_NAME = mqName;
+            RSet<String> mqList = redisson.getSet(SendHolder.MQ_SET);
+            mqList.add(MQ_NAME);
         } else {
             throw new RuntimeException("==>创建mq失败");
         }

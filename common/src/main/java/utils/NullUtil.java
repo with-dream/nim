@@ -1,6 +1,8 @@
 package utils;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class NullUtil {
@@ -12,6 +14,11 @@ public class NullUtil {
     public static <T> Set<T> isSet(Object obj) {
         if (obj == null) return new HashSet<>();
         return (Set<T>) obj;
+    }
+
+    public static <T> List<T> isList(Object obj) {
+        if (obj == null) return new ArrayList<>();
+        return (List<T>) obj;
     }
 
     public static int isInt(Object obj) {

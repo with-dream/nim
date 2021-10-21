@@ -12,13 +12,13 @@ public class MsgType {
      * 系统消息
      */
     public static final int TYPE_ROOT = 0;
-    public static final String CACHE_ROOT = "c_root";
+    public static final String CACHE_ROOT = "root";
 
     /**
      * 请求的命令消息
      */
     public static final int TYPE_CMD = 1;
-    public static final String CACHE_CMD = "c_cmd";
+    public static final String CACHE_CMD = "cmd";
     public static final int KEY_CMD = 101; //cmd命令 参照MsgCmd
     public static final int KEY_EXTRA = 102; //cmd命令的附加信息
 
@@ -26,7 +26,7 @@ public class MsgType {
      * 请求的群命令消息
      */
     public static final int TYPE_CMD_GROUP = 2;
-    public static final String CACHE_CMD_GROUP = "c_cmd_g";
+    public static final String CACHE_CMD_GROUP = "cmd_g";
     public static final int KEY_CMD_GROUP = 202;
     public static final int KEY_EXTRA_GROUP = 203;
 
@@ -34,21 +34,21 @@ public class MsgType {
      * 普通消息
      */
     public static final int TYPE_MSG = 3;
-    public static final String CACHE_MSG = "c_msg";
+    public static final String CACHE_MSG = "msg";
     public static final int KEY_MSG = 301; //普通消息
 
     /**
      * 群消息
      */
     public static final int TYPE_GROUP = 4;
-    public static final String CACHE_GROUP = "c_msg_g";
+    public static final String CACHE_GROUP = "msg_g";
     public static final int KEY_MSG_GROUP = 402; //普通消息
 
     /**
      * 回执消息
      */
     public static final int TYPE_RECEIPT = 5;
-    public static final String CACHE_RECEIPT = "c_rec";
+    public static final String CACHE_RECEIPT = "rec";
     public static final int KEY_RECEIPT_SERVICE = 500;//来自服务器的回执消息
     public static final int KEY_RECEIPT_CLIENT = 501;//来自目标客户端的回执消息
     public static final int KEY_RECEIPT_MSG_ID = 503; //目标客户端接收到的消息id回执到发送端
@@ -85,8 +85,8 @@ public class MsgType {
     public static final int KEY_UNIFY_SERVICE_SEND_TIME = 30001;//服务器端发送时间
     public static final int KEY_UNIFY_SERVICE_SEND_CHANNEL = 30002;//服务器channel
     public static final int KEY_UNIFY_SERVICE_MSG_TOKEN = 30003;//服务端的临时token
-    public static final int KEY_UNIFY_SERVICE_UUID_SET = 30004; //服务器集群时 同一条消息需要发送到同一台服务器的多个uuid(群消息) 使用HSet<String>
+    public static final int KEY_UNIFY_SERVICE_UUID_LIST = 30004; //服务器集群时 同一条消息需要发送到同一台服务器的多个uuid(群消息) 使用List<String> 需要确保只发送一次
 
     //离线消息
-    public static final String CACHE_OFFLINE_MSG = "c_off";
+    public static final String CACHE_OFFLINE_MSG = "off";
 }

@@ -1,5 +1,6 @@
 package com.example.server.netty;
 
+import com.alibaba.fastjson.JSON;
 import com.example.server.ApplicationRunnerImpl;
 import com.example.server.entity.GroupMemberModel;
 import com.example.server.entity.RecCacheEntity;
@@ -18,6 +19,8 @@ import org.redisson.api.RSet;
 import org.redisson.api.RSetMultimap;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import utils.*;
@@ -38,6 +41,7 @@ import java.util.concurrent.locks.LockSupport;
 public class SendHolder {
     public static boolean COLONY = true;
     public static final String UUID_MQ_MAP = "mq_map";
+    public static final String MQ_SET = "mq_set";
     public static final AttributeKey<String> UUID_CHANNEL_MAP = AttributeKey.newInstance("key_uuid_channel_map");
     private static final boolean LOGIN_DEBUG = true;
 
@@ -76,11 +80,6 @@ public class SendHolder {
      */
     public static Map<String, RecCacheEntity> receiptMap = new HashMap<>();
     private ReceiptThread receiptThread = new ReceiptThread();
-
-    /**
-     * 服务器客户端的名称-channel映射 用于服务器间传消息
-     */
-    public Map<String, String> transferMap = new HashMap<>();
 
     /**
      * 1 如果所在客户端平台已登录 则强制退出
@@ -234,7 +233,7 @@ public class SendHolder {
                 List<GroupMemberModel> memList = userService.getGroupMembers(msg.getGroupId());
                 for (GroupMemberModel gmm : memList)
                     uuidSet.add(gmm.uuid);
-                msg.msgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_SET, uuidSet);
+                msg.msgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_LIST, new ArrayList<>(uuidSet));
                 sendMsgLocal(msg);
                 break;
             case MsgType.TYPE_CMD:
@@ -243,7 +242,7 @@ public class SendHolder {
                 if (NullUtil.isTrue(msg.msgMap().get(MsgType.KEY_UNIFY_CLIENT_SEND_SELF)))
                     uuidSet.add(msg.from);
                 uuidSet.add(msg.to);
-                msg.msgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_SET, uuidSet);
+                msg.msgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_LIST, new ArrayList<>(uuidSet));
                 sendMsgLocal(msg);
                 break;
             case MsgType.TYPE_ROOT:
@@ -282,11 +281,14 @@ public class SendHolder {
     }
 
     private void sendMsgServiceRoot(NimMsg msg) {
-        for (Map.Entry<String, String> entry : transferMap.entrySet()) {
-            if (entry.getKey().equals(ApplicationRunnerImpl.MQ_NAME)) {
+        RSet<String> mqSet = redisson.getSet(MQ_SET);
+        for (String mq : mqSet) {
+            if (mq.equals(ApplicationRunnerImpl.MQ_NAME)) {
                 sendMsgLocal(msg);
             } else {
-                rabbit.convertAndSend(entry.getValue(), msg);
+                MessageProperties messageProperties = new MessageProperties();
+                Message message = new Message(JSON.toJSONString(msg).getBytes(), messageProperties);
+                rabbit.convertAndSend(mq, message);
             }
         }
     }
@@ -296,25 +298,27 @@ public class SendHolder {
         // 将所有queueName相同的消息合并为一个 使用KEY_UNIFY_SERVICE_GROUP_UUID_LIST保存所有的目标uuid
         Map<String, NimMsg> sendTmpMsg = new HashMap<>();
         for (SessionRedisModel srm : set) {
-            Set<String> uuidSet = null;
+            List<String> uuidList = null;
             if (!sendTmpMsg.containsKey(srm.queueName)) {
                 NimMsg tmpMsg = msg.copyDeep();
-                uuidSet = new HashSet<>();
-                tmpMsg.msgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_SET, uuidSet);
+                uuidList = new ArrayList<>();
+                tmpMsg.msgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_LIST, uuidList);
                 sendTmpMsg.put(srm.queueName, tmpMsg);
             } else {
                 NimMsg tmpMsg = sendTmpMsg.get(srm.queueName);
-                uuidSet = (Set<String>) tmpMsg.msgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_SET);
+                uuidList = (List<String>) tmpMsg.msgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_LIST);
             }
-
-            uuidSet.add(srm.uuid);
+            if (!uuidList.contains(srm.uuid))
+                uuidList.add(srm.uuid);
         }
 
         for (Map.Entry<String, NimMsg> entry : sendTmpMsg.entrySet()) {
             if (entry.getKey().equals(ApplicationRunnerImpl.MQ_NAME)) {
                 sendMsgLocal(entry.getValue());
             } else {
-                rabbit.convertAndSend(transferMap.get(entry.getKey()), entry.getValue());
+                MessageProperties messageProperties = new MessageProperties();
+                Message message = new Message(JSON.toJSONString(entry.getValue()).getBytes(), messageProperties);
+                rabbit.convertAndSend(entry.getKey(), message);
             }
         }
     }
@@ -332,7 +336,7 @@ public class SendHolder {
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_RECEIPT:
             case MsgType.TYPE_PACK:
-                toList.addAll(NullUtil.isSet(msg.msgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_SET)));
+                toList.addAll(NullUtil.isList(msg.msgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_LIST)));
                 sendMsgNormal(msg, toList);
                 break;
             case MsgType.TYPE_ROOT:

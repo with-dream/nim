@@ -36,4 +36,13 @@ public class RecCacheEntity {
     public boolean isTimeout() {
         return tryCount >= 3;
     }
+
+    @Override
+    public String toString() {
+        return "RecCacheEntity{" +
+                "tryCount=" + tryCount +
+                ", unpackTime=" + unpackTime +
+                ", msg=" + msg +
+                '}';
+    }
 }

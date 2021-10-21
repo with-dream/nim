@@ -58,10 +58,8 @@ public class MsgCacheHolder {
      * 缓存消息
      */
     public boolean cacheMsg(NimMsg msg) {
-        L.e("==>cacheMsg");
-//        RList<NimMsg> list = that.redisson.getList(getTimeLine(msg));
-//        return list.add(msg);
-        return true;
+        RList<NimMsg> list = that.redisson.getList(getTimeLine(msg));
+        return list.add(msg);
     }
 
     /**

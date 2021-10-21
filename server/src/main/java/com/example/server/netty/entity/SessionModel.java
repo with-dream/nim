@@ -22,4 +22,11 @@ public class SessionModel extends Entity {
     public int hashCode() {
         return Objects.hash(redisModel, channel);
     }
+
+    @Override
+    public String toString() {
+        return "SessionModel{" +
+                "redisModel=" + redisModel +
+                '}';
+    }
 }

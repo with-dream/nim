@@ -6,3 +6,9 @@
 6、完善客户端
 7、支持udp/websocket
 8、消息加密
+
+
+
+https://blog.wamdy.com/archives/1627.html
+https://ld246.com/article/1558751105913
+https://blog.csdn.net/baidu_33735542/article/details/106261903

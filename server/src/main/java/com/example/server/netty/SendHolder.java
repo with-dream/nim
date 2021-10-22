@@ -226,6 +226,9 @@ public class SendHolder {
             return sendMsgServiceSingle(msg);
     }
 
+    /**
+     * 发送单机消息
+     */
     private int sendMsgServiceSingle(NimMsg msg) {
         Set<String> uuidSet = new HashSet<>();
         int ret = MsgType.STATE_RECEIPT_SERVER_SUCCESS;
@@ -243,7 +246,6 @@ public class SendHolder {
             case MsgType.TYPE_RECEIPT:
                 if (CollectionUtils.isEmpty(session.get(msg.to))) {
                     ret = MsgType.STATE_RECEIPT_OFFLINE;
-                    //TODO TYPE_CMD/TYPE_MSG 添加离线
                 }
                 uuidSet.add(msg.to);
                 if (NullUtil.isTrue(msg.msgMap().get(MsgType.KEY_UNIFY_CLIENT_SEND_SELF)))
@@ -258,7 +260,9 @@ public class SendHolder {
         return ret;
     }
 
-    //TODO 发送到其他服务器中转客户端 需要缓存消息 用于重发
+    /**
+     * 发送集群消息
+     */
     private int sendMsgServiceColony(NimMsg msg) {
         int ret = MsgType.STATE_RECEIPT_SERVER_SUCCESS;
         Set<SessionRedisEntity> set = new HashSet<>();
@@ -278,8 +282,9 @@ public class SendHolder {
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_RECEIPT:
                 set.addAll(multimap.get(msg.to));
-                if (CollectionUtils.isEmpty(set))
+                if (CollectionUtils.isEmpty(set)) {
                     ret = MsgType.STATE_RECEIPT_OFFLINE;
+                }
                 if (NullUtil.isTrue(msg.msgMap().get(MsgType.KEY_UNIFY_CLIENT_SEND_SELF)))
                     set.addAll(multimap.get(msg.from));
                 L.p("redisSession==>" + set);
@@ -289,7 +294,6 @@ public class SendHolder {
                 sendMsgServiceRoot(msg);
                 break;
         }
-
         return ret;
     }
 
@@ -319,7 +323,7 @@ public class SendHolder {
                 sendTmpMsg.put(srm.queueName, tmpMsg);
             } else {
                 NimMsg tmpMsg = sendTmpMsg.get(srm.queueName);
-                uuidList = (List<String>) tmpMsg.msgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_LIST);
+                uuidList = NullUtil.isList(tmpMsg.msgMap().get(MsgType.KEY_UNIFY_SERVICE_UUID_LIST));
             }
             if (!uuidList.contains(srm.uuid))
                 uuidList.add(srm.uuid);

@@ -76,6 +76,9 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
     private void setSeq(NimMsg msg) {
         String tl = "atom:" + MsgCacheHolder.getTimeLine(msg);
         RAtomicLong atomicLong = that.redisson.getAtomicLong(tl);
+        //
+        if (atomicLong.get() > Long.MAX_VALUE - 100)
+            atomicLong.set(1);
         msg.seq = atomicLong.getAndIncrement();
     }
 

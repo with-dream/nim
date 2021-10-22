@@ -30,11 +30,12 @@ public class RequestService {
     @Resource
     public SendHolder sendHolder;
 
-    public boolean requestMsg(NimMsg msg) {
+    public int requestMsg(NimMsg msg) {
+        int ret = MsgType.STATE_RECEIPT_SERVER_SUCCESS;
         int cmd = NullUtil.isInt(msg.msgMap().get(MsgType.KEY_CMD));
         switch (cmd) {
             case MsgCmd.REQUEST_FRIEND:
-                requestFriend(msg);
+                ret = requestFriend(msg);
                 break;
             case MsgCmd.REQUEST_FRIEND_AGREE:
                 FriendEntity friendEntity = new FriendEntity();
@@ -44,7 +45,9 @@ public class RequestService {
                 friendEntity.friend = FriendEntity.FRIEND_NORMAL;
                 int res = that.userService.addFriend(friendEntity);
                 if (res > 0) {
-                    that.sendHolder.sendMsg(msg);
+                    ret = that.sendHolder.sendMsg(msg);
+                } else {
+
                 }
                 break;
             case MsgCmd.FRIEND_DEL:
@@ -79,7 +82,7 @@ public class RequestService {
 
                 int delRes = that.userService.delFriend(delEntity);
                 if (delRes > 0) {
-                    that.sendHolder.sendMsg(msg);
+                    ret = that.sendHolder.sendMsg(msg);
                 }
                 break;
 
@@ -97,7 +100,7 @@ public class RequestService {
                 break;
         }
 
-        return true;
+        return ret;
     }
 
     private int requestFriend(NimMsg msg) {
@@ -106,8 +109,8 @@ public class RequestService {
             //TODO 检查添加权限
 //            UserEntity user =that.userService.userInfo(msg.to);
 
-            that.sendHolder.sendMsg(msg);
-            return 0;
+
+            return that.sendHolder.sendMsg(msg);
         }
         //如果已经被拉黑 则直接返回
         if (friendEntity.isBlock || friendEntity.isFriend) {
@@ -119,8 +122,8 @@ public class RequestService {
                 recCode = MsgCmd.REQUEST_FRIEND_FRIEND;
 
             recMsg.msgMap().put(MsgType.KEY_RECEIPT_EXTRA_CODE, recCode);
-            that.sendHolder.sendMsg(recMsg);
-            return 0;
+
+            return that.sendHolder.sendMsg(recMsg);
         }
         return 0;
     }

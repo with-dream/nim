@@ -1,6 +1,5 @@
 package com.example.imlib.netty;
 
-import com.example.imlib.Context;
 import io.netty.channel.Channel;
 import netty.entity.NimMsg;
 

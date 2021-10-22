@@ -72,11 +72,8 @@ public class NettyClient {
             time = 60;
         }
 
-        group.schedule(new Runnable() {
-            @Override
-            public void run() {
-                IMContext.instance().connect();
-            }
+        group.schedule(() -> {
+            IMContext.instance().connect();
         }, time, TimeUnit.SECONDS);
         reconnCount++;
 

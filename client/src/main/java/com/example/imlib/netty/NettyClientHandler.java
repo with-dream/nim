@@ -69,7 +69,6 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<NimMsg> {
                 break;
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_GROUP:
-            case MsgType.TYPE_PACK:
             case MsgType.TYPE_ROOT:
                 IMContext.instance().receiveMsg(msg);
 

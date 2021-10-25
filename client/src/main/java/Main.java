@@ -25,6 +25,7 @@ import java.util.Scanner;
 public class Main {
     private OkHttpClient okHttpClient = new OkHttpClient();
     private Gson gson = new Gson();
+    public UserCheckEntity userEntity;
 
     public static void main(String[] args) {
         try {
@@ -218,7 +219,7 @@ public class Main {
                 BaseEntity<UserCheckEntity> res = gson.fromJson(str, new TypeToken<BaseEntity<UserCheckEntity>>() {
                 }.getType());
                 if (res.success()) {
-                    UserCheckEntity userEntity = res.data;
+                    userEntity = res.data;
                     System.err.println("resEntity==>" + userEntity.toString());
 //                    IMContext.instance().setIpList(userEntity.serviceList);
                     IMContext.instance().setIpList(Arrays.asList(Constant.NETTY_IP));

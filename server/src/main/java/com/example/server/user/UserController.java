@@ -3,6 +3,8 @@ package com.example.server.user;
 import com.example.server.entity.FriendEntity;
 import com.example.server.entity.GroupInfoEntity;
 import com.example.server.entity.UserCheckEntity;
+import com.example.server.utils.auth.AuthUtil;
+import com.example.server.utils.auth.PassToken;
 import org.apache.commons.lang.StringUtils;
 import com.example.server.entity.UserEntity;
 import com.example.server.service.UserService;
@@ -26,6 +28,7 @@ public class UserController {
     @Resource
     UserService userService;
 
+    @PassToken
     @RequestMapping(value = "/login")
     public BaseEntity<UserCheckEntity> login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
             , @RequestParam(value = "deviceType") int deviceType) {
@@ -36,6 +39,7 @@ public class UserController {
         boolean loginSuccess = res != null && StringUtils.isNotEmpty(res.uuid);
         if (loginSuccess) {
             res.serviceList = Constant.SERVER_LIST;
+            res.token = AuthUtil.createToken(res.uuid);
         }
 
         return loginSuccess ? BaseEntity.succ(res) : BaseEntity.fail();
@@ -47,6 +51,7 @@ public class UserController {
         return "";
     }
 
+    @PassToken
     @RequestMapping(value = "/register")
     @ResponseBody
     public BaseEntity register(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd) {

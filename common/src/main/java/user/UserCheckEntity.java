@@ -2,8 +2,6 @@ package user;
 
 import entity.Entity;
 
-import java.sql.Date;
-import java.util.Arrays;
 import java.util.List;
 
 public class UserCheckEntity extends Entity {
@@ -11,6 +9,7 @@ public class UserCheckEntity extends Entity {
     public String uuid;
     public long registerTime;
     public List<String> serviceList;
+    public String token;
 
     @Override
     public String toString() {
@@ -19,6 +18,7 @@ public class UserCheckEntity extends Entity {
                 ", uuid='" + uuid + '\'' +
                 ", registerTime=" + registerTime +
                 ", serviceList=" + serviceList +
+                ", token=" + token +
                 '}';
     }
 }

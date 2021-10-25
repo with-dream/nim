@@ -32,7 +32,7 @@
     </update>
 
     <select id="getAllFriend" resultType="com.example.server.entity.FriendEntity" parameterType="java.lang.String">
-        SELECT * FROM friend_info where user_id = #{uuid} or friend_id = #{uuid};
+        SELECT * FROM friend_info where userId = #{uuid} or friendId = #{uuid};
     </select>
 
     <select id="getGroupMembers" resultType="com.example.server.entity.GroupMemberEntity"

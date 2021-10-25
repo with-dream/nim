@@ -28,6 +28,7 @@ public class AuthUtil {
         return JWT.create().withAudience(uuid)   //签发对象
                 .withIssuedAt(new Date())    //发行时间
                 .withExpiresAt(expiresDate)  //有效时间
+                .withClaim("uuid", uuid)
                 .sign(Algorithm.HMAC256(TOKEN_SECRET));   //加密
     }
 

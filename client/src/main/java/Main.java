@@ -223,7 +223,7 @@ public class Main {
                     System.err.println("resEntity==>" + userEntity.toString());
 //                    IMContext.instance().setIpList(userEntity.serviceList);
                     IMContext.instance().setIpList(Arrays.asList(Constant.NETTY_IP));
-                    IMContext.instance().uuid = userEntity.uuid;
+                    IMContext.instance().uuid = userEntity.token;
                     IMContext.instance().clientToken = UUIDUtil.getClientToken();
                     new Thread(() -> IMContext.instance().connect()).start();
                 } else {
@@ -246,6 +246,7 @@ public class Main {
         Request request = new Request.Builder()
                 .url(String.format("http://%s/user/getAllFriend?uuid=%s", Constant.LOCAL_IP, uuid))
                 .get()
+                .addHeader("token", userEntity.token)
                 .build();
 
         okHttpClient.newCall(request).enqueue(new Callback() {
@@ -254,6 +255,7 @@ public class Main {
             }
 
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                L.p("headers==>" + response.headers());
                 String str = response.body().string();
                 System.err.println("resEntity  1111==>" + str);
                 BaseEntity<List<FriendEntity>> res = gson.fromJson(str, new TypeToken<BaseEntity<List<FriendEntity>>>() {
@@ -270,6 +272,7 @@ public class Main {
                 .url(String.format("http://%s/user/createGroup?uuid=%d&groupName=%s"
                         , Constant.LOCAL_IP, IMContext.instance().uuid, groupName))
                 .get()
+                .addHeader("token", userEntity.token)
                 .build();
 
         okHttpClient.newCall(request).enqueue(new Callback() {
@@ -290,6 +293,7 @@ public class Main {
                 .url(String.format("http://%s/user/delGroup?uuid=%d&groupId=%d"
                         , Constant.LOCAL_IP, IMContext.instance().uuid, groupId))
                 .get()
+                .addHeader("token", userEntity.token)
                 .build();
 
         okHttpClient.newCall(request).enqueue(new Callback() {
@@ -309,6 +313,7 @@ public class Main {
         Request request = new Request.Builder()
                 .url(String.format("http://%s/user/getAllGroup?uuid=%s", Constant.LOCAL_IP, uuid))
                 .get()
+                .addHeader("token", userEntity.token)
                 .build();
 
         okHttpClient.newCall(request).enqueue(new Callback() {

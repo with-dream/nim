@@ -5,6 +5,7 @@ import entity.Entity;
 public class BaseEntity<T> extends Entity {
     public static final int SUCC = 0;
     public static final int FAIL = 1;
+    public static final int FAIL_TOKEN = 11;
 
     public int code;
     public String msg;

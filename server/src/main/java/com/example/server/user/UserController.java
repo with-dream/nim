@@ -8,8 +8,6 @@ import com.example.server.utils.auth.PassToken;
 import org.apache.commons.lang.StringUtils;
 import com.example.server.entity.UserEntity;
 import com.example.server.service.UserService;
-import org.springframework.amqp.core.AmqpTemplate;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -20,6 +18,7 @@ import utils.L;
 import utils.UUIDUtil;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 
 @RestController
@@ -66,21 +65,25 @@ public class UserController {
 
     @RequestMapping(value = "/getAllFriend")
     @ResponseBody
-    public BaseEntity<List<FriendEntity>> getAllFriend(@RequestParam(value = "uuid") String uuid) {
+    public BaseEntity<List<FriendEntity>> getAllFriend(HttpServletRequest request) {
+        String uuid = (String) request.getAttribute("uuid");
+        L.e("getAttribute==>" + uuid);
         List<FriendEntity> res = userService.getAllFriend(uuid);
         return BaseEntity.succ(res);
     }
 
     @RequestMapping(value = "/getAllGroup")
     @ResponseBody
-    public BaseEntity<List<GroupInfoEntity>> getAllGroup(@RequestParam(value = "uuid") String uuid) {
+    public BaseEntity<List<GroupInfoEntity>> getAllGroup(HttpServletRequest request) {
+        String uuid = (String) request.getAttribute("uuid");
         List<GroupInfoEntity> res = userService.getAllGroup(uuid);
         return BaseEntity.succ(res);
     }
 
     @RequestMapping(value = "/createGroup")
     @ResponseBody
-    public BaseEntity<GroupInfoEntity> createGroup(@RequestParam(value = "uuid") String uuid, @RequestParam(value = "groupName") String groupName) {
+    public BaseEntity<GroupInfoEntity> createGroup(@RequestParam(value = "groupName") String groupName, HttpServletRequest request) {
+        String uuid = (String) request.getAttribute("uuid");
         GroupInfoEntity groupEntity = new GroupInfoEntity();
         groupEntity.groupId = UUIDUtil.getUid();
         groupEntity.uuid = uuid;

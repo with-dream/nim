@@ -23,10 +23,15 @@ public class RSAUtil {
      * @throws NoSuchAlgorithmException
      * @throws UnsupportedEncodingException
      */
-    public static KeyPair getKeyPair() throws NoSuchAlgorithmException, UnsupportedEncodingException {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");    // 获得RSA密钥对的生成器实例
-        SecureRandom secureRandom = new SecureRandom(String.valueOf(System.currentTimeMillis()).getBytes("utf-8")); // 说的一个安全的随机数
-        keyPairGenerator.initialize(2048, secureRandom);    // 这里可以是1024、2048 初始化一个密钥对
+    public static KeyPair getKeyPair() {
+        KeyPairGenerator keyPairGenerator = null;    // 获得RSA密钥对的生成器实例
+        try {
+            keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+            SecureRandom secureRandom = new SecureRandom(String.valueOf(System.currentTimeMillis()).getBytes("utf-8")); // 说的一个安全的随机数
+            keyPairGenerator.initialize(2048, secureRandom);    // 这里可以是1024、2048 初始化一个密钥对
+        } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
         KeyPair keyPair = keyPairGenerator.generateKeyPair();   // 获得密钥对
         return keyPair;
     }
@@ -61,12 +66,17 @@ public class RSAUtil {
      * @param pubStr
      * @return PublicKey
      */
-    public static PublicKey string2PublicKey(String pubStr) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public static PublicKey string2PublicKey(String pubStr) {
         byte[] bytes = Base64.getDecoder().decode(pubStr);
         X509EncodedKeySpec keySpec = new X509EncodedKeySpec(bytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PublicKey publicKey = keyFactory.generatePublic(keySpec);
-        return publicKey;
+        KeyFactory keyFactory = null;
+        try {
+            keyFactory = KeyFactory.getInstance("RSA");
+            return keyFactory.generatePublic(keySpec);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**
@@ -75,12 +85,18 @@ public class RSAUtil {
      * @param priStr
      * @return PrivateKey
      */
-    public static PrivateKey string2Privatekey(String priStr) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public static PrivateKey string2Privatekey(String priStr) {
         byte[] bytes = Base64.getDecoder().decode(priStr);
         PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(bytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
-        return privateKey;
+        KeyFactory keyFactory = null;
+        try {
+            keyFactory = KeyFactory.getInstance("RSA");
+            return keyFactory.generatePrivate(keySpec);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     /**
@@ -90,11 +106,17 @@ public class RSAUtil {
      * @param publicKey 加密所需的公钥对象 PublicKey
      * @return 加密后的字节数组 byte[]
      */
-    public static byte[] publicEncrytype(byte[] content, PublicKey publicKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
-        Cipher cipher = Cipher.getInstance("RSA");
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-        byte[] bytes = cipher.doFinal(content);
-        return bytes;
+    public static byte[] publicEncrytype(byte[] content, PublicKey publicKey) {
+        Cipher cipher = null;
+        try {
+            cipher = Cipher.getInstance("RSA");
+            cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+            return cipher.doFinal(content);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     /**
@@ -104,11 +126,17 @@ public class RSAUtil {
      * @param privateKey 解密需要的私钥对象 PrivateKey
      * @return 解密后的字节数组 byte[]
      */
-    public static byte[] privateDecrypt(byte[] content, PrivateKey privateKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
-        Cipher cipher = Cipher.getInstance("RSA");
-        cipher.init(Cipher.DECRYPT_MODE, privateKey);
-        byte[] bytes = cipher.doFinal(content);
-        return bytes;
+    public static byte[] privateDecrypt(byte[] content, PrivateKey privateKey) {
+        Cipher cipher = null;
+        try {
+            cipher = Cipher.getInstance("RSA");
+            cipher.init(Cipher.DECRYPT_MODE, privateKey);
+            return cipher.doFinal(content);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     public static void main(String[] args) {

@@ -1,5 +1,6 @@
 package com.example.imlib.netty;
 
+import com.example.imlib.entity.EncryptEntity;
 import io.netty.channel.Channel;
 import netty.entity.NimMsg;
 
@@ -12,6 +13,7 @@ public class IMContext {
     public WeakReference<Channel> channel;
     private IMConnCallback callback;
     private IMMsgCallback msgCallback;
+    public EncryptEntity encrypt = new EncryptEntity();
     public int clientToken;
     public boolean logout = false;
 

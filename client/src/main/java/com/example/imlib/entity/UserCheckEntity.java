@@ -1,4 +1,4 @@
-package user;
+package com.example.imlib.entity;
 
 import entity.Entity;
 
@@ -10,6 +10,7 @@ public class UserCheckEntity extends Entity {
     public long registerTime;
     public List<String> serviceList;
     public String token;
+    public String rsaPublicKey;
 
     @Override
     public String toString() {
@@ -19,6 +20,7 @@ public class UserCheckEntity extends Entity {
                 ", registerTime=" + registerTime +
                 ", serviceList=" + serviceList +
                 ", token=" + token +
+                ", rsaPublicKey=" + rsaPublicKey +
                 '}';
     }
 }

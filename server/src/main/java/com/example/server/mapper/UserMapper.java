@@ -3,6 +3,7 @@ package com.example.server.mapper;
 import com.example.server.entity.*;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
+import com.example.server.entity.UserCheckEntity;
 
 import java.util.List;
 

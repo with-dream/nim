@@ -14,6 +14,7 @@ public class AuthUtil {
     private static final String TOKEN_SECRET = "nim";
 
     /**
+     * TODO 需要用客户端token
      * 签发对象：这个用户的id
      * 签发时间：现在
      * 有效时间：30分钟

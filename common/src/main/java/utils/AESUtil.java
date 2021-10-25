@@ -17,14 +17,19 @@ public class AESUtil {
      *
      * @return 返回经 BASE64 处理之后的密钥字符串
      */
-    public static String getStrKeyAES() throws NoSuchAlgorithmException, UnsupportedEncodingException {
-        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-        SecureRandom secureRandom = new SecureRandom(String.valueOf(System.currentTimeMillis()).getBytes("utf-8"));
-        keyGen.init(128, secureRandom);   // 这里可以是 128、192、256、越大越安全
-        SecretKey secretKey = keyGen.generateKey();
-        String key = byteToHexString(secretKey.getEncoded());
-        L.p(key.length() + " secretKey==>" + key);
-        return Base64.getEncoder().encodeToString(secretKey.getEncoded());
+    public static String getStrKeyAES() {
+        try {
+            KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+            SecureRandom secureRandom = new SecureRandom(String.valueOf(System.currentTimeMillis()).getBytes("utf-8"));
+            keyGen.init(128, secureRandom);   // 这里可以是 128、192、256、越大越安全
+            SecretKey secretKey = keyGen.generateKey();
+            String key = byteToHexString(secretKey.getEncoded());
+            L.p(key.length() + " secretKey==>" + key);
+            return Base64.getEncoder().encodeToString(secretKey.getEncoded());
+        } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**

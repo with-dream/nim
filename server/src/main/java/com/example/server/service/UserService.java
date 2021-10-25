@@ -5,6 +5,7 @@ import com.example.server.mapper.UserMapper;
 import com.example.server.netty.SendHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
+import com.example.server.entity.UserCheckEntity;
 import utils.StrUtil;
 
 import javax.annotation.Resource;

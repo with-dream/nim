@@ -1,3 +1,4 @@
+import com.example.imlib.entity.UserCheckEntity;
 import com.example.imlib.netty.IMContext;
 import com.example.imlib.netty.IMMsgCallback;
 import com.example.imlib.utils.L;
@@ -12,9 +13,13 @@ import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import user.*;
 import utils.Constant;
+import utils.RSAUtil;
 import utils.UUIDUtil;
 
 import java.io.IOException;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
@@ -25,6 +30,7 @@ import java.util.Scanner;
 public class Main {
     private OkHttpClient okHttpClient = new OkHttpClient();
     private Gson gson = new Gson();
+
     public UserCheckEntity userEntity;
 
     public static void main(String[] args) {
@@ -199,9 +205,6 @@ public class Main {
     }
 
     private void login(String name, String pwd) {
-        OkHttpClient okHttpClient = new OkHttpClient();
-        final Gson gson = new Gson();
-
         Request request = new Request.Builder()
                 .url(String.format("http://%s/user/login?name=%s&pwd=%s&deviceType=%d", Constant.LOCAL_IP, name, pwd, 1))
                 .get()
@@ -225,6 +228,48 @@ public class Main {
                     IMContext.instance().setIpList(Arrays.asList(Constant.NETTY_IP));
                     IMContext.instance().uuid = userEntity.token;
                     IMContext.instance().clientToken = UUIDUtil.getClientToken();
+
+                    KeyPair pair = RSAUtil.getKeyPair();
+                    IMContext.instance().encrypt.privateRSAClientKey = RSAUtil.getPrivateKey(pair);
+                    IMContext.instance().encrypt.publicRSAClientKey = RSAUtil.getPublicKey(pair);
+                    IMContext.instance().encrypt.publicRSAServerKey = userEntity.rsaPublicKey;
+
+                    PublicKey publicKey = RSAUtil.string2PublicKey(IMContext.instance().encrypt.publicRSAServerKey);
+                    byte[] pubClientKeyByte = RSAUtil.publicEncrytype(IMContext.instance().encrypt.publicRSAClientKey.getBytes(), publicKey);
+                    String pubClientKey = new String(pubClientKeyByte);
+                    encrypt1(pubClientKey);
+                } else {
+                    L.p("==>登录失败");
+                }
+
+            }
+        });
+    }
+
+    private void encrypt1(String key) {
+        Request request = new Request.Builder()
+                .url(String.format("http://%s/user/encrypt1?uuid=%s&key=%s", Constant.LOCAL_IP, userEntity.uuid, key))
+                .get()
+                .build();
+
+        okHttpClient.newCall(request).enqueue(new Callback() {
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                L.e("login onFailure==>" + e.toString());
+            }
+
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                String str = response.body().string();
+                System.err.println("resEntity  1111==>" + str);
+
+                BaseEntity<String> res = gson.fromJson(str, new TypeToken<BaseEntity<String>>() {
+                }.getType());
+                if (res.success()) {
+                    String key = res.data;
+
+                    PrivateKey privateKey = RSAUtil.string2Privatekey(IMContext.instance().encrypt.privateRSAClientKey);
+                    byte[] aesKeyB = RSAUtil.privateDecrypt(key.getBytes(), privateKey);
+                    IMContext.instance().encrypt.aesKey = new String(aesKeyB);
+                    L.p("c aesKey==>" + IMContext.instance().encrypt.aesKey);
                     new Thread(() -> IMContext.instance().connect()).start();
                 } else {
                     L.p("==>登录失败");

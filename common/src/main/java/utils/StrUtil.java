@@ -32,4 +32,8 @@ public class StrUtil {
         public String high;
         public boolean invert;
     }
+
+    public static boolean isEmpty(String str) {
+        return str != null && !str.isEmpty();
+    }
 }

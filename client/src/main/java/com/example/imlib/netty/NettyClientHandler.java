@@ -8,6 +8,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleStateEvent;
 import netty.entity.MsgType;
 import netty.entity.NimMsg;
+import netty.entity.SendUtil;
 
 import java.util.Date;
 import java.util.Iterator;
@@ -44,7 +45,7 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<NimMsg> {
                     RecCacheEntity v = IMContext.instance().sendHolder.recMsg.get(key);
                     if (v.unpackTime - System.currentTimeMillis() <= 0) {
                         if (IMContext.instance().checkChannel()) {
-                            IMContext.instance().channel.get().writeAndFlush(v.msg);
+                            SendUtil.sendMsg(IMContext.instance().channel.get(), v.msg.fromToken, v.msg);
 
                             if (v.isTimeout()) {
                                 L.e(new Date() + "  重发失败==>" + v.toString());
@@ -101,8 +102,7 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<NimMsg> {
 
                     break;
                 case ALL_IDLE:
-                    NimMsg heart = MsgBuild.heart();
-                    IMContext.instance().sendMsg(heart);
+                    IMContext.instance().sendHolder.sendHeart(ctx.channel(), MsgBuild.heart());
                     break;
             }
         }

@@ -15,10 +15,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import netty.entity.MsgCmd;
-import netty.entity.MsgLevel;
-import netty.entity.MsgType;
-import netty.entity.NimMsg;
+import netty.entity.*;
 import utils.Constant;
 
 
@@ -84,7 +81,7 @@ public class NettyClient {
         NimMsg loginMsg = MsgBuild.build(MsgType.TYPE_CMD, Constant.SERVER_UID, MsgLevel.LEVEL_STRICT);
         loginMsg.msgMap().put(MsgType.KEY_CMD, MsgCmd.LOGIN);
 
-        ChannelFuture cmdFuture = IMContext.instance().channel.get().writeAndFlush(loginMsg);
+        ChannelFuture cmdFuture = SendUtil.sendMsg(IMContext.instance().channel.get(), loginMsg.fromToken, loginMsg);
         cmdFuture.addListener(new GenericFutureListener<Future<? super Void>>() {
             @Override
             public void operationComplete(Future<? super Void> future) throws Exception {

@@ -4,10 +4,7 @@ import com.example.server.netty.MsgBuild;
 import com.example.server.netty.MsgCacheHolder;
 import com.example.server.netty.SendHolder;
 import io.netty.channel.Channel;
-import netty.entity.MsgCmd;
-import netty.entity.MsgLevel;
-import netty.entity.MsgType;
-import netty.entity.NimMsg;
+import netty.entity.*;
 import org.springframework.stereotype.Component;
 import utils.Constant;
 import utils.L;
@@ -53,9 +50,12 @@ public class MsgService {
         int ret = MsgType.STATE_RECEIPT_SERVER_SUCCESS;
         switch (msg.msgType) {
             case MsgType.TYPE_HEART_PING:
+
+
                 msg.swapUuid();
                 msg.msgType = MsgType.TYPE_HEART_PONG;
-                channel.writeAndFlush(msg);
+
+                SendUtil.sendMsg(channel, 0, msg);
                 break;
             case MsgType.TYPE_CMD:
                 int cmd = NullUtil.isInt(msg.msgMap().get(MsgType.KEY_CMD));
@@ -78,6 +78,7 @@ public class MsgService {
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_GROUP:
             case MsgType.TYPE_ROOT:
+                L.p("s process msg==>" + msg);
                 ret = that.sendHolder.sendMsg(msg);
                 that.cacheHolder.cacheMsg(msg);
                 break;
@@ -133,7 +134,7 @@ public class MsgService {
             recMsg.recMap().put(MsgType.KEY_RECEIPT_TYPE, msg.msgType);
             recMsg.recMap().put(MsgType.KEY_RECEIPT_MSG_ID, msg.msgId);
             recMsg.recMap().put(MsgType.KEY_RECEIPT_STATE, MsgType.STATE_RECEIPT_SERVER_SUCCESS);
-            channel.writeAndFlush(recMsg);
+            SendUtil.sendMsg(channel, 0, recMsg);
         }
     }
 }

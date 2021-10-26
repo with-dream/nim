@@ -153,7 +153,7 @@ public class Main {
                             msgPL.msgMap().put(MsgType.KEY_MSG, pl[1]);
                             IMContext.instance().sendMsg(msgPL);
                             try {
-                                Thread.currentThread().sleep(100);
+                                Thread.currentThread().sleep(3);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -206,8 +206,10 @@ public class Main {
     }
 
     private void login(String name, String pwd) {
+        IMContext.instance().clientToken = UUIDUtil.getClientToken();
+
         Request request = new Request.Builder()
-                .url(String.format("http://%s/user/login?name=%s&pwd=%s&deviceType=%d", Constant.LOCAL_IP, name, pwd, 1))
+                .url(String.format("http://%s/user/login?name=%s&pwd=%s&clientToken=%d", Constant.LOCAL_IP, name, pwd, IMContext.instance().clientToken))
                 .get()
                 .build();
 
@@ -227,8 +229,7 @@ public class Main {
                     System.err.println("resEntity==>" + userEntity.toString());
 //                    IMContext.instance().setIpList(userEntity.serviceList);
                     IMContext.instance().setIpList(Arrays.asList(Constant.NETTY_IP));
-                    IMContext.instance().uuid = userEntity.token;
-                    IMContext.instance().clientToken = UUIDUtil.getClientToken();
+                    IMContext.instance().uuid = userEntity.uuid;
 
                     KeyPair pair = RSAUtil.getKeyPair();
                     IMContext.instance().encrypt.privateRSAClientKey = RSAUtil.getPrivateKey(pair);
@@ -248,8 +249,9 @@ public class Main {
     }
 
     private void encrypt1(String key) {
+        L.p("encrypt1 ct==>" + IMContext.instance().clientToken);
         Request request = new Request.Builder()
-                .url(String.format("http://%s/user/encrypt1?uuid=%s&key=%s", Constant.LOCAL_IP, userEntity.uuid, key))
+                .url(String.format("http://%s/user/encrypt1?uuid=%s&clientToken=%d&key=%s", Constant.LOCAL_IP, userEntity.uuid, IMContext.instance().clientToken, key))
                 .get()
                 .build();
 

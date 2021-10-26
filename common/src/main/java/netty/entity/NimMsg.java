@@ -24,7 +24,7 @@ public class NimMsg implements Cloneable, Serializable {
     //客户端类型 电脑 手机等 用于唯一标识一个平台
     public int deviceType;
     //设备token 用于标记客户端平台
-    public int fromToken;
+    public long fromToken;
     //消息类型
     public int msgType;
     //消息等级

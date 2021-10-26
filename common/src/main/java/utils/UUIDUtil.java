@@ -12,8 +12,8 @@ public class UUIDUtil {
         return Math.abs(uid);
     }
 
-    public static int getClientToken() {
-        return getUUIDHash();
+    public static long getClientToken() {
+        return getMsgId();
     }
 
     public static long getMsgId() {

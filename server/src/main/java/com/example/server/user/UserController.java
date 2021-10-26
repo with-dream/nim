@@ -1,6 +1,8 @@
 package com.example.server.user;
 
 import com.example.server.entity.*;
+import com.example.server.redis.RConst;
+import com.example.server.utils.Const;
 import com.example.server.utils.auth.AuthUtil;
 import com.example.server.utils.auth.PassToken;
 import org.apache.commons.lang.StringUtils;
@@ -34,7 +36,7 @@ public class UserController {
     @PassToken
     @RequestMapping(value = "/login")
     public BaseEntity<UserCheckEntity> login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
-            , @RequestParam(value = "deviceType") int deviceType) {
+            , @RequestParam(value = "clientToken") long clientToken) {
         UserEntity userEntity = new UserEntity();
         userEntity.name = name;
         userEntity.pwd = pwd;
@@ -45,14 +47,14 @@ public class UserController {
             //返回token
             res.token = AuthUtil.createToken(res.uuid);
             //返回rsa公钥
-            RSAEntity re = new RSAEntity();
+            AESEntity re = new AESEntity();
             KeyPair pair = RSAUtil.getKeyPair();
             re.privateRSAServerKey = RSAUtil.getPrivateKey(pair);
             re.publicRSAServerKey = RSAUtil.getPublicKey(pair);
             re.createTime = System.currentTimeMillis();
-            //TODO key用客户端token uuid会重复
-            RMap<String, RSAEntity> rsaMap = redisson.getMap("RSA_map");
-            rsaMap.put(res.uuid, re);
+            RMap<Long, AESEntity> rsaMap = redisson.getMap(RConst.AES_MAP);
+            L.p("login ct==>" + clientToken);
+            rsaMap.put(clientToken, re);
             //1 将公钥传给客户端
             res.rsaPublicKey = re.publicRSAServerKey;
         }
@@ -62,16 +64,20 @@ public class UserController {
 
     @PassToken
     @RequestMapping(value = "/encrypt1")
-    public BaseEntity<String> encrypt1(@RequestParam(value = "uuid") String uuid, @RequestParam(value = "key") String key) {
-        RMap<String, RSAEntity> rsaMap = redisson.getMap("RSA_map");
-        RSAEntity re = rsaMap.get(uuid);
+    public BaseEntity<String> encrypt1(@RequestParam(value = "uuid") String uuid, @RequestParam(value = "clientToken") long clientToken, @RequestParam(value = "key") String key) {
+        RMap<Long, AESEntity> rsaMap = redisson.getMap(RConst.AES_MAP);
+        L.p("encrypt1 ct==>" + clientToken);
+        AESEntity re = rsaMap.get(clientToken);
+        L.p("encrypt1 re==>" + re);
+
         //2 用服务端的私钥解出客户端的公钥
         PrivateKey privateKey = RSAUtil.string2Privatekey(re.privateRSAServerKey);
         byte[] clientKey = RSAUtil.privateDecrypt(Base64.getUrlDecoder().decode(key), privateKey);
         re.publicRSAClientKey = new String(clientKey);
         //3 将aes的秘钥传给客户端
         re.aesKey = AESUtil.getStrKeyAES();
-        L.p("s aesKey==>" + re.aesKey);
+        rsaMap.put(clientToken, re);
+        L.p("s aesKey==>" + rsaMap.get(clientToken).aesKey);
         PublicKey publicKey = RSAUtil.string2PublicKey(re.publicRSAClientKey);
         byte[] aesByte = RSAUtil.publicEncrytype(re.aesKey.getBytes(), publicKey);
         String aes = Base64.getUrlEncoder().encodeToString(aesByte);

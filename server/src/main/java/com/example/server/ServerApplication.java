@@ -2,6 +2,7 @@ package com.example.server;
 
 import com.example.server.netty.NettyServer;
 import com.example.server.netty.SendHolder;
+import com.example.server.redis.RConst;
 import org.mybatis.spring.annotation.MapperScan;
 import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
@@ -43,7 +44,7 @@ public class ServerApplication {
     public ExitCodeGenerator exitCodeGenerator() {
         return () -> {
             L.p("==>");
-            RSet<String> mqList = redisson.getSet(SendHolder.MQ_SET);
+            RSet<String> mqList = redisson.getSet(RConst.MQ_SET);
             mqList.remove(ApplicationRunnerImpl.MQ_NAME);
             return 42;
         };

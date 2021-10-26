@@ -14,7 +14,7 @@ public class IMContext {
     private IMConnCallback callback;
     private IMMsgCallback msgCallback;
     public EncryptEntity encrypt = new EncryptEntity();
-    public int clientToken;
+    public long clientToken;
     public boolean logout = false;
 
     private NettyClient nettyClient = new NettyClient();

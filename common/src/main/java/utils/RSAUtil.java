@@ -49,7 +49,6 @@ public class RSAUtil {
     public static String getPublicKey(KeyPair keyPair) {
         PublicKey publicKey = keyPair.getPublic();
         byte[] bytes = publicKey.getEncoded();
-        L.p("getPublicKey==>" + bytes.length);
         return Base64.getEncoder().encodeToString(bytes);
     }
 
@@ -62,7 +61,6 @@ public class RSAUtil {
     public static String getPrivateKey(KeyPair keyPair) {
         PrivateKey privateKey = keyPair.getPrivate();
         byte[] bytes = privateKey.getEncoded();
-        L.p("getPrivateKey==>" + bytes.length);
         return Base64.getEncoder().encodeToString(bytes);
     }
 

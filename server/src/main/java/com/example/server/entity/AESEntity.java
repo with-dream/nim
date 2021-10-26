@@ -1,6 +1,6 @@
 package com.example.server.entity;
 
-public class RSAEntity {
+public class AESEntity {
     public String privateRSAServerKey;
     public String publicRSAServerKey;
     public String publicRSAClientKey;

@@ -5,6 +5,7 @@ import com.example.server.netty.entity.SessionRedisEntity;
 import com.example.server.rabbitmq.DynamicManagerQueueService;
 import com.example.server.rabbitmq.QueueDto;
 import com.example.server.rabbitmq.RabbitListener;
+import com.example.server.redis.RConst;
 import org.redisson.api.RList;
 import org.redisson.api.RSet;
 import org.redisson.api.RSetMultimap;
@@ -54,7 +55,7 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
 
         if (queueService.createQueue(queueDto)) {
 //            MQ_NAME = mqName;
-            RSet<String> mqList = redisson.getSet(SendHolder.MQ_SET);
+            RSet<String> mqList = redisson.getSet(RConst.MQ_SET);
             mqList.add(MQ_NAME);
         } else {
             throw new RuntimeException("==>创建mq失败");
@@ -63,7 +64,7 @@ public class ApplicationRunnerImpl implements ApplicationRunner {
 
     //重新绑定mq 需要将redis中的缓存数据清除
     private void clearMQ() {
-        RSetMultimap<String, SessionRedisEntity> multimap = redisson.getSetMultimap(SendHolder.UUID_MQ_MAP);
+        RSetMultimap<String, SessionRedisEntity> multimap = redisson.getSetMultimap(RConst.UUID_MQ_MAP);
         if (multimap.isEmpty()) return;
         Set<Map.Entry<String, SessionRedisEntity>> setEntry = multimap.entries();
         if (setEntry.isEmpty()) return;

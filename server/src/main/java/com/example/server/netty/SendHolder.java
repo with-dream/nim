@@ -5,6 +5,7 @@ import com.example.server.ApplicationRunnerImpl;
 import com.example.server.netty.entity.RecCacheEntity;
 import com.example.server.netty.entity.SessionEntity;
 import com.example.server.netty.entity.SessionRedisEntity;
+import com.example.server.redis.RConst;
 import com.example.server.utils.Const;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -13,6 +14,8 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import netty.entity.MsgType;
 import netty.entity.NimMsg;
+import netty.entity.NimMsgWrap;
+import netty.entity.SendUtil;
 import org.apache.commons.lang.StringUtils;
 import org.redisson.api.RSet;
 import org.redisson.api.RSetMultimap;
@@ -38,8 +41,6 @@ import java.util.concurrent.locks.LockSupport;
  */
 @Component
 public class SendHolder {
-    public static final String UUID_MQ_MAP = "mq_map";
-    public static final String MQ_SET = "mq_set";
     public static final AttributeKey<String> UUID_CHANNEL_MAP = AttributeKey.newInstance("key_uuid_channel_map");
     private static final boolean LOGIN_DEBUG = true;
     private GroupMember groupMember;
@@ -47,7 +48,6 @@ public class SendHolder {
     private static SendHolder that;
 
     public SendHolder() {
-        L.e("构造方法==>SendHolder");
         if (!receiptThread.isAlive())
             receiptThread.start();
     }
@@ -98,7 +98,7 @@ public class SendHolder {
         sessionEntity.uuid = msg.from;
         sessionEntity.queueName = ApplicationRunnerImpl.MQ_NAME;
 
-        RSetMultimap<String, SessionRedisEntity> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
+        RSetMultimap<String, SessionRedisEntity> multimap = that.redisson.getSetMultimap(RConst.UUID_MQ_MAP);
         RSet<SessionRedisEntity> sessionEntitys = multimap.get(msg.from);
         boolean redisCached = sessionEntitys.contains(sessionEntity);
         if (LOGIN_DEBUG) {
@@ -173,7 +173,7 @@ public class SendHolder {
         }
         localSet.remove(cacheSM);
 
-        RSetMultimap<String, SessionRedisEntity> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
+        RSetMultimap<String, SessionRedisEntity> multimap = that.redisson.getSetMultimap(RConst.UUID_MQ_MAP);
         RSet<SessionRedisEntity> sessionEntitys = multimap.get(uuid);
         if (CollectionUtils.isEmpty(sessionEntitys)) {
             throw new RuntimeException("uuid丢失redis缓存");
@@ -198,7 +198,7 @@ public class SendHolder {
                 if (ApplicationRunnerImpl.MQ_NAME.equals(sm.redisEntity.queueName)) {
                     smIt.remove();
                     //删除redis中的session
-                    RSetMultimap<String, SessionRedisEntity> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
+                    RSetMultimap<String, SessionRedisEntity> multimap = that.redisson.getSetMultimap(RConst.UUID_MQ_MAP);
                     RSet<SessionRedisEntity> sessionEntitys = multimap.get(sm.redisEntity.uuid);
                     if (CollectionUtils.isEmpty(sessionEntitys)) {
                         throw new RuntimeException("uuid丢失redis缓存");
@@ -245,12 +245,15 @@ public class SendHolder {
             case MsgType.TYPE_MSG:
             case MsgType.TYPE_RECEIPT:
                 if (CollectionUtils.isEmpty(session.get(msg.to))) {
+                    L.p("sendMsgServiceSingle 已离线");
                     ret = MsgType.STATE_RECEIPT_OFFLINE;
                 }
                 uuidSet.add(msg.to);
                 if (NullUtil.isTrue(msg.msgMap().get(MsgType.KEY_UNIFY_CLIENT_SEND_SELF)))
                     uuidSet.add(msg.from);
                 msg.msgMap().put(MsgType.KEY_UNIFY_SERVICE_UUID_LIST, new ArrayList<>(uuidSet));
+                L.p("sendMsgServiceSingle发送到==>" + uuidSet);
+
                 sendMsgLocal(msg);
                 break;
             case MsgType.TYPE_ROOT:
@@ -266,7 +269,7 @@ public class SendHolder {
     private int sendMsgServiceColony(NimMsg msg) {
         int ret = MsgType.STATE_RECEIPT_SERVER_SUCCESS;
         Set<SessionRedisEntity> set = new HashSet<>();
-        RSetMultimap<String, SessionRedisEntity> multimap = that.redisson.getSetMultimap(UUID_MQ_MAP);
+        RSetMultimap<String, SessionRedisEntity> multimap = that.redisson.getSetMultimap(RConst.UUID_MQ_MAP);
 
         switch (msg.msgType) {
             case MsgType.TYPE_GROUP:
@@ -298,7 +301,7 @@ public class SendHolder {
     }
 
     private void sendMsgServiceRoot(NimMsg msg) {
-        RSet<String> mqSet = redisson.getSet(MQ_SET);
+        RSet<String> mqSet = redisson.getSet(RConst.MQ_SET);
         for (String mq : mqSet) {
             if (mq.equals(ApplicationRunnerImpl.MQ_NAME)) {
                 sendMsgLocal(msg);
@@ -374,8 +377,15 @@ public class SendHolder {
 
     private void sendMsgNormal(NimMsg msg, Set<String> toList) {
         Set<SessionEntity> smSet = new HashSet<>();
-        for (String to : toList)
-            smSet.addAll(session.get(to));
+        for (String to : toList) {
+            Set<SessionEntity> ss = session.get(to);
+            if (CollectionUtils.isEmpty(ss)) {
+                L.e("sendMsgNormal session to为空==>" + to);
+                L.e("sendMsgNormal session to为空 session==>" + session);
+                continue;
+            }
+            smSet.addAll(ss);
+        }
         if (CollectionUtils.isEmpty(smSet)) {
             L.e("sendMsgLocal 查找uuid错误");
         }
@@ -391,14 +401,8 @@ public class SendHolder {
     private void sendMsgReal(NimMsg msg, SessionEntity sm) {
         NimMsg tmpMsg = msg.copyDeep();
         String token = tmpMsg.newTokenService(NimMsg.isRecMsg(msg));
-        ChannelFuture future = sm.channel.writeAndFlush(tmpMsg);
-
-        if (NimMsg.isRecMsg(msg)) {
-            RecCacheEntity rce = new RecCacheEntity(0, new WeakReference<>(sm), msg);
-            rce.token = token;
-            rce.updateTime();
-            putRecMsg(token, rce);
-        }
+        L.p("sendMsgReal==>" + sm.redisEntity.clientToken + "  msg:" + msg);
+        ChannelFuture future = SendUtil.sendMsg(sm.channel, sm.redisEntity.clientToken, tmpMsg);
 
         //不重要的消息 如果成功不操作 如果失败则重发 只有失败才操作
         if (!NimMsg.isRecMsg(msg)) {
@@ -415,6 +419,13 @@ public class SendHolder {
                     future.removeListener(this);
                 }
             });
+        }
+
+        if (NimMsg.isRecMsg(msg)) {
+            RecCacheEntity rce = new RecCacheEntity(0, new WeakReference<>(sm), msg);
+            rce.token = token;
+            rce.updateTime();
+            putRecMsg(token, rce);
         }
     }
 
@@ -473,7 +484,8 @@ public class SendHolder {
                             it.remove();
                         } else if (rce.sm.get() != null
                                 && rce.unpackTime - System.currentTimeMillis() <= 50) {
-                            ChannelFuture future = rce.sm.get().channel.writeAndFlush(rce.msg);
+                            ChannelFuture future = SendUtil.sendMsg(rce.sm.get().channel, rce.sm.get().redisEntity.clientToken, rce.msg);
+
                             //如果不是重要的消息 则发送完成即删除
                             if (!NimMsg.isRecMsg(rce.msg))
                                 future.addListener(new GenericFutureListener<Future<? super Void>>() {

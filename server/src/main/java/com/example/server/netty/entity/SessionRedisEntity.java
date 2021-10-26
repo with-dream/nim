@@ -4,7 +4,7 @@ import entity.Entity;
 
 public class SessionRedisEntity extends Entity {
     public String uuid;
-    public int clientToken;
+    public long clientToken;
     public int deviceType;
     public String queueName;
 

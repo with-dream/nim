@@ -21,6 +21,7 @@ import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.Scanner;
 
@@ -236,7 +237,7 @@ public class Main {
 
                     PublicKey publicKey = RSAUtil.string2PublicKey(IMContext.instance().encrypt.publicRSAServerKey);
                     byte[] pubClientKeyByte = RSAUtil.publicEncrytype(IMContext.instance().encrypt.publicRSAClientKey.getBytes(), publicKey);
-                    String pubClientKey = new String(pubClientKeyByte);
+                    String pubClientKey = Base64.getUrlEncoder().encodeToString(pubClientKeyByte);
                     encrypt1(pubClientKey);
                 } else {
                     L.p("==>登录失败");
@@ -267,7 +268,7 @@ public class Main {
                     String key = res.data;
 
                     PrivateKey privateKey = RSAUtil.string2Privatekey(IMContext.instance().encrypt.privateRSAClientKey);
-                    byte[] aesKeyB = RSAUtil.privateDecrypt(key.getBytes(), privateKey);
+                    byte[] aesKeyB = RSAUtil.privateDecrypt(Base64.getUrlDecoder().decode(key), privateKey);
                     IMContext.instance().encrypt.aesKey = new String(aesKeyB);
                     L.p("c aesKey==>" + IMContext.instance().encrypt.aesKey);
                     new Thread(() -> IMContext.instance().connect()).start();

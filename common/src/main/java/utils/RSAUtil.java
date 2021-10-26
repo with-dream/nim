@@ -4,6 +4,8 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
@@ -16,6 +18,8 @@ import java.util.Base64;
  */
 
 public class RSAUtil {
+    public static final String CHARSET = "UTF-8";
+
     /**
      * 生成密钥对：密钥对中包含公钥和私钥
      *
@@ -28,7 +32,7 @@ public class RSAUtil {
         try {
             keyPairGenerator = KeyPairGenerator.getInstance("RSA");
             SecureRandom secureRandom = new SecureRandom(String.valueOf(System.currentTimeMillis()).getBytes("utf-8")); // 说的一个安全的随机数
-            keyPairGenerator.initialize(2048, secureRandom);    // 这里可以是1024、2048 初始化一个密钥对
+            keyPairGenerator.initialize(1024, secureRandom);    // 这里可以是1024、2048 初始化一个密钥对
         } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
             e.printStackTrace();
         }
@@ -45,6 +49,7 @@ public class RSAUtil {
     public static String getPublicKey(KeyPair keyPair) {
         PublicKey publicKey = keyPair.getPublic();
         byte[] bytes = publicKey.getEncoded();
+        L.p("getPublicKey==>" + bytes.length);
         return Base64.getEncoder().encodeToString(bytes);
     }
 
@@ -57,6 +62,7 @@ public class RSAUtil {
     public static String getPrivateKey(KeyPair keyPair) {
         PrivateKey privateKey = keyPair.getPrivate();
         byte[] bytes = privateKey.getEncoded();
+        L.p("getPrivateKey==>" + bytes.length);
         return Base64.getEncoder().encodeToString(bytes);
     }
 
@@ -111,8 +117,9 @@ public class RSAUtil {
         try {
             cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-            return cipher.doFinal(content);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+//            return cipher.doFinal(content);
+            return rsaSplitCodec(cipher, Cipher.ENCRYPT_MODE, content, 128);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
             e.printStackTrace();
         }
 
@@ -131,12 +138,48 @@ public class RSAUtil {
         try {
             cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.DECRYPT_MODE, privateKey);
-            return cipher.doFinal(content);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+//            return cipher.doFinal(content);
+            return rsaSplitCodec(cipher, Cipher.DECRYPT_MODE, content, 128);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
             e.printStackTrace();
         }
 
         return null;
+    }
+
+    private static byte[] rsaSplitCodec(Cipher cipher, int opmode, byte[] datas, int keySize) {
+        int maxBlock = 0;  //最大块
+        if (opmode == Cipher.DECRYPT_MODE) {
+            maxBlock = keySize;
+        } else {
+            maxBlock = keySize - 11;
+        }
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        int offSet = 0;
+        byte[] buff;
+        int i = 0;
+        try {
+            while (datas.length > offSet) {
+                if (datas.length - offSet > maxBlock) {
+                    //可以调用以下的doFinal（）方法完成加密或解密数据：
+                    buff = cipher.doFinal(datas, offSet, maxBlock);
+                } else {
+                    buff = cipher.doFinal(datas, offSet, datas.length - offSet);
+                }
+                out.write(buff, 0, buff.length);
+                i++;
+                offSet = i * maxBlock;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("加解密阀值为[" + maxBlock + "]的数据时发生异常", e);
+        }
+        byte[] resultDatas = out.toByteArray();
+        try {
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return resultDatas;
     }
 
     public static void main(String[] args) {

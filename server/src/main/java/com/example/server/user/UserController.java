@@ -66,15 +66,15 @@ public class UserController {
         RMap<String, RSAEntity> rsaMap = redisson.getMap("RSA_map");
         RSAEntity re = rsaMap.get(uuid);
         //2 用服务端的私钥解出客户端的公钥
-        PrivateKey privateKey = RSAUtil.string2Privatekey(re.publicRSAServerKey);
-        byte[] clientKey = RSAUtil.privateDecrypt(key.getBytes(), privateKey);
+        PrivateKey privateKey = RSAUtil.string2Privatekey(re.privateRSAServerKey);
+        byte[] clientKey = RSAUtil.privateDecrypt(Base64.getUrlDecoder().decode(key), privateKey);
         re.publicRSAClientKey = new String(clientKey);
         //3 将aes的秘钥传给客户端
         re.aesKey = AESUtil.getStrKeyAES();
-        com.example.imlib.utils.L.p("s aesKey==>" + re.aesKey);
+        L.p("s aesKey==>" + re.aesKey);
         PublicKey publicKey = RSAUtil.string2PublicKey(re.publicRSAClientKey);
         byte[] aesByte = RSAUtil.publicEncrytype(re.aesKey.getBytes(), publicKey);
-        String aes = new String(aesByte);
+        String aes = Base64.getUrlEncoder().encodeToString(aesByte);
         return BaseEntity.succ(aes);
     }
 

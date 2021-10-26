@@ -7,6 +7,7 @@ import com.example.server.netty.entity.SessionEntity;
 import com.example.server.netty.entity.SessionRedisEntity;
 import com.example.server.redis.RConst;
 import com.example.server.utils.Const;
+import com.example.server.utils.analyse.AnalyseEntity;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.AttributeKey;
@@ -17,9 +18,7 @@ import netty.entity.NimMsg;
 import netty.entity.NimMsgWrap;
 import netty.entity.SendUtil;
 import org.apache.commons.lang.StringUtils;
-import org.redisson.api.RSet;
-import org.redisson.api.RSetMultimap;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
@@ -339,6 +338,26 @@ public class SendHolder {
                 MessageProperties messageProperties = new MessageProperties();
                 Message message = new Message(JSON.toJSONString(entry.getValue()).getBytes(), messageProperties);
                 rabbit.convertAndSend(entry.getKey(), message);
+            }
+
+            if (Const.ANALYSE_DEBUG) {
+                if (msg.msgType != MsgType.TYPE_HEART_PING && msg.msgType != MsgType.TYPE_HEART_PONG) {
+                    if()
+
+                    RMap<Long, AnalyseEntity> map = redisson.getMap(RConst.TEST_ANALYSE);
+                    RLock lock = redisson.getLock(msg.msgId + "");
+                    try {
+                        lock.lock();
+                        AnalyseEntity ae = map.get(msg.msgId);
+                        if (ae.mqCount == null)
+                            ae.mqCount = new HashMap<>();
+                        ae.mqCount.put(entry.getKey(), 0);
+
+                        map.put(msg.msgId, ae);
+                    } finally {
+                        lock.unlock();
+                    }
+                }
             }
         }
     }

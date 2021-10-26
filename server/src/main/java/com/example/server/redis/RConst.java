@@ -13,4 +13,8 @@ public class RConst {
      * 存储所有的mq名称 用于群发消息/服务器退出
      */
     public static final String MQ_SET = "mq_set";
+    /**
+     * 统计分析 存储msgId-AnalyseEntity键值对
+     */
+    public static final String TEST_ANALYSE = "msg_analyse";
 }

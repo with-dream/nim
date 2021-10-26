@@ -2,12 +2,27 @@
 1、添加消息统计
 2、probuf
 4、离线消息
-5、集群        10.22
+5、集群        10.22  mq也需要集群。。。
 6、完善客户端
 7、支持udp/websocket
 8、消息加密      10.26
 
-
+msgId: {
+    msgId:
+    startTime:
+    len:
+    level:
+    mq:count
+    msg: [
+        clientToken: {
+            mqName:
+            sendTime:
+            recTime:
+            status:
+            retry:
+        },
+    ]
+}
 
 https://blog.wamdy.com/archives/1627.html
 https://ld246.com/article/1558751105913

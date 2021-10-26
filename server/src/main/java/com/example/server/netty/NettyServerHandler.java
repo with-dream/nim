@@ -1,6 +1,10 @@
 package com.example.server.netty;
 
+import com.alibaba.fastjson.JSON;
+import com.example.server.redis.RConst;
 import com.example.server.service.MsgService;
+import com.example.server.utils.Const;
+import com.example.server.utils.analyse.AnalyseEntity;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
@@ -8,12 +12,15 @@ import io.netty.handler.timeout.IdleStateEvent;
 import netty.entity.MsgType;
 import netty.entity.NimMsg;
 import org.redisson.api.RAtomicLong;
+import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 import utils.L;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -70,6 +77,20 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
                 || msg.msgType == MsgType.TYPE_RECEIPT
                 || msg.msgType == MsgType.TYPE_GROUP)
             setSeq(msg);
+
+        if (msg.msgType != MsgType.TYPE_HEART_PING)
+            if (Const.ANALYSE_DEBUG) {
+                RMap<Long, AnalyseEntity> map = redisson.getMap(RConst.TEST_ANALYSE);
+                AnalyseEntity ae = new AnalyseEntity();
+                ae.msgId = msg.msgId;
+                ae.level = msg.level;
+                ae.msgType = msg.msgType;
+                ae.startTime = System.currentTimeMillis();
+                ae.len = JSON.toJSONString(msg).getBytes().length;
+
+                map.put(msg.msgId, ae);
+            }
+
         that.msgService.process(msg, ctx.channel());
     }
 

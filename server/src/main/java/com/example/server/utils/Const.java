@@ -1,6 +1,10 @@
 package com.example.server.utils;
 
 public class Const {
+    /**
+     * 统计分析开关
+     */
+    public static final boolean ANALYSE_DEBUG = true;
 
     public static final boolean DEBUG = true;
     /**

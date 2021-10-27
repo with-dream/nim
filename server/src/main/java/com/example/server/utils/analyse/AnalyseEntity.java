@@ -38,5 +38,35 @@ public class AnalyseEntity extends Entity {
          */
         public int status;
         public int retry;
+
+        @Override
+        public String toString() {
+            return "Item{" +
+                    "mqName='" + mqName + '\'' +
+                    ", uuid='" + uuid + '\'' +
+                    ", sendTime=" + sendTime +
+                    ", recTime=" + recTime +
+                    ", recSendTime=" + recSendTime +
+                    ", recMsgId=" + recMsgId +
+                    ", status=" + status +
+                    ", retry=" + retry +
+                    '}';
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "AnalyseEntity{" +
+                "msgId=" + msgId +
+                ", uuid='" + uuid + '\'' +
+                ", groupId='" + groupId + '\'' +
+                ", startTime=" + startTime +
+                ", len=" + len +
+                ", level=" + level +
+                ", memberList=" + memberList +
+                ", msgType=" + msgType +
+                ", items=" + items +
+                ", mqList=" + mqList +
+                '}';
     }
 }

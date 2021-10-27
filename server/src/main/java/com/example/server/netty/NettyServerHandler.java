@@ -86,14 +86,21 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
                 if (msg.msgType == MsgType.TYPE_RECEIPT) {
                     RLock lock = that.redisson.getLock(msg.fromToken + "");
                     try {
+                        lock.lock();
                         long msgId = (long) msg.recMap().get(MsgType.KEY_RECEIPT_MSG_ID);
                         AnalyseEntity tmp = map.get(msgId);
                         AnalyseEntity.Item item = tmp.items.get(msg.fromToken);
+                        if (item == null) {
+                            L.e("channelRead0==>" + msg.fromToken + ":" + msg);
+                            L.e("channelRead0  item==>" + tmp.items);
+                        }
                         item.recTime = System.currentTimeMillis();
                         item.recMsgId = msg.msgId;
                         item.status = 10;
                         map.put(msgId, tmp);
                     } finally {
+                        if (!lock.isLocked())
+                            L.e("unlock异常 111");
                         lock.unlock();
                     }
                 } else {
@@ -140,7 +147,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         L.e("exceptionCaught==>" + ctx.channel().attr(SendHolder.UUID_CHANNEL_MAP).get());
-        that.sendHolder.logout(ctx.channel());
+//        that.sendHolder.logout(ctx.channel());
         cause.printStackTrace();
     }
 }

@@ -342,17 +342,14 @@ public class SendHolder {
 
             if (Const.ANALYSE_DEBUG) {
                 if (msg.msgType != MsgType.TYPE_HEART_PING && msg.msgType != MsgType.TYPE_HEART_PONG) {
-                    if()
-
                     RMap<Long, AnalyseEntity> map = redisson.getMap(RConst.TEST_ANALYSE);
                     RLock lock = redisson.getLock(msg.msgId + "");
                     try {
                         lock.lock();
                         AnalyseEntity ae = map.get(msg.msgId);
-                        if (ae.mqCount == null)
-                            ae.mqCount = new HashMap<>();
-                        ae.mqCount.put(entry.getKey(), 0);
-
+                        if (ae.mqList == null)
+                            ae.mqList = new HashMap<>();
+                        ae.mqList.put(entry.getKey(), new ArrayList<>());
                         map.put(msg.msgId, ae);
                     } finally {
                         lock.unlock();
@@ -409,11 +406,71 @@ public class SendHolder {
             L.e("sendMsgLocal 查找uuid错误");
         }
 
+        if (Const.ANALYSE_DEBUG) {
+            RMap<Long, AnalyseEntity> map = that.redisson.getMap(RConst.TEST_ANALYSE);
+            //添加回执信息
+            if (msg.msgType != MsgType.TYPE_RECEIPT) {
+                RLock lock = that.redisson.getLock(msg.fromToken + "");
+                try {
+                    long msgId = (long) msg.recMap().get(MsgType.KEY_RECEIPT_MSG_ID);
+                    AnalyseEntity tmp = map.get(msgId);
+                    //组装mq对应的uuid集合
+                    if (tmp.mqList == null)
+                        tmp.mqList = new HashMap<>();
+                    List<String> mqToList = tmp.mqList.get(ApplicationRunnerImpl.MQ_NAME);
+                    if (mqToList == null)
+                        mqToList = new ArrayList<>();
+                    mqToList.addAll(toList);
+                    //去重
+                    Set<String> tmpSet = new HashSet<>(mqToList);
+                    mqToList.clear();
+                    mqToList.addAll(tmpSet);
+
+                    tmp.mqList.put(ApplicationRunnerImpl.MQ_NAME, mqToList);
+                    map.put(msgId, tmp);
+                } finally {
+                    lock.unlock();
+                }
+            }
+        }
+
         for (SessionEntity sm : smSet) {
             //发送者所在客户端 不需要发送给自己
             if (sm.redisEntity.uuid.equals(msg.from) && sm.redisEntity.clientToken == msg.fromToken)
                 continue;
             sendMsgReal(msg, sm);
+        }
+    }
+
+    private void sendAnalyse(NimMsg msg, SessionEntity sm, boolean sendSuccess) {
+        if (Const.ANALYSE_DEBUG) {
+            if (msg.msgType != MsgType.TYPE_HEART_PING && msg.msgType != MsgType.TYPE_HEART_PONG) {
+                RMap<Long, AnalyseEntity> map = redisson.getMap(RConst.TEST_ANALYSE);
+                RLock lock = redisson.getLock(msg.msgId + "");
+                try {
+                    lock.lock();
+                    AnalyseEntity ae = map.get(msg.msgId);
+
+                    if (msg.msgType == MsgType.TYPE_RECEIPT) {
+                        AnalyseEntity.Item item = ae.items.get(sm.redisEntity.clientToken);
+                        item.recSendTime = System.currentTimeMillis();
+                        item.recMsgId = msg.msgId;
+                        item.status = sendSuccess ? 12 : 11;
+                    } else {
+                        AnalyseEntity.Item item = new AnalyseEntity.Item();
+                        item.mqName = sm.redisEntity.queueName;
+                        item.uuid = sm.redisEntity.uuid;
+                        item.sendTime = System.currentTimeMillis();
+                        if (ae.items == null)
+                            ae.items = new HashMap<>();
+                        item.status = sendSuccess ? 2 : 1;
+                        ae.items.put(sm.redisEntity.clientToken, item);
+                    }
+                    map.put(msg.msgId, ae);
+                } finally {
+                    lock.unlock();
+                }
+            }
         }
     }
 
@@ -423,23 +480,25 @@ public class SendHolder {
         L.p("sendMsgReal==>" + sm.redisEntity.clientToken + "  msg:" + msg);
         ChannelFuture future = SendUtil.sendMsg(sm.channel, sm.redisEntity.clientToken, tmpMsg);
 
-        //不重要的消息 如果成功不操作 如果失败则重发 只有失败才操作
-        if (!NimMsg.isRecMsg(msg)) {
-            future.addListener(new GenericFutureListener<Future<? super Void>>() {
-                @Override
-                public void operationComplete(Future<? super Void> f) {
-                    if (!f.isSuccess()) {
+        future.addListener(new GenericFutureListener<Future<? super Void>>() {
+            @Override
+            public void operationComplete(Future<? super Void> f) {
+                if (!f.isSuccess()) {
+                    //不重要的消息 如果成功不操作 如果失败则重发 只有失败才操作
+                    if (!NimMsg.isRecMsg(msg)) {
                         RecCacheEntity rce = new RecCacheEntity(0, new WeakReference<>(sm), msg);
                         rce.token = token;
                         rce.updateTime();
                         putRecMsg(token, rce);
                     }
-
-                    future.removeListener(this);
                 }
-            });
-        }
 
+                sendAnalyse(msg, sm, f.isSuccess());
+                future.removeListener(this);
+            }
+        });
+
+        //用于超时重发
         if (NimMsg.isRecMsg(msg)) {
             RecCacheEntity rce = new RecCacheEntity(0, new WeakReference<>(sm), msg);
             rce.token = token;
@@ -498,13 +557,36 @@ public class SendHolder {
                         RecCacheEntity rce = it.next();
                         if (rce == null) continue;
                         if (rce.isTimeout()) {
+                            L.e("消息超时" + rce.msg);
                             //TODO 超时处理
                             receiptMap.remove(rce.token);
                             it.remove();
+
+                            if (Const.ANALYSE_DEBUG) {
+                                NimMsg msg = rce.msg;
+                                SessionEntity sm = rce.sm.get();
+                                RMap<Long, AnalyseEntity> map = that.redisson.getMap(RConst.TEST_ANALYSE);
+                                RLock lock = that.redisson.getLock(msg.msgId + "");
+                                try {
+                                    lock.lock();
+                                    AnalyseEntity ae = map.get(msg.msgId);
+
+                                    AnalyseEntity.Item item = ae.items.get(sm.redisEntity.clientToken);
+                                    if (rce.msg.msgType == MsgType.TYPE_RECEIPT)
+                                        item.status = 13;
+                                    else
+                                        item.status = 3;
+                                    ae.items.put(sm.redisEntity.clientToken, item);
+
+                                    map.put(msg.msgId, ae);
+                                } finally {
+                                    lock.unlock();
+                                }
+                            }
                         } else if (rce.sm.get() != null
                                 && rce.unpackTime - System.currentTimeMillis() <= 50) {
-                            ChannelFuture future = SendUtil.sendMsg(rce.sm.get().channel, rce.sm.get().redisEntity.clientToken, rce.msg);
 
+                            ChannelFuture future = SendUtil.sendMsg(rce.sm.get().channel, rce.sm.get().redisEntity.clientToken, rce.msg);
                             //如果不是重要的消息 则发送完成即删除
                             if (!NimMsg.isRecMsg(rce.msg))
                                 future.addListener(new GenericFutureListener<Future<? super Void>>() {
@@ -513,6 +595,29 @@ public class SendHolder {
                                         if (f.isSuccess()) {
                                             receiptMap.remove(rce.token);
                                             it.remove();
+                                        }
+
+                                        if (Const.ANALYSE_DEBUG) {
+                                            NimMsg msg = rce.msg;
+                                            SessionEntity sm = rce.sm.get();
+                                            RMap<Long, AnalyseEntity> map = that.redisson.getMap(RConst.TEST_ANALYSE);
+                                            RLock lock = that.redisson.getLock(msg.msgId + "");
+                                            try {
+                                                lock.lock();
+                                                AnalyseEntity ae = map.get(msg.msgId);
+
+                                                AnalyseEntity.Item item = ae.items.get(sm.redisEntity.clientToken);
+                                                item.retry = rce.tryCount;
+                                                if (rce.msg.msgType == MsgType.TYPE_RECEIPT)
+                                                    item.status = f.isSuccess() ? 12 : 11;
+                                                else
+                                                    item.status = f.isSuccess() ? 2 : 1;
+                                                ae.items.put(sm.redisEntity.clientToken, item);
+
+                                                map.put(msg.msgId, ae);
+                                            } finally {
+                                                lock.unlock();
+                                            }
                                         }
 
                                         future.removeListener(this);

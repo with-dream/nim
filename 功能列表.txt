@@ -6,18 +6,21 @@
 6、完善客户端
 7、支持udp/websocket
 8、消息加密      10.26
+9、整理指令
 
 msgId: {
     msgId:
     startTime:
     len:
     level:
-    mq:count
+    groupId:
+    mqList:[]
     msg: [
         clientToken: {
             mqName:
             sendTime:
             recTime:
+            recSendTime:
             status:
             retry:
         },

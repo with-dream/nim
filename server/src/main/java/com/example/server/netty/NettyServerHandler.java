@@ -12,6 +12,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 import netty.entity.MsgType;
 import netty.entity.NimMsg;
 import org.redisson.api.RAtomicLong;
+import org.redisson.api.RLock;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
@@ -80,15 +81,33 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
 
         if (msg.msgType != MsgType.TYPE_HEART_PING)
             if (Const.ANALYSE_DEBUG) {
-                RMap<Long, AnalyseEntity> map = redisson.getMap(RConst.TEST_ANALYSE);
-                AnalyseEntity ae = new AnalyseEntity();
-                ae.msgId = msg.msgId;
-                ae.level = msg.level;
-                ae.msgType = msg.msgType;
-                ae.startTime = System.currentTimeMillis();
-                ae.len = JSON.toJSONString(msg).getBytes().length;
-
-                map.put(msg.msgId, ae);
+                RMap<Long, AnalyseEntity> map = that.redisson.getMap(RConst.TEST_ANALYSE);
+                //添加回执信息
+                if (msg.msgType == MsgType.TYPE_RECEIPT) {
+                    RLock lock = that.redisson.getLock(msg.fromToken + "");
+                    try {
+                        long msgId = (long) msg.recMap().get(MsgType.KEY_RECEIPT_MSG_ID);
+                        AnalyseEntity tmp = map.get(msgId);
+                        AnalyseEntity.Item item = tmp.items.get(msg.fromToken);
+                        item.recTime = System.currentTimeMillis();
+                        item.recMsgId = msg.msgId;
+                        item.status = 10;
+                        map.put(msgId, tmp);
+                    } finally {
+                        lock.unlock();
+                    }
+                } else {
+                    AnalyseEntity ae = new AnalyseEntity();
+                    ae.msgId = msg.msgId;
+                    ae.uuid = msg.from;
+                    if (msg.msgType == MsgType.TYPE_GROUP || msg.msgType == MsgType.TYPE_CMD_GROUP)
+                        ae.groupId = msg.getGroupId();
+                    ae.level = msg.level;
+                    ae.msgType = msg.msgType;
+                    ae.startTime = System.currentTimeMillis();
+                    ae.len = JSON.toJSONString(msg).getBytes().length;
+                    map.put(msg.msgId, ae);
+                }
             }
 
         that.msgService.process(msg, ctx.channel());

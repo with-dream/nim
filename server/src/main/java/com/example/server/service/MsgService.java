@@ -50,8 +50,6 @@ public class MsgService {
         int ret = MsgType.STATE_RECEIPT_SERVER_SUCCESS;
         switch (msg.msgType) {
             case MsgType.TYPE_HEART_PING:
-
-
                 msg.swapUuid();
                 msg.msgType = MsgType.TYPE_HEART_PONG;
 

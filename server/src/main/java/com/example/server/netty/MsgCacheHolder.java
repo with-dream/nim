@@ -5,6 +5,7 @@ import netty.entity.NimMsg;
 import org.apache.commons.lang.StringUtils;
 import org.redisson.api.RAtomicLong;
 import org.redisson.api.RList;
+import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 import utils.L;
@@ -12,6 +13,7 @@ import utils.StrUtil;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class MsgCacheHolder {
@@ -58,6 +60,10 @@ public class MsgCacheHolder {
      * 缓存消息
      */
     public boolean cacheMsg(NimMsg msg) {
+        RSet<Long> idSet = that.redisson.getSet("set:" + getTimeLine(msg));
+        idSet.expire(10, TimeUnit.MINUTES);
+        if (idSet.contains(msg.msgId)) return false;
+
         RList<NimMsg> list = that.redisson.getList("c:" + getTimeLine(msg));
         return list.add(msg);
     }
@@ -66,6 +72,10 @@ public class MsgCacheHolder {
      * 保存离线消息 群消息不能保存为离线消息
      */
     public boolean saveOfflineMsg(NimMsg msg) {
+        RSet<Long> idSet = that.redisson.getSet(MsgType.CACHE_OFFLINE_MSG + ":s" + msg.to);
+        idSet.expire(10, TimeUnit.MINUTES);
+        if (idSet.contains(msg.msgId)) return false;
+
         return that.redisson.getList(MsgType.CACHE_OFFLINE_MSG + msg.to).add(msg);
     }
 }

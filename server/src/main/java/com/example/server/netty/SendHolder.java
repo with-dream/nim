@@ -411,8 +411,9 @@ public class SendHolder {
             //添加回执信息
             if (msg.msgType != MsgType.TYPE_RECEIPT) {
                 RLock lock = that.redisson.getLock(msg.fromToken + "");
+                lock.lock();
                 try {
-                    long msgId = (long) msg.recMap().get(MsgType.KEY_RECEIPT_MSG_ID);
+                    long msgId = (long) msg.recMap().get(MsgType.KEY_RECEIPT_MSG_ID);/NullPointerException
                     AnalyseEntity tmp = map.get(msgId);
                     //组装mq对应的uuid集合
                     if (tmp.mqList == null)

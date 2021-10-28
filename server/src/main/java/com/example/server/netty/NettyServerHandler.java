@@ -5,6 +5,7 @@ import com.example.server.redis.RConst;
 import com.example.server.service.MsgService;
 import com.example.server.utils.Const;
 import com.example.server.utils.analyse.AnalyseEntity;
+import com.example.server.utils.analyse.AnalyseUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
@@ -79,43 +80,46 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
                 || msg.msgType == MsgType.TYPE_GROUP)
             setSeq(msg);
 
-        if (msg.msgType != MsgType.TYPE_HEART_PING)
-            if (Const.ANALYSE_DEBUG) {
-                RMap<Long, AnalyseEntity> map = that.redisson.getMap(RConst.TEST_ANALYSE);
-                //添加回执信息
-                if (msg.msgType == MsgType.TYPE_RECEIPT) {
-                    RLock lock = that.redisson.getLock(msg.fromToken + "");
-                    try {
-                        lock.lock();
-                        long msgId = (long) msg.recMap().get(MsgType.KEY_RECEIPT_MSG_ID);
-                        AnalyseEntity tmp = map.get(msgId);
-                        AnalyseEntity.Item item = tmp.items.get(msg.fromToken);
-                        if (item == null) {
-                            L.e("channelRead0==>" + msg.fromToken + ":" + msg);
-                            L.e("channelRead0  item==>" + tmp.items);
-                        }
-                        item.recTime = System.currentTimeMillis();
-                        item.recMsgId = msg.msgId;
-                        item.status = 10;
-                        map.put(msgId, tmp);
-                    } finally {
-                        if (!lock.isLocked())
-                            L.e("unlock异常 111");
-                        lock.unlock();
+        if (AnalyseUtil.analyse(msg)) {
+            RMap<Long, AnalyseEntity> map = that.redisson.getMap(RConst.TEST_ANALYSE);
+            //添加回执信息
+            if (msg.msgType == MsgType.TYPE_RECEIPT) {
+                RLock lock = that.redisson.getLock(msg.fromToken + "");
+                try {
+                    lock.lock();
+                    long msgId = (long) msg.recMap().get(MsgType.KEY_RECEIPT_MSG_ID);
+                    AnalyseEntity tmp = map.get(msgId);
+                    AnalyseEntity.Item item = tmp.items.get(msg.fromToken);
+                    if (item == null) {
+                        L.e("channelRead0==>" + msg.fromToken + ":" + msg);
+                        L.e("channelRead0  item==>" + tmp.items);
                     }
-                } else {
-                    AnalyseEntity ae = new AnalyseEntity();
-                    ae.msgId = msg.msgId;
-                    ae.uuid = msg.from;
-                    if (msg.msgType == MsgType.TYPE_GROUP || msg.msgType == MsgType.TYPE_CMD_GROUP)
-                        ae.groupId = msg.getGroupId();
-                    ae.level = msg.level;
-                    ae.msgType = msg.msgType;
-                    ae.startTime = System.currentTimeMillis();
-                    ae.len = JSON.toJSONString(msg).getBytes().length;
-                    map.put(msg.msgId, ae);
+                    item.recTime = System.currentTimeMillis();
+                    item.recMsgId = msg.msgId;
+                    item.status = 10;
+                    if(Const.ANALYSE_LOG_DEBUG)
+                    L.p("TEST_ANALYSE put 111 msgId:" + msgId);
+                    map.put(msgId, tmp);
+                } finally {
+                    if (!lock.isLocked())
+                        L.e("unlock异常 111");
+                    lock.unlock();
                 }
+            } else {
+                AnalyseEntity ae = new AnalyseEntity();
+                ae.msgId = msg.msgId;
+                ae.uuid = msg.from;
+                if (msg.msgType == MsgType.TYPE_GROUP || msg.msgType == MsgType.TYPE_CMD_GROUP)
+                    ae.groupId = msg.getGroupId();
+                ae.level = msg.level;
+                ae.msgType = msg.msgType;
+                ae.startTime = System.currentTimeMillis();
+                ae.len = JSON.toJSONString(msg).getBytes().length;
+                if(Const.ANALYSE_LOG_DEBUG)
+                L.p("TEST_ANALYSE put 222 msgId:" + msg.msgId);
+                map.put(msg.msgId, ae);
             }
+        }
 
         that.msgService.process(msg, ctx.channel());
     }

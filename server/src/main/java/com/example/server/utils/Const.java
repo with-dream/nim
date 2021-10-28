@@ -5,6 +5,7 @@ public class Const {
      * 统计分析开关
      */
     public static final boolean ANALYSE_DEBUG = true;
+    public static final boolean ANALYSE_LOG_DEBUG = false;
 
     public static final boolean DEBUG = true;
     /**

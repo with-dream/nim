@@ -70,7 +70,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
                     }
                 });
             }
-        }, 5, 10, TimeUnit.MINUTES);
+        }, 5, 10, TimeUnit.SECONDS);
     }
 
     @Override
@@ -80,6 +80,12 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
                 || msg.msgType == MsgType.TYPE_GROUP)
             setSeq(msg);
 
+        analyse(msg);
+
+        that.msgService.process(msg, ctx.channel());
+    }
+
+    private void analyse(NimMsg msg) {
         if (AnalyseUtil.analyse(msg)) {
             RMap<Long, AnalyseEntity> map = that.redisson.getMap(RConst.TEST_ANALYSE);
             //添加回执信息
@@ -87,7 +93,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
                 RLock lock = that.redisson.getLock(msg.fromToken + "");
                 try {
                     lock.lock();
-                    long msgId = (long) msg.recMap().get(MsgType.KEY_RECEIPT_MSG_ID);
+                    long msgId = (long) msg.msgMap().get(MsgType.KEY_M_RECEIPT_MSG_ID);
                     AnalyseEntity tmp = map.get(msgId);
                     AnalyseEntity.Item item = tmp.items.get(msg.fromToken);
                     if (item == null) {
@@ -97,8 +103,8 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
                     item.recTime = System.currentTimeMillis();
                     item.recMsgId = msg.msgId;
                     item.status = 10;
-                    if(Const.ANALYSE_LOG_DEBUG)
-                    L.p("TEST_ANALYSE put 111 msgId:" + msgId);
+                    if (Const.ANALYSE_LOG_DEBUG)
+                        L.p("TEST_ANALYSE put 111 msgId:" + msgId);
                     map.put(msgId, tmp);
                 } finally {
                     if (!lock.isLocked())
@@ -111,17 +117,14 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<NimMsg> {
                 ae.uuid = msg.from;
                 if (msg.msgType == MsgType.TYPE_GROUP || msg.msgType == MsgType.TYPE_CMD_GROUP)
                     ae.groupId = msg.getGroupId();
-                ae.level = msg.level;
                 ae.msgType = msg.msgType;
                 ae.startTime = System.currentTimeMillis();
                 ae.len = JSON.toJSONString(msg).getBytes().length;
-                if(Const.ANALYSE_LOG_DEBUG)
-                L.p("TEST_ANALYSE put 222 msgId:" + msg.msgId);
+                if (Const.ANALYSE_LOG_DEBUG)
+                    L.p("TEST_ANALYSE put 222 msgId:" + msg.msgId);
                 map.put(msg.msgId, ae);
             }
         }
-
-        that.msgService.process(msg, ctx.channel());
     }
 
     private void setSeq(NimMsg msg) {

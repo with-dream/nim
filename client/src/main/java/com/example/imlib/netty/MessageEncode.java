@@ -31,8 +31,8 @@ public class MessageEncode extends MessageToByteEncoder<NimMsgWrap> {
         if (aes)
             data = AESUtil.encryptAES(data, AESUtil.strKey2SecretKey(IMContext.instance().encrypt.aesKey));
 
-//        if (msg.msgType != MsgType.TYPE_HEART_PING
-//                && msg.msgType != MsgType.TYPE_HEART_PONG)
+        if (msg.msgType != MsgType.TYPE_HEART_PING
+                && msg.msgType != MsgType.TYPE_HEART_PONG)
             L.p("c encode==>" + ss);
 
         byteBuf.writeInt(data.length);

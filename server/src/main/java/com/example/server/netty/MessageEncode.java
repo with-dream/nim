@@ -53,11 +53,12 @@ public class MessageEncode extends MessageToByteEncoder<NimMsgWrap> {
         if (aes) {
             RMap<Long, AESEntity> aesMap = that.redisson.getMap(RConst.AES_MAP);
             AESEntity aesEntity = aesMap.get(o.clientToken);
+            if (aesEntity == null)
+                throw new RuntimeException("加密错误 msg:" + msg);
 
             data = AESUtil.encryptAES(data, AESUtil.strKey2SecretKey(aesEntity.aesKey));
         }
-//        if (msg.msgType != MsgType.TYPE_HEART_PING
-//                && msg.msgType != MsgType.TYPE_HEART_PONG)
+        if (msg.msgType != MsgType.TYPE_HEART_PING && msg.msgType != MsgType.TYPE_HEART_PONG)
             L.p("s encode==>" + ss);
 
         byteBuf.writeInt(data.length);

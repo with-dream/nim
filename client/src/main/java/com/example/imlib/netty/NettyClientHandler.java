@@ -9,6 +9,8 @@ import io.netty.handler.timeout.IdleStateEvent;
 import netty.entity.MsgType;
 import netty.entity.NimMsg;
 import netty.entity.SendUtil;
+import utils.Constant;
+import utils.NullUtil;
 
 import java.util.Date;
 import java.util.Iterator;
@@ -72,18 +74,27 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<NimMsg> {
             case MsgType.TYPE_GROUP:
             case MsgType.TYPE_ROOT:
                 IMContext.instance().receiveMsg(msg);
-
-                NimMsg recMsg = MsgBuild.recMsg(msg.from);
-                recMsg.receipt.putAll(msg.receipt);
-                recMsg.recMap().put(MsgType.KEY_RECEIPT_TYPE, msg.msgType);
-                recMsg.recMap().put(MsgType.KEY_RECEIPT_MSG_ID, msg.msgId);
-                recMsg.recMap().put(MsgType.KEY_RECEIPT_STATE, MsgType.STATE_RECEIPT_CLIENT_SUCCESS);
-                IMContext.instance().sendMsg(recMsg);
                 break;
             case MsgType.TYPE_RECEIPT:
                 IMContext.instance().sendHolder.recMsg(msg);
                 IMContext.instance().receiveMsg(msg);
                 break;
+        }
+        //是否需要客户端回执消息
+        if (msg.isRec()) {
+            String to = null;
+            if (msg.isRecClient()) {
+                to = msg.from;
+            } else if (msg.isRecDirect()) {
+                to = Constant.SERVER_UID;
+            }
+
+            NimMsg recMsg = MsgBuild.recMsg(to);
+            recMsg.receipt.putAll(msg.receipt);
+            recMsg.msgMap().put(MsgType.KEY_M_RECEIPT_TYPE, msg.msgType);
+            recMsg.msgMap().put(MsgType.KEY_M_RECEIPT_MSG_ID, msg.msgId);
+            recMsg.msgMap().put(MsgType.KEY_M_RECEIPT_STATE, MsgType.STATE_RECEIPT_CLIENT_SUCCESS);
+            IMContext.instance().sendMsg(recMsg);
         }
     }
 

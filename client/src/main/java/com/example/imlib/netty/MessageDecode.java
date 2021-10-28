@@ -5,6 +5,7 @@ import com.example.imlib.utils.L;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import netty.entity.MsgType;
 import netty.entity.NimMsg;
 import utils.AESUtil;
 
@@ -38,8 +39,10 @@ public class MessageDecode extends ByteToMessageDecoder {
             body = AESUtil.decryptAES(body, AESUtil.strKey2SecretKey(IMContext.instance().encrypt.aesKey));
 
         String tmp = new String(body);
-        L.p("c decode==>" + tmp);
+
         NimMsg msg = JSON.parseObject(tmp, NimMsg.class);
+        if (msg.msgType != MsgType.TYPE_HEART_PING && msg.msgType != MsgType.TYPE_HEART_PONG)
+            L.p("c decode==>" + tmp);
         msg.sync();
         list.add(msg);
     }

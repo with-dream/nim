@@ -25,43 +25,56 @@ public class SendHolder {
             future.addListener(new GenericFutureListener<Future<? super Void>>() {
                 @Override
                 public void operationComplete(Future<? super Void> f) throws Exception {
-                    if (f.isSuccess()) {
-
-                    } else {
-                        L.p("==>send TYPE_RECEIPT  " + f.cause());
-
-                        if (msg.level == MsgLevel.LEVEL_LOW) {
+                    if (!f.isSuccess()) {
+                        if (f.cause() != null)
+                            L.e("send cause==>" + f.cause());
+                        //如果不需要回执的消息发送失败 则重发
+                        if (!msg.isRecClient() && !msg.isRecDirect())
                             cacheRecMsg(msg);
-                        } else if (msg.level == MsgLevel.LEVEL_NORMAL) {
-                            if (msg.msgType == MsgType.TYPE_RECEIPT) {
-                                cacheRecMsg(msg);
-                            }
-                        }
                     }
-
-                    if (NimMsg.isRecMsg(msg)) {
+                    if (msg.isRecClient() || msg.isRecDirect())
                         cacheRecMsg(msg);
-                    }
-
                     future.removeListener(this);
                 }
             });
         }
     }
 
+    /**
+     * 缓存消息
+     * 1 需要服务端回执的消息
+     * 2 需要客户端回执的消息
+     * 3 发送失败的消息
+     */
     private void cacheRecMsg(NimMsg msg) {
         RecCacheEntity rce = new RecCacheEntity(msg);
         recMsg.put(msg.msgId, rce);
     }
 
-    public boolean isRec(NimMsg msg) {
-        return msg.msgType != MsgType.TYPE_HEART_PING && msg.msgType != MsgType.TYPE_HEART_PONG;
-    }
-
+    /**
+     * 收到消息回执 将缓存的消息移除
+     */
     public void recMsg(NimMsg msg) {
         if (msg.msgType != MsgType.TYPE_RECEIPT) return;
-        long msgId = NullUtil.isLong(msg.recMap().get(MsgType.KEY_RECEIPT_MSG_ID));
-        recMsg.remove(msgId);
+        long msgId = NullUtil.isLong(msg.msgMap().get(MsgType.KEY_M_RECEIPT_MSG_ID));
+        RecCacheEntity rce = recMsg.get(msgId);
+        if (rce == null) L.e("recMsg rce为null==>" + msg);
+
+        if (!rce.msg.isRec())
+            recMsg.remove(msgId);
+        else {
+            int status = NullUtil.isInt(msg.msgMap().get(MsgType.KEY_M_RECEIPT_STATE));
+            if (rce.msg.isRecClient()) {
+                if (status == MsgType.STATE_RECEIPT_SERVER_SUCCESS)
+                    rce.status = 1;
+                else if (status == MsgType.STATE_RECEIPT_CLIENT_SUCCESS)
+                    recMsg.remove(msgId);
+                else
+                    L.e("recMsg==>移除消息异常");
+            } else if (rce.msg.isRecDirect()) {
+                if (status == MsgType.STATE_RECEIPT_SERVER_SUCCESS)
+                    recMsg.remove(msgId);
+            }
+        }
     }
 }
-//

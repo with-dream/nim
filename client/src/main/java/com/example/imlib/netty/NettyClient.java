@@ -78,7 +78,7 @@ public class NettyClient {
     }
 
     private void login() {
-        NimMsg loginMsg = MsgBuild.build(MsgType.TYPE_CMD, Constant.SERVER_UID, MsgLevel.LEVEL_STRICT);
+        NimMsg loginMsg = MsgBuild.build(MsgType.TYPE_CMD, Constant.SERVER_UID);
         loginMsg.msgMap().put(MsgType.KEY_CMD, MsgCmd.LOGIN);
 
         ChannelFuture cmdFuture = SendUtil.sendMsg(IMContext.instance().channel.get(), loginMsg.fromToken, loginMsg);

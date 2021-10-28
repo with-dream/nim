@@ -138,9 +138,43 @@ public class Main {
                         String[] p = strsp.split("/");
 
                         NimMsg msgP = MsgBuild.build(MsgType.TYPE_MSG, p[0]);
-                        msgP.msgMap().put(MsgType.KEY_MSG, p[1]);
+                        msgP.msgMap().put(MsgType.KEY_M_MSG, p[1]);
 
                         IMContext.instance().sendMsg(msgP);
+                        break;
+                    case "sendPRS":
+                        L.p("发送消息 服务器端会回执 uuid/内容");
+                        String strsprs = input.next();
+                        String[] prs = strsprs.split("/");
+
+                        NimMsg msgPRS = MsgBuild.build(MsgType.TYPE_MSG, prs[0]);
+                        msgPRS.msgMap().put(MsgType.KEY_M_MSG, prs[1]);
+                        msgPRS.msgMap().put(MsgType.KEY_UNIFY_M_REC_DIRECT, true);
+
+                        IMContext.instance().sendMsg(msgPRS);
+                        break;
+                    case "sendPRC"://-
+                        L.p("发送消息 客户端端会回执 uuid/内容");
+                        String strsprc = input.next();
+                        String[] prc = strsprc.split("/");
+
+                        NimMsg msgPRC = MsgBuild.build(MsgType.TYPE_MSG, prc[0]);
+                        msgPRC.msgMap().put(MsgType.KEY_M_MSG, prc[1]);
+                        msgPRC.msgMap().put(MsgType.KEY_UNIFY_M_REC_CLIENT, true);
+
+                        IMContext.instance().sendMsg(msgPRC);
+                        break;
+                    case "sendPRCS":
+                        L.p("发送消息 客户端端会回执 uuid/内容");
+                        String strsprcs = input.next();
+                        String[] prcs = strsprcs.split("/");
+
+                        NimMsg msgPRCS = MsgBuild.build(MsgType.TYPE_MSG, prcs[0]);
+                        msgPRCS.msgMap().put(MsgType.KEY_M_MSG, prcs[1]);
+                        msgPRCS.msgMap().put(MsgType.KEY_UNIFY_M_REC_CLIENT, true);
+                        msgPRCS.msgMap().put(MsgType.KEY_UNIFY_M_REC_DIRECT, true);
+
+                        IMContext.instance().sendMsg(msgPRCS);
                         break;
                     case "sendPL":
                         L.p("发送消息 uuid/循环次数/内容");
@@ -150,7 +184,7 @@ public class Main {
                         int count = Integer.parseInt(pl[1]);
                         for (int i = 0; i < count; i++) {
                             NimMsg msgPL = MsgBuild.build(MsgType.TYPE_MSG, pl[0]);
-                            msgPL.msgMap().put(MsgType.KEY_MSG, pl[1]);
+                            msgPL.msgMap().put(MsgType.KEY_M_MSG, pl[1]);
                             IMContext.instance().sendMsg(msgPL);
                             try {
                                 Thread.currentThread().sleep(3);

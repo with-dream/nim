@@ -4,6 +4,9 @@ import com.example.server.netty.MsgBuild;
 import com.example.server.netty.MsgCacheHolder;
 import com.example.server.netty.SendHolder;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import netty.entity.*;
 import org.springframework.stereotype.Component;
 import utils.Constant;
@@ -84,11 +87,10 @@ public class MsgService {
                 //要确保调用顺序
                 //先将超时队列中的消息移除
                 that.sendHolder.checkRecMsg(msg);
-                //再移除多余的消息
-                clearServerKey(msg);
 //                L.e("TYPE_RECEIPT msg==>" + msg);
-                //然后转发
-                that.sendHolder.sendMsg(msg);
+                //然后转发  如果是回执给服务器 则不需要转发
+                if (!Constant.SERVER_UID.equals(msg.to))
+                    that.sendHolder.sendMsg(msg);
                 that.cacheHolder.cacheMsg(msg);
                 break;
             default:
@@ -104,14 +106,8 @@ public class MsgService {
             that.cacheHolder.saveOfflineMsg(msg);
         }
 
-        buildRecMsg(channel, msg, ret);
-    }
-
-    /**
-     * 推送给客户端前 需要把服务器内部用到的消息移除
-     */
-    private void clearServerKey(NimMsg msg) {
-        msg.recMap().remove(MsgType.KEY_UNIFY_SERVICE_MSG_TOKEN);
+        if (msg.msgType != MsgType.TYPE_HEART_PING && msg.msgType != MsgType.TYPE_HEART_PONG)
+            buildRecMsg(channel, msg, ret);
     }
 
     /**
@@ -119,20 +115,20 @@ public class MsgService {
      * 或者消息出现异常情况 如目标用户不在线等
      */
     private void buildRecMsg(Channel channel, NimMsg msg, int status) {
+//        L.p("buildRecMsg isRecDirect==>" + msg.isRecDirect());
         //严格模式 只有消息有回执
-        boolean strict = msg.level == MsgLevel.LEVEL_STRICT && (
-                msg.msgType == MsgType.TYPE_MSG
-                        || msg.msgType == MsgType.TYPE_GROUP
-                        || msg.msgType == MsgType.TYPE_CMD_GROUP
-                        || msg.msgType == MsgType.TYPE_ROOT
-        );
-
-        if (strict || status != MsgType.STATE_RECEIPT_SERVER_SUCCESS) {
+        if (msg.isRecDirect()) {
             NimMsg recMsg = MsgBuild.recMsg(Constant.SERVER_UID, msg.from);
-            recMsg.recMap().put(MsgType.KEY_RECEIPT_TYPE, msg.msgType);
-            recMsg.recMap().put(MsgType.KEY_RECEIPT_MSG_ID, msg.msgId);
-            recMsg.recMap().put(MsgType.KEY_RECEIPT_STATE, MsgType.STATE_RECEIPT_SERVER_SUCCESS);
-            SendUtil.sendMsg(channel, 0, recMsg);
+            recMsg.msgMap().put(MsgType.KEY_M_RECEIPT_TYPE, msg.msgType);
+            recMsg.msgMap().put(MsgType.KEY_M_RECEIPT_MSG_ID, msg.msgId);
+            recMsg.msgMap().put(MsgType.KEY_M_RECEIPT_STATE, status);
+            SendUtil.sendMsg(channel, msg.fromToken, recMsg).addListener(new GenericFutureListener<Future<? super Void>>() {
+                @Override
+                public void operationComplete(Future<? super Void> f) throws Exception {
+                    if (!f.isSuccess() && f.cause() != null)
+                        L.e("buildRecMsg " + f.isSuccess() + "  11  " + f.cause());
+                }
+            });
         }
     }
 }

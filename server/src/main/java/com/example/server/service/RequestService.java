@@ -121,7 +121,7 @@ public class RequestService {
             else if (friendEntity.isFriend)
                 recCode = MsgCmd.REQUEST_FRIEND_FRIEND;
 
-            recMsg.msgMap().put(MsgType.KEY_RECEIPT_EXTRA_CODE, recCode);
+            recMsg.msgMap().put(MsgType.KEY_M_RECEIPT_CMD_EXTRA_CODE, recCode);
 
             return that.sendHolder.sendMsg(recMsg);
         }

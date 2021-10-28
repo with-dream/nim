@@ -5,6 +5,7 @@ import netty.entity.NimMsg;
 public class RecCacheEntity {
     public int tryCount;
     public long unpackTime;
+    public int status;  //1 收到服务端的回执
     public NimMsg msg;
 
     public RecCacheEntity() {

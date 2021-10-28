@@ -1,5 +1,6 @@
 package netty.entity;
 
+import utils.NullUtil;
 import utils.UUIDUtil;
 
 import java.io.Serializable;
@@ -27,8 +28,6 @@ public class NimMsg implements Cloneable, Serializable {
     public long fromToken;
     //消息类型
     public int msgType;
-    //消息等级
-    public int level;
 
     //消息计数
     public long seq;
@@ -45,7 +44,7 @@ public class NimMsg implements Cloneable, Serializable {
     }
 
     public String getGroupId() {
-        return (String) msgMap().get(MsgType.KEY_UNIFY_GROUP_ID);
+        return (String) msgMap().get(MsgType.KEY_UNIFY_M_GROUP_ID);
     }
 
     public Map<Integer, Object> msgMap() {
@@ -73,7 +72,7 @@ public class NimMsg implements Cloneable, Serializable {
     public String newTokenService(boolean save) {
         String token = UUIDUtil.getUid();
         if (save)
-            recMap().put(MsgType.KEY_UNIFY_SERVICE_MSG_TOKEN, token);
+            recMap().put(MsgType.KEY_UNIFY_R_SERVICE_MSG_TOKEN, token);
         return token;
     }
 
@@ -90,7 +89,7 @@ public class NimMsg implements Cloneable, Serializable {
 
     /**
      * map中的对象没有进行深clone 不过目前已经够用了
-     * */
+     */
     public NimMsg copyDeep() {
         NimMsg res = null;
         try {
@@ -125,17 +124,28 @@ public class NimMsg implements Cloneable, Serializable {
 
     /**
      * 判断消息是否需要客户端回执
+     * 回执消息不需要再回执
      */
-    public static boolean isRecMsg(NimMsg msg) {
-        return msg.level == MsgLevel.LEVEL_STRICT
-                || (msg.level == MsgLevel.LEVEL_NORMAL && msg.msgType != MsgType.TYPE_RECEIPT);
+    public boolean isRecClient() {
+        return NullUtil.isTrue(msgMap().get(MsgType.KEY_UNIFY_M_REC_CLIENT))
+                && msgType != MsgType.TYPE_RECEIPT;
+    }
+
+    /**
+     * 是否需要直接回执
+     */
+    public boolean isRecDirect() {
+        return NullUtil.isTrue(msgMap().get(MsgType.KEY_UNIFY_M_REC_DIRECT));
+    }
+
+    public boolean isRec() {
+        return isRecClient() || isRecDirect();
     }
 
     @Override
     public String toString() {
         return "NimMsg{" +
                 "msgType=" + msgType +
-                ", level=" + level +
                 ", from='" + from + '\'' +
                 ", to='" + to + '\'' +
                 ", msgId=" + msgId +

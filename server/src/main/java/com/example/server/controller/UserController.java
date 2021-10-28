@@ -1,8 +1,7 @@
-package com.example.server.user;
+package com.example.server.controller;
 
 import com.example.server.entity.*;
 import com.example.server.redis.RConst;
-import com.example.server.utils.Const;
 import com.example.server.utils.auth.AuthUtil;
 import com.example.server.utils.auth.PassToken;
 import org.apache.commons.lang.StringUtils;

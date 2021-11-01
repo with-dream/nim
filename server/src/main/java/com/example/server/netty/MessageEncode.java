@@ -56,7 +56,7 @@ public class MessageEncode extends MessageToByteEncoder<NimMsgWrap> {
             if (aesEntity == null)
                 throw new RuntimeException("加密错误 msg:" + msg);
 
-            data = AESUtil.encryptAES(data, AESUtil.strKey2SecretKey(aesEntity.aesKey));
+            data = AESUtil.encryptAES(data, AESUtil.strKey2SecretKey(new String(aesEntity.aesKey)));
         }
         if (msg.msgType != MsgType.TYPE_HEART_PING && msg.msgType != MsgType.TYPE_HEART_PONG)
             L.p("s encode==>" + ss);

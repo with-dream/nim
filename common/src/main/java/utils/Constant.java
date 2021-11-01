@@ -5,8 +5,9 @@ import java.util.List;
 
 public class Constant {
     static int test = 0;
-    public static final String LOCAL_IP = "127.0.0.1:808" + test;
-    public static final String NETTY_IP = "127.0.0.1:809" + test;
+    private static final String IP = "192.168.20.46";
+    public static final String LOCAL_IP = IP + ":808" + test;
+    public static final String NETTY_IP = IP + ":809" + test;
     public static final int PORT = 8090 + test;
 
     public static int SUCC = 0;
@@ -55,5 +56,5 @@ public class Constant {
         }
     }
 
-    public static final List<String> SERVER_LIST = Arrays.asList("127.0.0.1:8090");
+    public static final List<String> SERVER_LIST = Arrays.asList(IP + ":8090");
 }

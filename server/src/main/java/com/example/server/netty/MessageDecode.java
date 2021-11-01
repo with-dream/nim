@@ -70,7 +70,7 @@ public class MessageDecode extends ByteToMessageDecoder {
                 L.e("MessageDecode s clientToken==>" + clientToken);
             }
 
-            body = AESUtil.decryptAES(body, AESUtil.strKey2SecretKey(aesEntity.aesKey));
+            body = AESUtil.decryptAES(body, AESUtil.strKey2SecretKey(new String(aesEntity.aesKey)));
         }
 
         String tmp = new String(body);

@@ -36,4 +36,22 @@ public class StrUtil {
     public static boolean isEmpty(String str) {
         return str != null && !str.isEmpty();
     }
+
+
+    public static String byteToHexString(byte[] bytes) {
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < bytes.length; i++) {
+            String strHex = Integer.toHexString(bytes[i]);
+            if (strHex.length() > 3) {
+                sb.append(strHex.substring(6));
+            } else {
+                if (strHex.length() < 2) {
+                    sb.append("0" + strHex);
+                } else {
+                    sb.append(strHex);
+                }
+            }
+        }
+        return sb.toString();
+    }
 }

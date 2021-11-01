@@ -48,16 +48,16 @@ public class UserController {
             //返回rsa公钥
             AESEntity re = new AESEntity();
             KeyPair pair = RSAUtil.getKeyPair();
-            re.privateRSAServerKey = RSAUtil.getPrivateKey(pair);
-            re.publicRSAServerKey = RSAUtil.getPublicKey(pair);
+            re.privateRSAServerKey = RSAUtil.getPrivateKey(pair).getBytes();
+            re.publicRSAServerKey = RSAUtil.getPublicKey(pair).getBytes();
             re.createTime = System.currentTimeMillis();
             RMap<Long, AESEntity> rsaMap = redisson.getMap(RConst.AES_MAP);
             L.p("login ct==>" + clientToken);
             rsaMap.put(clientToken, re);
             //1 将公钥传给客户端
-            res.rsaPublicKey = re.publicRSAServerKey;
+            res.rsaPublicKey = new String(re.publicRSAServerKey);
         }
-
+        L.p("login res==>" + res);
         return loginSuccess ? BaseEntity.succ(res) : BaseEntity.fail();
     }
 
@@ -68,17 +68,18 @@ public class UserController {
         L.p("encrypt1 ct==>" + clientToken);
         AESEntity re = rsaMap.get(clientToken);
         L.p("encrypt1 re==>" + re);
+        L.p("encrypt1 clientKey key==>" + key);
 
         //2 用服务端的私钥解出客户端的公钥
-        PrivateKey privateKey = RSAUtil.string2Privatekey(re.privateRSAServerKey);
-        byte[] clientKey = RSAUtil.privateDecrypt(Base64.getUrlDecoder().decode(key), privateKey);
-        re.publicRSAClientKey = new String(clientKey);
+        PrivateKey privateKey = RSAUtil.string2Privatekey(new String(re.privateRSAServerKey));
+        byte[] clientKey = RSAUtil.privateDecrypt(Base64.getMimeDecoder().decode(key), privateKey);
+        re.publicRSAClientKey = clientKey;
         //3 将aes的秘钥传给客户端
-        re.aesKey = AESUtil.getStrKeyAES();
+        re.aesKey = AESUtil.getStrKeyAES().getBytes();
         rsaMap.put(clientToken, re);
         L.p("s aesKey==>" + rsaMap.get(clientToken).aesKey);
-        PublicKey publicKey = RSAUtil.string2PublicKey(re.publicRSAClientKey);
-        byte[] aesByte = RSAUtil.publicEncrytype(re.aesKey.getBytes(), publicKey);
+        PublicKey publicKey = RSAUtil.string2PublicKey(new String(re.publicRSAClientKey));
+        byte[] aesByte = RSAUtil.publicEncrytype(re.aesKey, publicKey);
         String aes = Base64.getUrlEncoder().encodeToString(aesByte);
         return BaseEntity.succ(aes);
     }

@@ -304,7 +304,7 @@ public class Main {
                     String key = res.data;
 
                     PrivateKey privateKey = RSAUtil.string2Privatekey(IMContext.instance().encrypt.privateRSAClientKey);
-                    byte[] aesKeyB = RSAUtil.privateDecrypt(Base64.getUrlDecoder().decode(key), privateKey);
+                    byte[] aesKeyB = RSAUtil.privateDecrypt(Base64.getDecoder().decode(key), privateKey);
                     IMContext.instance().encrypt.aesKey = new String(aesKeyB);
                     L.p("c aesKey==>" + IMContext.instance().encrypt.aesKey);
                     new Thread(() -> IMContext.instance().connect()).start();

@@ -1,9 +1,20 @@
 package com.example.server.entity;
 
 public class AESEntity {
-    public String privateRSAServerKey;
-    public String publicRSAServerKey;
-    public String publicRSAClientKey;
-    public String aesKey;
+    public byte[] privateRSAServerKey;
+    public byte[] publicRSAServerKey;
+    public byte[] publicRSAClientKey;
+    public byte[] aesKey;
     public long createTime;
+
+    @Override
+    public String toString() {
+        return "AESEntity{" +
+                "privateRSAServerKey='" + privateRSAServerKey + '\'' +
+                ", publicRSAServerKey='" + publicRSAServerKey + '\'' +
+                ", publicRSAClientKey='" + publicRSAClientKey + '\'' +
+                ", aesKey='" + aesKey + '\'' +
+                ", createTime=" + createTime +
+                '}';
+    }
 }

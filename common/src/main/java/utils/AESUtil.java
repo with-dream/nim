@@ -25,7 +25,7 @@ public class AESUtil {
             SecretKey secretKey = keyGen.generateKey();
             String key = byteToHexString(secretKey.getEncoded());
             L.p(key.length() + " secretKey==>" + key);
-            return Base64.getEncoder().encodeToString(secretKey.getEncoded());
+            return Base64.getUrlEncoder().encodeToString(secretKey.getEncoded());
         } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
             e.printStackTrace();
         }
@@ -39,7 +39,7 @@ public class AESUtil {
      * @return SecretKey
      */
     public static SecretKey strKey2SecretKey(String strKey) {
-        byte[] bytes = Base64.getDecoder().decode(strKey);
+        byte[] bytes = Base64.getUrlDecoder().decode(strKey);
         SecretKeySpec secretKey = new SecretKeySpec(bytes, "AES");
         return secretKey;
     }
@@ -88,7 +88,7 @@ public class AESUtil {
 
             // 加密数据
             byte[] encryptAESbytes = AESUtil.encryptAES(content.getBytes("utf-8"), secretKey);
-            System.out.println("加密后的数据经 BASE64 处理之后为：" + Base64.getEncoder().encodeToString(encryptAESbytes));
+            System.out.println("加密后的数据经 BASE64 处理之后为：" + Base64.getUrlEncoder().encodeToString(encryptAESbytes));
             // 解密数据
             String decryptAESStr = new String(AESUtil.decryptAES(encryptAESbytes, secretKey), "utf-8");
             System.out.println("解密后的数据为：" + decryptAESStr);

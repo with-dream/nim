@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.server.mapper.UserMapper">
     <insert id="register" parameterType="com.example.server.entity.UserEntity">
-        insert into user(name, pwd, uuid, registerTime) values (#{name}, #{pwd}, #{uuid}, #{registerTime});
+        insert into user_info(name, pwd, uuid, registerTime) values (#{name}, #{pwd}, #{uuid}, #{registerTime});
     </insert>
 
     <select id="login" resultType="com.example.server.entity.UserCheckEntity"
@@ -11,11 +11,11 @@
     </select>
 
     <select id="checkUser" resultType="int">
-        SELECT count(*) FROM user where uuid = #{uuid};
+        SELECT count(*) FROM user_info where uuid = #{uuid};
     </select>
 
     <select id="userInfo" resultType="com.example.server.entity.UserEntity">
-        SELECT * FROM user where uuid = #{uuid};
+        SELECT * FROM user_info where uuid = #{uuid};
     </select>
 
     <select id="checkFriend" resultType="com.example.server.entity.FriendEntity">

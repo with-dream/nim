@@ -49,7 +49,10 @@ public class RSAUtil {
     public static String getPublicKey(KeyPair keyPair) {
         PublicKey publicKey = keyPair.getPublic();
         byte[] bytes = publicKey.getEncoded();
-        return Base64.getEncoder().encodeToString(bytes);
+        L.p("getPublicKey key==>" + StrUtil.byteToHexString(bytes));
+        String base64 = Base64.getUrlEncoder().encodeToString(bytes);
+        L.p("getPublicKey key base64==>" + base64);
+        return base64;
     }
 
     /**
@@ -61,7 +64,7 @@ public class RSAUtil {
     public static String getPrivateKey(KeyPair keyPair) {
         PrivateKey privateKey = keyPair.getPrivate();
         byte[] bytes = privateKey.getEncoded();
-        return Base64.getEncoder().encodeToString(bytes);
+        return Base64.getUrlEncoder().encodeToString(bytes);
     }
 
     /**
@@ -71,7 +74,7 @@ public class RSAUtil {
      * @return PublicKey
      */
     public static PublicKey string2PublicKey(String pubStr) {
-        byte[] bytes = Base64.getDecoder().decode(pubStr);
+        byte[] bytes = Base64.getUrlDecoder().decode(pubStr);
         X509EncodedKeySpec keySpec = new X509EncodedKeySpec(bytes);
         KeyFactory keyFactory = null;
         try {
@@ -90,7 +93,7 @@ public class RSAUtil {
      * @return PrivateKey
      */
     public static PrivateKey string2Privatekey(String priStr) {
-        byte[] bytes = Base64.getDecoder().decode(priStr);
+        byte[] bytes = Base64.getUrlDecoder().decode(priStr);
         PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(bytes);
         KeyFactory keyFactory = null;
         try {
@@ -198,7 +201,7 @@ public class RSAUtil {
 
             // 公钥加密/私钥解密
             byte[] publicEncryBytes = RSAUtil.publicEncrytype(content.getBytes(), publicKey);
-            System.out.println("公钥加密后的字符串(经BASE64处理)：" + Base64.getEncoder().encodeToString(publicEncryBytes));
+            System.out.println("公钥加密后的字符串(经BASE64处理)：" + Base64.getUrlEncoder().encodeToString(publicEncryBytes));
             byte[] privateDecryBytes = RSAUtil.privateDecrypt(publicEncryBytes, privateKey);
             System.out.println("私钥解密后的原始字符串：" + new String(privateDecryBytes));
 

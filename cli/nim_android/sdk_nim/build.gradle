@@ -55,6 +55,7 @@ dependencies {
 
     api 'io.netty:netty-all:4.1.68.Final'
     api 'com.alibaba:fastjson:1.2.78'
+    api 'com.github.CymChad:BaseRecyclerViewAdapterHelper:3.0.4'
 
     api 'io.reactivex.rxjava3:rxjava:3.0.6'
     api 'io.reactivex.rxjava3:rxandroid:3.0.0'

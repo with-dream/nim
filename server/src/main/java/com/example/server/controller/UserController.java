@@ -98,18 +98,18 @@ public class UserController {
         return res == 1 ? BaseEntity.succ() : BaseEntity.fail();
     }
 
-    @RequestMapping(value = "/getAllFriend")
+    @RequestMapping(value = "/getFriendList")
     @ResponseBody
-    public BaseEntity<List<FriendEntity>> getAllFriend(HttpServletRequest request) {
+    public BaseEntity<List<FriendEntity>> getFriendList(HttpServletRequest request) {
         String uuid = (String) request.getAttribute("uuid");
         L.e("getAttribute==>" + uuid);
         List<FriendEntity> res = userService.getAllFriend(uuid);
         return BaseEntity.succ(res);
     }
 
-    @RequestMapping(value = "/getAllGroup")
+    @RequestMapping(value = "/getGroupList")
     @ResponseBody
-    public BaseEntity<List<GroupInfoEntity>> getAllGroup(HttpServletRequest request) {
+    public BaseEntity<List<GroupInfoEntity>> getGroupList(HttpServletRequest request) {
         String uuid = (String) request.getAttribute("uuid");
         List<GroupInfoEntity> res = userService.getAllGroup(uuid);
         return BaseEntity.succ(res);

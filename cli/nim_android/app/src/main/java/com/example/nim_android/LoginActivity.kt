@@ -14,17 +14,12 @@ import com.example.sdk_nim.entity.UserCheckEntity
 
 import com.google.gson.Gson
 import okhttp3.*
-import org.jetbrains.annotations.NotNull
 import java.io.IOException
 import java.security.KeyPair
 import java.security.PrivateKey
 import java.security.PublicKey
-import com.alibaba.fastjson.JSON
+import com.example.sdk_nim.netty.IMConnCallback
 import com.example.sdk_nim.utils.*
-
-import okhttp3.RequestBody
-import java.nio.charset.Charset
-
 
 class LoginActivity : AppCompatActivity() {
     val gson = Gson()
@@ -35,10 +30,12 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-//        val aa =
-//            "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDAltgi8AliE9ejgwfI2Rmh8qkSW1pT_OGFC1L_Ams8SKFMfR65P16z4G83uytgQQbOFo4MC33Av132z6ek0Ug0So4r6osZkMczSc8Td_heBO74Q1XEY_RIaWvGL-4StmJwqDGAJo6bEPlTvu5WvU250hVyctczXuW6YzVizcFXLwIDAQAB"
-//        val bb = JBase64.getDecoder().decode(aa);
-//        L.p("bb==>$bb")
+        IMContext.instance().callback = IMConnCallback {
+            L.p("LoginActivity==>$it");
+            if (it == com.example.sdk_nim.utils.Constant.SUCC) {
+                startActivity(Intent(this@LoginActivity, FriendActivity::class.java))
+            }
+        }
     }
 
     fun onclick(v: View) {
@@ -79,6 +76,7 @@ class LoginActivity : AppCompatActivity() {
                     gson.fromJson(str, object : TypeToken<BaseEntity<UserCheckEntity?>?>() {}.type)
                 if (res.success()) {
                     userEntity = res.data
+                    App.app.entity = userEntity;
                     L.p("resEntity==>" + userEntity.toString())
                     IMContext.instance().setIpList(userEntity?.serviceList);
 //                    IMContext.instance().setIpList(Arrays.asList(Constant.NETTY_IP))

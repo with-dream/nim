@@ -3,20 +3,15 @@ package com.example.nim_android
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Base64
 import android.view.View
 import com.example.nim_android.databinding.ActivityLoginBinding
-import com.example.sdk_nim.utils.L
 
 import com.example.sdk_nim.netty.IMContext
 
 import com.example.sdk_nim.entity.BaseEntity
 import com.google.gson.reflect.TypeToken
 import com.example.sdk_nim.entity.UserCheckEntity
-import com.example.sdk_nim.utils.RSAUtil
-import com.example.sdk_nim.utils.UUIDUtil
 
-import com.example.sdk_nim.utils.StrUtil
 import com.google.gson.Gson
 import okhttp3.*
 import org.jetbrains.annotations.NotNull
@@ -25,6 +20,7 @@ import java.security.KeyPair
 import java.security.PrivateKey
 import java.security.PublicKey
 import com.alibaba.fastjson.JSON
+import com.example.sdk_nim.utils.*
 
 import okhttp3.RequestBody
 import java.nio.charset.Charset
@@ -38,6 +34,11 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+//        val aa =
+//            "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDAltgi8AliE9ejgwfI2Rmh8qkSW1pT_OGFC1L_Ams8SKFMfR65P16z4G83uytgQQbOFo4MC33Av132z6ek0Ug0So4r6osZkMczSc8Td_heBO74Q1XEY_RIaWvGL-4StmJwqDGAJo6bEPlTvu5WvU250hVyctczXuW6YzVizcFXLwIDAQAB"
+//        val bb = JBase64.getDecoder().decode(aa);
+//        L.p("bb==>$bb")
     }
 
     fun onclick(v: View) {
@@ -78,15 +79,6 @@ class LoginActivity : AppCompatActivity() {
                     gson.fromJson(str, object : TypeToken<BaseEntity<UserCheckEntity?>?>() {}.type)
                 if (res.success()) {
                     userEntity = res.data
-                    L.p("login key base" + res.data.rsaPublicKey)
-                    L.p(
-                        "login key" +
-                                Base64.decode(
-                                    res.data.rsaPublicKey,
-                                    Base64.URL_SAFE
-                                )
-
-                    )
                     L.p("resEntity==>" + userEntity.toString())
                     IMContext.instance().setIpList(userEntity?.serviceList);
 //                    IMContext.instance().setIpList(Arrays.asList(Constant.NETTY_IP))
@@ -95,14 +87,16 @@ class LoginActivity : AppCompatActivity() {
                     IMContext.instance().encrypt.privateRSAClientKey = RSAUtil.getPrivateKey(pair)
                     IMContext.instance().encrypt.publicRSAClientKey = RSAUtil.getPublicKey(pair)
                     IMContext.instance().encrypt.publicRSAServerKey = userEntity?.rsaPublicKey
+
                     val publicKey: PublicKey =
                         RSAUtil.string2PublicKey(IMContext.instance().encrypt.publicRSAServerKey)
-                    val pubClientKeyByte: ByteArray = RSAUtil.publicEncrytype(
+                    var pubClientKeyByte: ByteArray = RSAUtil.publicEncrytype(
                         IMContext.instance().encrypt.publicRSAClientKey.toByteArray(),
                         publicKey
                     )
+
                     var pubClientKey: String =
-                        Base64.encodeToString(pubClientKeyByte, Base64.URL_SAFE)
+                        JBase64.getEncoder().encodeToString(pubClientKeyByte)
                     encrypt1(pubClientKey)
                 } else {
                     L.p("==>登录失败")
@@ -119,6 +113,7 @@ class LoginActivity : AppCompatActivity() {
             .add("key", key).build()
         val request: Request = Request.Builder()
             .url("http://${Constant.LOCAL_IP}/user/encrypt1")
+            .addHeader("token", userEntity!!.token)
             .post(body)
             .build()
         App.app.okHttpClient.newCall(request).enqueue(object : Callback {
@@ -136,7 +131,7 @@ class LoginActivity : AppCompatActivity() {
                     val privateKey: PrivateKey =
                         RSAUtil.string2Privatekey(IMContext.instance().encrypt.privateRSAClientKey)
                     val aesKeyB: ByteArray =
-                        RSAUtil.privateDecrypt(Base64.decode(key, Base64.URL_SAFE), privateKey)
+                        RSAUtil.privateDecrypt(JBase64.getDecoder().decode(key), privateKey)
                     IMContext.instance().encrypt.aesKey = String(aesKeyB)
                     L.p("c aesKey==>" + IMContext.instance().encrypt.aesKey)
                     Thread { IMContext.instance().connect() }.start()

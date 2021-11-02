@@ -1,6 +1,7 @@
 package com.example.imlib.netty;
 
 import java.lang.ref.WeakReference;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -45,7 +46,10 @@ public class NettyClient {
                 continue;
             String[] ip = ipport.split(":");
             try {
+                L.p("ip==>" + Arrays.toString(ip));
+
                 future = bootstrap.connect(ip[0], Integer.parseInt(ip[1])).sync();
+                L.e("ff==>" + future.cause());
                 if (future.isSuccess()) {
                     reconnCount = 0;
                     IMContext.instance().channel = new WeakReference<>(future.channel());

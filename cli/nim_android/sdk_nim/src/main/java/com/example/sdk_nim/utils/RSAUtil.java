@@ -1,7 +1,5 @@
 package com.example.sdk_nim.utils;
 
-import android.util.Base64;
-
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 
@@ -20,6 +18,7 @@ import java.security.spec.X509EncodedKeySpec;
 public class RSAUtil {
     public static final String CHARSET = "UTF-8";
     private static final String RSA_FLAG = "RSA";
+    private static final String CIPHER_FLAG = "RSA/ECB/PKCS1Padding";
 
     /**
      * 生成密钥对：密钥对中包含公钥和私钥
@@ -50,7 +49,7 @@ public class RSAUtil {
     public static String getPublicKey(KeyPair keyPair) {
         PublicKey publicKey = keyPair.getPublic();
         byte[] bytes = publicKey.getEncoded();
-        return Base64.encodeToString(bytes, Base64.URL_SAFE);
+        return JBase64.getEncoder().encodeToString(bytes);
     }
 
     /**
@@ -62,7 +61,7 @@ public class RSAUtil {
     public static String getPrivateKey(KeyPair keyPair) {
         PrivateKey privateKey = keyPair.getPrivate();
         byte[] bytes = privateKey.getEncoded();
-        return Base64.encodeToString(bytes, Base64.URL_SAFE);
+        return JBase64.getEncoder().encodeToString(bytes);
     }
 
     /**
@@ -73,7 +72,7 @@ public class RSAUtil {
      */
     public static PublicKey string2PublicKey(String pubStr) {
         L.p("string2PublicKey key base64==>" + pubStr);
-        byte[] bytes = Base64.decode(pubStr, Base64.URL_SAFE);
+        byte[] bytes = JBase64.getDecoder().decode(pubStr);
         L.p("string2PublicKey key==>" + new String(bytes));
         X509EncodedKeySpec keySpec = new X509EncodedKeySpec(bytes);
         KeyFactory keyFactory = null;
@@ -93,7 +92,7 @@ public class RSAUtil {
      * @return PrivateKey
      */
     public static PrivateKey string2Privatekey(String priStr) {
-        byte[] bytes = Base64.decode(priStr, Base64.URL_SAFE);
+        byte[] bytes = JBase64.getDecoder().decode(priStr);
         PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(bytes);
         KeyFactory keyFactory = null;
         try {
@@ -113,10 +112,14 @@ public class RSAUtil {
      * @param publicKey 加密所需的公钥对象 PublicKey
      * @return 加密后的字节数组 byte[]
      */
+    public static byte[] publicEncrytype(String content, PublicKey publicKey) {
+        return publicEncrytype(content.getBytes(), publicKey);
+    }
+
     public static byte[] publicEncrytype(byte[] content, PublicKey publicKey) {
         Cipher cipher = null;
         try {
-            cipher = Cipher.getInstance(RSA_FLAG);
+            cipher = Cipher.getInstance(CIPHER_FLAG);
             cipher.init(Cipher.ENCRYPT_MODE, publicKey);
 //            return cipher.doFinal(content);
             return rsaSplitCodec(cipher, Cipher.ENCRYPT_MODE, content, 128);
@@ -137,7 +140,7 @@ public class RSAUtil {
     public static byte[] privateDecrypt(byte[] content, PrivateKey privateKey) {
         Cipher cipher = null;
         try {
-            cipher = Cipher.getInstance(RSA_FLAG);
+            cipher = Cipher.getInstance(CIPHER_FLAG);
             cipher.init(Cipher.DECRYPT_MODE, privateKey);
 //            return cipher.doFinal(content);
             return rsaSplitCodec(cipher, Cipher.DECRYPT_MODE, content, 128);
@@ -201,7 +204,7 @@ public class RSAUtil {
 
             // 公钥加密/私钥解密
             byte[] publicEncryBytes = RSAUtil.publicEncrytype(content.getBytes(), publicKey);
-            System.out.println("公钥加密后的字符串(经BASE64处理)：" + Base64.encodeToString(publicEncryBytes, Base64.URL_SAFE));
+            System.out.println("公钥加密后的字符串(经BASE64处理)：" + JBase64.getEncoder().encodeToString(publicEncryBytes));
             byte[] privateDecryBytes = RSAUtil.privateDecrypt(publicEncryBytes, privateKey);
             System.out.println("私钥解密后的原始字符串：" + new String(privateDecryBytes));
 

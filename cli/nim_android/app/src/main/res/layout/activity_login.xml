@@ -14,7 +14,8 @@
         android:layout_height="50dp"
         android:layout_marginTop="30dp"
         android:gravity="center_vertical"
-        android:hint="用户名" />
+        android:hint="用户名"
+        android:text="11" />
 
     <EditText
         android:id="@+id/pwd"
@@ -22,7 +23,8 @@
         android:layout_height="50dp"
         android:layout_marginTop="30dp"
         android:gravity="center_vertical"
-        android:hint="密码" />
+        android:hint="密码"
+        android:text="111" />
 
     <TextView
         android:id="@+id/login"

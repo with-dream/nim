@@ -10,6 +10,7 @@ import com.example.sdk_nim.utils.MsgBuild;
 import com.example.sdk_nim.utils.StrUtil;
 
 import java.lang.ref.WeakReference;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -44,10 +45,11 @@ public class NettyClient {
                 .handler(new NettyClientInitializer());
 
         ChannelFuture future = null;
-        for (String ipport : ipList) {
+        for (String ipport : ipList) {//TODO 如果返回多个url 会连接多个客户端
             if (StrUtil.isEmpty(ipport) || !ipport.contains(":"))
                 continue;
             String[] ip = ipport.split(":");
+            L.p("ip info==>" + Arrays.toString(ip));
             try {
                 future = bootstrap.connect(ip[0], Integer.parseInt(ip[1])).sync();
                 if (future.isSuccess()) {

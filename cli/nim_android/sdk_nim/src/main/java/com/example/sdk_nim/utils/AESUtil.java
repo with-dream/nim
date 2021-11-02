@@ -1,7 +1,5 @@
 package com.example.sdk_nim.utils;
 
-import android.util.Base64;
-
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -28,7 +26,7 @@ public class AESUtil {
             SecretKey secretKey = keyGen.generateKey();
             String key = byteToHexString(secretKey.getEncoded());
             L.p(key.length() + " secretKey==>" + key);
-            return Base64.encodeToString(secretKey.getEncoded(), Base64.URL_SAFE);
+            return JBase64.getEncoder().encodeToString(secretKey.getEncoded());
         } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
             e.printStackTrace();
         }
@@ -42,7 +40,7 @@ public class AESUtil {
      * @return SecretKey
      */
     public static SecretKey strKey2SecretKey(String strKey) {
-        byte[] bytes = Base64.decode(strKey, Base64.URL_SAFE);
+        byte[] bytes = JBase64.getDecoder().decode(strKey);
         SecretKeySpec secretKey = new SecretKeySpec(bytes, "AES");
         return secretKey;
     }
@@ -91,7 +89,7 @@ public class AESUtil {
 
             // 加密数据
             byte[] encryptAESbytes = AESUtil.encryptAES(content.getBytes("utf-8"), secretKey);
-            System.out.println("加密后的数据经 BASE64 处理之后为：" + Base64.encodeToString(encryptAESbytes, Base64.URL_SAFE));
+            System.out.println("加密后的数据经 BASE64 处理之后为：" + JBase64.getEncoder().encodeToString(encryptAESbytes));
             // 解密数据
             String decryptAESStr = new String(AESUtil.decryptAES(encryptAESbytes, secretKey), "utf-8");
             System.out.println("解密后的数据为：" + decryptAESStr);

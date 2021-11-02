@@ -272,7 +272,7 @@ public class Main {
 
                     PublicKey publicKey = RSAUtil.string2PublicKey(IMContext.instance().encrypt.publicRSAServerKey);
                     byte[] pubClientKeyByte = RSAUtil.publicEncrytype(IMContext.instance().encrypt.publicRSAClientKey.getBytes(), publicKey);
-                    String pubClientKey = Base64.getUrlEncoder().encodeToString(pubClientKeyByte);
+                    String pubClientKey = Base64.getEncoder().encodeToString(pubClientKeyByte);
                     encrypt1(pubClientKey);
                 } else {
                     L.p("==>登录失败");
@@ -284,9 +284,14 @@ public class Main {
 
     private void encrypt1(String key) {
         L.p("encrypt1 ct==>" + IMContext.instance().clientToken);
+        FormBody body = new FormBody.Builder()
+                .add("uuid", userEntity.uuid)
+                .add("clientToken", IMContext.instance().clientToken + "")
+                .add("key", key).build();
         Request request = new Request.Builder()
-                .url(String.format("http://%s/user/encrypt1?uuid=%s&clientToken=%d&key=%s", Constant.LOCAL_IP, userEntity.uuid, IMContext.instance().clientToken, key))
-                .get()
+                .url(String.format("http://%s/user/encrypt1", Constant.LOCAL_IP))
+                .post(body)
+                .addHeader("token", userEntity.token)
                 .build();
 
         okHttpClient.newCall(request).enqueue(new Callback() {

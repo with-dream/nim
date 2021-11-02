@@ -37,7 +37,8 @@ public class ServerApplication {
 
         SpringApplication.run(ServerApplication.class, args);
         NettyServer nettyServer = new NettyServer();
-        nettyServer.start(new InetSocketAddress("127.0.0.1", port));
+        L.p("nettyServer.start port==>" + port);
+        nettyServer.start(port);
     }
 
     @Bean

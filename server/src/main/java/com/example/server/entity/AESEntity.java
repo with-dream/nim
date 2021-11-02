@@ -1,10 +1,12 @@
 package com.example.server.entity;
 
-public class AESEntity {
-    public byte[] privateRSAServerKey;
-    public byte[] publicRSAServerKey;
-    public byte[] publicRSAClientKey;
-    public byte[] aesKey;
+import entity.Entity;
+
+public class AESEntity extends Entity {
+    public String privateRSAServerKey;
+    public String publicRSAServerKey;
+    public String publicRSAClientKey;
+    public String aesKey;
     public long createTime;
 
     @Override

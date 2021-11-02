@@ -49,9 +49,7 @@ public class RSAUtil {
     public static String getPublicKey(KeyPair keyPair) {
         PublicKey publicKey = keyPair.getPublic();
         byte[] bytes = publicKey.getEncoded();
-        L.p("getPublicKey key==>" + StrUtil.byteToHexString(bytes));
-        String base64 = Base64.getUrlEncoder().encodeToString(bytes);
-        L.p("getPublicKey key base64==>" + base64);
+        String base64 = Base64.getEncoder().encodeToString(bytes);
         return base64;
     }
 
@@ -64,7 +62,7 @@ public class RSAUtil {
     public static String getPrivateKey(KeyPair keyPair) {
         PrivateKey privateKey = keyPair.getPrivate();
         byte[] bytes = privateKey.getEncoded();
-        return Base64.getUrlEncoder().encodeToString(bytes);
+        return Base64.getEncoder().encodeToString(bytes);
     }
 
     /**
@@ -74,7 +72,7 @@ public class RSAUtil {
      * @return PublicKey
      */
     public static PublicKey string2PublicKey(String pubStr) {
-        byte[] bytes = Base64.getUrlDecoder().decode(pubStr);
+        byte[] bytes = Base64.getDecoder().decode(pubStr);
         X509EncodedKeySpec keySpec = new X509EncodedKeySpec(bytes);
         KeyFactory keyFactory = null;
         try {
@@ -93,7 +91,7 @@ public class RSAUtil {
      * @return PrivateKey
      */
     public static PrivateKey string2Privatekey(String priStr) {
-        byte[] bytes = Base64.getUrlDecoder().decode(priStr);
+        byte[] bytes = Base64.getDecoder().decode(priStr);
         PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(bytes);
         KeyFactory keyFactory = null;
         try {
@@ -184,8 +182,10 @@ public class RSAUtil {
     }
 
     public static void main(String[] args) {
-        String content = "abcdefg456+-=";   // 明文内容
-        System.out.println("原始字符串是：" + content);
+//        String text = "abcdefg456+-=";   // 明文内容
+        String text = "jIMPrizRW+wCZOy4zE8R/8x+DTwXh2eik+a/jYHHxUL3uzH8SX9v8WXmqUec+RPRqPN9V7wkEByFIL5QcBlPU97x8f9COGZIxaPqnDSX3puMvTCMk0sqPYw31HXjejJM6MvaONcQAdWuRexrwEAiCVLTqvaTBFOs+gOzvrs3yJ8MLdz+xakuyl6lKyARbGtGToiOzdSr/jqPW/SLnV2h70bQzLK3kGOLR08wJiaDANOMZ59jlJEqAUR58aargcF6hdBZQmn5DKXNGQvA5r2gBP6Gk0utd6b7Sfdgfnsqb+gfGL8XW+ueKCHB7AovVjWgjt1ntjxYhOAyh0nGiZ16jQ==";
+        byte[] content = Base64.getEncoder().encode(text.getBytes());
+        System.out.println("原始字符串是：" + text);
         try {
             // 获得密钥对
             KeyPair keyPair = RSAUtil.getKeyPair();
@@ -200,13 +200,17 @@ public class RSAUtil {
             PublicKey publicKey = RSAUtil.string2PublicKey(publicKeyStr);
 
             // 公钥加密/私钥解密
-            byte[] publicEncryBytes = RSAUtil.publicEncrytype(content.getBytes(), publicKey);
-            System.out.println("公钥加密后的字符串(经BASE64处理)：" + Base64.getUrlEncoder().encodeToString(publicEncryBytes));
-            byte[] privateDecryBytes = RSAUtil.privateDecrypt(publicEncryBytes, privateKey);
+            byte[] publicEncryBytes = RSAUtil.publicEncrytype(content, publicKey);
+            String baseContent = Base64.getEncoder().encodeToString(publicEncryBytes);
+            System.out.println("公钥加密后的字符串(经BASE64处理)：" + Base64.getEncoder().encodeToString(publicEncryBytes));
+
+            byte[] en = Base64.getDecoder().decode(baseContent);
+            byte[] privateDecryBytes = RSAUtil.privateDecrypt(en, privateKey);
             System.out.println("私钥解密后的原始字符串：" + new String(privateDecryBytes));
 
-            String privateDecryStr = new String(privateDecryBytes, "utf-8");
-            if (content.equals(privateDecryStr)) {
+            String privateDecryStr = new String(Base64.getDecoder().decode(privateDecryBytes), "utf-8");
+            System.out.println("私钥解密后的原始字符串：" + privateDecryStr);
+            if (text.equals(privateDecryStr)) {
                 System.out.println("测试通过！");
             } else {
                 System.out.println("测试未通过！");

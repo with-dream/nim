@@ -22,6 +22,37 @@ import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.*;
+/**
+ *
+ * 1 注册
+ * 2 登录
+ * 3 登出
+ * 一、 好友
+ * 1 好友列表
+ * 2 添加好友
+ * 3 删除好友
+ * 4 拉黑
+ * 5 取消拉黑
+ * 6 备注
+ * 7 聊天背景图
+ * 8 置顶
+ * 二、群成员
+ * 1 群列表
+ * 2 加群
+ * 3 退群
+ * 4 修改群名片
+ * 5 群成员列表
+ * 三、群主
+ * 1 创建群
+ * 2 解散群
+ * 3 设置群管理
+ * 4 取消群管理
+ * 5 全员禁言
+ * 四、群管理
+ * 1 剔除成员
+ * 2 禁言
+ * 3 加群请求处理
+ * */
 
 @RestController
 @RequestMapping("/user")
@@ -31,6 +62,19 @@ public class UserController {
 
     @Resource
     RedissonClient redisson;
+
+    @PassToken
+    @RequestMapping(value = "/register")
+    @ResponseBody
+    public BaseEntity register(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd) {
+        UserEntity userEntity = new UserEntity();
+        userEntity.name = name;
+        userEntity.pwd = pwd;
+        userEntity.uuid = UUIDUtil.getUid();
+        userEntity.registerTime = new Date();
+        int res = userService.register(userEntity);
+        return res == 1 ? BaseEntity.succ() : BaseEntity.fail();
+    }
 
     @PassToken
     @RequestMapping(value = "/login")
@@ -60,8 +104,8 @@ public class UserController {
         return loginSuccess ? BaseEntity.succ(res) : BaseEntity.fail();
     }
 
-    @RequestMapping(value = "/encrypt1")
-    public BaseEntity<String> encrypt1(@RequestParam(value = "uuid") String uuid, @RequestParam(value = "clientToken") long clientToken, @RequestParam(value = "key") String key) {
+    @RequestMapping(value = "/encrypt")
+    public BaseEntity<String> encrypt(@RequestParam(value = "clientToken") long clientToken, @RequestParam(value = "key") String key) {
         RMap<Long, AESEntity> rsaMap = redisson.getMap(RConst.AES_MAP);
         AESEntity re = rsaMap.get(clientToken);
 
@@ -85,17 +129,13 @@ public class UserController {
         return "";
     }
 
-    @PassToken
-    @RequestMapping(value = "/register")
+    @RequestMapping(value = "/addFriend")
     @ResponseBody
-    public BaseEntity register(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd) {
-        UserEntity userEntity = new UserEntity();
-        userEntity.name = name;
-        userEntity.pwd = pwd;
-        userEntity.uuid = UUIDUtil.getUid();
-        userEntity.registerTime = new Date();
-        int res = userService.register(userEntity);
-        return res == 1 ? BaseEntity.succ() : BaseEntity.fail();
+    public BaseEntity<List<FriendEntity>> addFriend(HttpServletRequest request) {
+        String uuid = (String) request.getAttribute("uuid");
+        L.e("getAttribute==>" + uuid);
+        List<FriendEntity> res = userService.getAllFriend(uuid);
+        return BaseEntity.succ(res);
     }
 
     @RequestMapping(value = "/getFriendList")
@@ -107,24 +147,4 @@ public class UserController {
         return BaseEntity.succ(res);
     }
 
-    @RequestMapping(value = "/getGroupList")
-    @ResponseBody
-    public BaseEntity<List<GroupInfoEntity>> getGroupList(HttpServletRequest request) {
-        String uuid = (String) request.getAttribute("uuid");
-        List<GroupInfoEntity> res = userService.getAllGroup(uuid);
-        return BaseEntity.succ(res);
-    }
-
-    @RequestMapping(value = "/createGroup")
-    @ResponseBody
-    public BaseEntity<GroupInfoEntity> createGroup(@RequestParam(value = "groupName") String groupName, HttpServletRequest request) {
-        String uuid = (String) request.getAttribute("uuid");
-        GroupInfoEntity groupEntity = new GroupInfoEntity();
-        groupEntity.groupId = UUIDUtil.getUid();
-        groupEntity.uuid = uuid;
-        groupEntity.name = groupName;
-        groupEntity.memberCount = 1;
-        int res = userService.createGroup(groupEntity);
-        return res == 1 ? BaseEntity.succ(groupEntity) : BaseEntity.fail();
-    }
 }

@@ -21,14 +21,6 @@ public class UserService {
     @Resource
     SendHolder sendHolder;
 
-    public void init() {
-        sendHolder.setGroupMember((groupId) -> {
-            Set<String> uuids = new HashSet<>();
-            this.getGroupMembers(groupId).forEach(it -> uuids.add(it.uuid));
-            return uuids;
-        });
-    }
-
     public int register(UserEntity userEntity) {
         return userMapper.register(userEntity);
     }
@@ -65,69 +57,5 @@ public class UserService {
 
     public List<FriendEntity> getAllFriend(String uuid) {
         return userMapper.getAllFriend(uuid);
-    }
-
-    public List<GroupInfoEntity> getAllGroup(String uuid) {
-        return userMapper.getAllGroup(uuid);
-    }
-
-    public GroupInfoEntity getGroupInfo(String groupId) {
-        return userMapper.getGroupInfo(groupId);
-    }
-
-    //TODO 需要更新群成员数量
-    public int addGroupMember(GroupMemberEntity memberEntity) {
-        int res = userMapper.addGroupMember(memberEntity);
-        return res;
-    }
-
-    /**
-     * @param type 退群 踢出群
-     */
-    public int delGroupMember(GroupMemberEntity memberEntity, int type) {
-        int role = userMapper.checkGroupRole(memberEntity);
-        if (role == GroupMemberEntity.OWNER) {
-            return -1;
-        }
-        int res = 0;
-        if (type == 1)
-            res = userMapper.delGroupMember(memberEntity);
-        return res;
-    }
-
-    public List<GroupMemberEntity> getGroupMembers(String groupId) {
-        return userMapper.getGroupMembers(groupId);
-    }
-
-    @Transactional
-    public int createGroup(GroupInfoEntity groupEntity) {
-        int res = userMapper.createGroup(groupEntity);
-
-        GroupMemberEntity memberEntity = new GroupMemberEntity();
-        memberEntity.groupId = groupEntity.groupId;
-        memberEntity.uuid = groupEntity.uuid;
-        memberEntity.role = GroupMemberEntity.OWNER;
-        memberEntity.level = 0;
-        addGroupMember(memberEntity);
-        return res;
-    }
-
-    /**
-     * TODO 需要回滚操作 不完善
-     */
-    @Transactional
-    public int delGroup(GroupInfoEntity groupEntity) {
-        List<GroupMemberEntity> memList = getGroupMembers(groupEntity.groupId);
-        for (GroupMemberEntity gmm : memList) {
-            int res = userMapper.delGroupMember(gmm);
-            if (res != 1) {
-                return -1;
-            }
-        }
-        return userMapper.delGroup(groupEntity);
-    }
-
-    public boolean checkGroup(String groupId) {
-        return true;
     }
 }

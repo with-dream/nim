@@ -1,40 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.example.server.mapper.UserMapper">
-    <insert id="register" parameterType="com.example.server.entity.UserEntity">
-        insert into user_info(name, pwd, uuid, registerTime) values (#{name}, #{pwd}, #{uuid}, #{registerTime});
-    </insert>
-
-    <select id="login" resultType="com.example.server.entity.UserCheckEntity"
-            parameterType="com.example.server.entity.UserEntity">
-        SELECT * FROM user_info where name=#{name} and pwd=#{pwd};
-    </select>
-
-    <select id="checkUser" resultType="int">
-        SELECT count(*) FROM user_info where uuid = #{uuid};
-    </select>
-
-    <select id="userInfo" resultType="com.example.server.entity.UserEntity">
-        SELECT * FROM user_info where uuid = #{uuid};
-    </select>
-
-    <select id="friendList" resultType="com.example.server.entity.FriendInfoEntity" parameterType="java.lang.String">
-        SELECT * FROM friend_info where userId = #{uuid} and isBlock = false;
-    </select>
-
-    <select id="checkFriend" resultType="com.example.server.entity.FriendEntity">
-        SELECT * FROM friend_info where user_id = #{userId} and friend_id = #{friendId};
-    </select>
-
-    <insert id="addFriend" parameterType="com.example.server.entity.FriendEntity">
-        insert into friend(user_id, friend_id, status, user_info, friend_info)
-        values(#{userId}, #{friendId}, #{status}, #{userInfo}, #{friendInfo});
-    </insert>
-
-    <update id="delFriend" parameterType="com.example.server.entity.FriendEntity">
-        update friend set status=#{status} where user_id = #{userId} and friend_id = #{friendId};
-    </update>
-
+<mapper namespace="com.example.server.mapper.GroupMapper">
     <select id="getGroupMembers" resultType="com.example.server.entity.GroupMemberEntity"
             parameterType="java.lang.String">
         SELECT * FROM group_member where groupId= #{groupId};

@@ -22,18 +22,26 @@
         SELECT * FROM friend_info where userId = #{uuid} and isBlock = false;
     </select>
 
-    <select id="checkFriend" resultType="com.example.server.entity.FriendEntity">
-        SELECT * FROM friend_info where user_id = #{userId} and friend_id = #{friendId};
+    <select id="isFriend" resultType="boolean">
+        SELECT isFriend FROM friend_info where userId = #{userId} and friendId = #{friendId};
     </select>
 
-    <insert id="addFriend" parameterType="com.example.server.entity.FriendEntity">
-        insert into friend(user_id, friend_id, status, user_info, friend_info)
+    <insert id="addFriend" parameterType="com.example.server.entity.FriendInfoEntity">
+        insert into friend_info(userId, friendId, status, user_info, friend_info)
         values(#{userId}, #{friendId}, #{status}, #{userInfo}, #{friendInfo});
     </insert>
 
     <update id="delFriend" parameterType="com.example.server.entity.FriendEntity">
         update friend set status=#{status} where user_id = #{userId} and friend_id = #{friendId};
     </update>
+
+
+
+
+
+
+
+
 
     <select id="getGroupMembers" resultType="com.example.server.entity.GroupMemberEntity"
             parameterType="java.lang.String">

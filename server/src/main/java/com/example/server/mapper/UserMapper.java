@@ -15,29 +15,20 @@ public interface UserMapper {
 
     int checkUser(String uuid);
 
-    FriendEntity checkFriend(@Param(value = "userId") String userId, @Param(value = "friendId") String friendId);
+    UserEntity userInfo(String uuid);
 
-    int addFriend(FriendEntity friendEntity);
+    FriendEntity checkFriend(FriendEntity friendEntity);
 
-    int delFriend(FriendEntity friendEntity);
+    List<FriendInfoEntity> friendList(@Param(value = "uuid") String uuid);
 
-    List<FriendEntity> getAllFriend(@Param(value = "uuid") String uuid);
+    boolean isFriend(FriendInfoEntity friendEntity);
 
-    int addGroupMember(GroupMemberEntity memberEntity);
+    int addFriend(FriendInfoEntity friendEntity);
 
-    int delGroupMember(GroupMemberEntity memberEntity);
+    int delFriend(FriendInfoEntity friendEntity);
 
-    List<GroupMemberEntity> getGroupMembers(@Param(value = "groupId") String groupId);
+    int blockFriend(FriendInfoEntity friendEntity);
 
-    int checkGroupRole(GroupMemberEntity memberEntity);
+    int delBlockFriend(FriendInfoEntity friendEntity);
 
-    GroupInfoEntity getGroupInfo(@Param(value = "groupId") String groupId);
-
-    int createGroup(GroupInfoEntity groupEntity);
-
-    int delGroup(GroupInfoEntity groupEntity);
-
-    List<GroupInfoEntity> getAllGroup(@Param(value = "uuid") String uuid);
-
-    UserEntity userInfo(@Param(value = "uuid") String uuid);
 }

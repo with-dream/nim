@@ -27,13 +27,23 @@
     </select>
 
     <insert id="addFriend" parameterType="com.example.server.entity.FriendInfoEntity">
-        insert into friend_info(userId, friendId, status, user_info, friend_info)
-        values(#{userId}, #{friendId}, #{status}, #{userInfo}, #{friendInfo});
+        insert into friend_info(userId, friendId, isFriend, remark, stick, insertTime)
+        values(#{userId}, #{friendId}, #{isFriend}, #{remark}, #{stick}, #{insertTime});
     </insert>
 
-    <update id="delFriend" parameterType="com.example.server.entity.FriendEntity">
-        update friend set status=#{status} where user_id = #{userId} and friend_id = #{friendId};
+    <update id="delFriend" parameterType="com.example.server.entity.FriendInfoEntity">
+        update friend_info set isFriend=false where user_id = #{userId} and friend_id = #{friendId};
     </update>
+
+    <update id="blockFriend" parameterType="com.example.server.entity.FriendInfoEntity">
+        update friend_info set isBlock=true where user_id = #{userId} and friend_id = #{friendId};
+    </update>
+
+    <update id="delBlockFriend" parameterType="com.example.server.entity.FriendInfoEntity">
+        update friend_info set isBlock=false where user_id = #{userId} and friend_id = #{friendId};
+    </update>
+
+
 
 
 

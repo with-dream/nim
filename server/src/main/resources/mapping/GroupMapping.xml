@@ -1,38 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.server.mapper.GroupMapper">
-    <select id="getGroupMembers" resultType="com.example.server.entity.GroupMemberEntity"
-            parameterType="java.lang.String">
-        SELECT * FROM group_member where groupId= #{groupId};
+    <select id="groupList" resultType="com.example.server.entity.GroupInfoEntity">
+        SELECT * FROM group_info where uuid = #{uuid};
     </select>
 
-    <insert id="addGroupMember" parameterType="com.example.server.entity.GroupMemberEntity">
-        insert into group_member(uuid, groupId, role, level, insertTime, lastTime) values(#{uuid}, #{groupId}, #{role}, #{level}, #{insertTime}, #{lastTime});
+    <insert id="createGroup" parameterType="com.example.server.entity.GroupInfoEntity">
+        insert into group_info(name, groupId, memberCount, createTime) values(#{name}, #{groupId}, #{memberCount}, #{createTime});
     </insert>
 
-    <delete id="delGroupMember" parameterType="com.example.server.entity.GroupMemberEntity">
+    <delete id="delGroup">
+        delete from group_info where groupId=#{groupId};
+    </delete>
+
+    <select id="getGroupInfo" resultType="com.example.server.entity.GroupInfoEntity">
+        SELECT * FROM group_info where group_id = #{groupId};
+    </select>
+
+    <select id="getGroupMembers" resultType="com.example.server.entity.GroupMemberEntity">
+        SELECT * FROM group_member where groupId=#{groupId};
+    </select>
+
+    <insert id="addMember" parameterType="com.example.server.entity.GroupMemberEntity">
+        insert into group_member(uuid, groupId, folder, role, level, groupRemark, nickName, noticeType, insertTime, lastTime)
+        values(#{uuid}, #{groupId}, #{folder}, #{role}, #{level}, #{groupRemark}, #{nickName}, #{noticeType}, #{insertTime}, #{lastTime});
+    </insert>
+
+    <delete id="delMember" parameterType="com.example.server.entity.GroupMemberEntity">
         delete from group_member where uuid=#{uuid} and groupId=#{groupId};
     </delete>
+
+    <select id="getMemberReq" resultType="com.example.server.entity.RequestEntity">
+        SELECT * FROM friend_req_info where groupId=#{groupId};
+    </select>
+
+    <insert id="addMemberReq" parameterType="com.example.server.entity.RequestEntity">
+        insert into friend_req_info(uuid, groupId, folder, role, level, groupRemark, nickName, noticeType, insertTime, lastTime)
+        values(#{uuid}, #{groupId}, #{folder}, #{role}, #{level}, #{groupRemark}, #{nickName}, #{noticeType}, #{insertTime}, #{lastTime});
+    </insert>
 
     <select id="checkGroupRole" resultType="int" parameterType="com.example.server.entity.GroupMemberEntity">
         SELECT role FROM group_member where group_id = #{groupId} and uuid=#{uuid};
     </select>
 
-    <select id="getGroupInfo" resultType="com.example.server.entity.GroupInfoEntity" parameterType="java.lang.String">
-        SELECT * FROM group_info where group_id = #{groupId};
-    </select>
-
-    <insert id="createGroup" parameterType="com.example.server.entity.GroupInfoEntity">
-        insert into group_info(name, uuid, groupId, memberCount) values(#{name}, #{uuid}, #{groupId}, #{memberCount});
-    </insert>
-
-    <delete id="delGroup" parameterType="com.example.server.entity.GroupMemberEntity">
-        delete from group_info where groupId=#{groupId};
-    </delete>
-
-    <select id="getAllGroup" resultType="com.example.server.entity.GroupInfoEntity" parameterType="java.lang.String">
-        SELECT * FROM group_info where uuid = #{uuid};
-    </select>
 </mapper>
 
 

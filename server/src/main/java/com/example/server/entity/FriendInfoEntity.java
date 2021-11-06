@@ -11,6 +11,7 @@ public class FriendInfoEntity extends Entity {
     public String userId;
     public String friendId;
     public boolean isFriend;
+    public int noticeType;
     public String remark;
     public String backImage;
     public Date insertTime;
@@ -21,6 +22,7 @@ public class FriendInfoEntity extends Entity {
                 "userId='" + userId + '\'' +
                 ", friendId='" + friendId + '\'' +
                 ", isFriend=" + isFriend +
+                ", noticeType=" + noticeType +
                 ", remark='" + remark + '\'' +
                 ", backImage='" + backImage + '\'' +
                 ", insertTime=" + insertTime +

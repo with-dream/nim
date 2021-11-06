@@ -9,6 +9,7 @@ import com.example.server.utils.auth.PassToken;
 import org.apache.commons.lang.StringUtils;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -30,6 +31,7 @@ import java.util.List;
  * 二、群成员
  * 1 群列表
  * 2 加群
+ * 2 申请加群
  * 3 退群
  * 4 修改群名片
  * 5 群成员列表
@@ -54,21 +56,21 @@ public class GroupController {
     @Resource
     RedissonClient redisson;
 
-    @RequestMapping(value = "/getGroupList")
+    @RequestMapping(value = "/groupList")
     @ResponseBody
-    public BaseEntity<List<GroupInfoEntity>> getGroupList(HttpServletRequest request) {
+    public BaseEntity<List<GroupInfoEntity>> groupList(HttpServletRequest request) {
         String uuid = (String) request.getAttribute("uuid");
-        List<GroupInfoEntity> res = groupService.getAllGroup(uuid);
+        List<GroupInfoEntity> res = groupService.groupList(uuid);
         return BaseEntity.succ(res);
     }
 
     @RequestMapping(value = "/createGroup")
     @ResponseBody
+    @Transactional
     public BaseEntity<GroupInfoEntity> createGroup(@RequestParam(value = "groupName") String groupName, HttpServletRequest request) {
         String uuid = (String) request.getAttribute("uuid");
         GroupInfoEntity groupEntity = new GroupInfoEntity();
         groupEntity.groupId = UUIDUtil.getUid();
-        groupEntity.uuid = uuid;
         groupEntity.name = groupName;
         groupEntity.memberCount = 1;
         int res = groupService.createGroup(groupEntity);

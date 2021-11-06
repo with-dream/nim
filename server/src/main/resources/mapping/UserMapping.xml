@@ -2,10 +2,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.server.mapper.UserMapper">
     <insert id="register" parameterType="com.example.server.entity.UserEntity">
-        insert into user_info(name, pwd, uuid, registerTime) values (#{name}, #{pwd}, #{uuid}, #{registerTime});
+        insert into user_info(name, nickName, pwd, uuid, registerTime) values (#{name}, #{nickName}, #{pwd}, #{uuid}, #{registerTime});
     </insert>
 
-    <select id="login" resultType="com.example.server.entity.UserCheckEntity"
+    <select id="login" resultType="com.example.server.entity.UserResEntity"
             parameterType="com.example.server.entity.UserEntity">
         SELECT * FROM user_info where name=#{name} and pwd=#{pwd};
     </select>
@@ -14,7 +14,7 @@
         SELECT count(*) FROM user_info where uuid = #{uuid};
     </select>
 
-    <select id="userInfo" resultType="com.example.server.entity.UserEntity">
+    <select id="userInfo" resultType="com.example.server.entity.UserInfoEntity">
         SELECT * FROM user_info where uuid = #{uuid};
     </select>
 
@@ -26,13 +26,22 @@
         select isFriend from friend_info where userId = #{userId} and friendId = #{friendId};
     </select>
 
-    <insert id="addFriend" parameterType="com.example.server.entity.FriendInfoEntity">
+    <insert id="addFriendReq" parameterType="com.example.server.entity.FriendReqEntity">
+        insert into friend_req_info(userId, friendId, status, folder, targetType, extra, source)
+        values(#{userId}, #{friendId}, #{status}, #{folder}, #{targetType}, #{extra}, #{source});
+    </insert>
+
+    <select id="friendReqList" resultType="com.example.server.entity.FriendInfoEntity">
+        select count(*) from friend_req_info where userId = #{userId} or friendId = #{userId};
+    </select>
+
+    <insert id="addFriendAffirm" parameterType="com.example.server.entity.FriendInfoEntity">
         insert into friend_info(userId, friendId, isFriend, remark, stick, insertTime)
         values(#{userId}, #{friendId}, #{isFriend}, #{remark}, #{stick}, #{insertTime});
     </insert>
 
     <update id="delFriend" parameterType="com.example.server.entity.FriendInfoEntity">
-        update friend_info set isFriend=false where user_id = #{userId} and friend_id = #{friendId};
+        update friend_info set isFriend=false and insertTime=#{insertTime} where user_id = #{userId} and friend_id = #{friendId};
     </update>
 
     <insert id="blockFriend" parameterType="com.example.server.entity.FriendInfoEntity">
@@ -43,14 +52,44 @@
         delete from block_info where userId=#{userId} and friendId=#{friendId}
     </delete>
 
-    <insert id="stickFriend" parameterType="com.example.server.entity.FriendInfoEntity">
-        insert into stick_info where userId=#{userId} and friendId=#{friendId}
+    <select id="isBlock" resultType="int" parameterType="com.example.server.entity.FriendInfoEntity">
+        select count(*) from block_info where userId = #{userId} and friendId = #{friendId};
+    </select>
+
+    <select id="isBlockAny" resultType="int" parameterType="com.example.server.entity.FriendInfoEntity">
+        select count(*) from block_info where userId = #{userId} and friendId = #{friendId} or userId = #{friendId} and friendId = #{userId} ;
+    </select>
+
+    <insert id="stickFriend" parameterType="com.example.server.entity.StickEntity">
+        insert into stick_info(userId, targetId, targetType) values(#{userId}, #{targetId}, #{targetType});
     </insert>
 
-    <delete id="delStickFriend" parameterType="com.example.server.entity.FriendInfoEntity">
-        delete from stick_info where userId=#{userId} and friendId=#{friendId}
+    <select id="stickFriendList" resultType="com.example.server.entity.StickEntity">
+        select * from stick_info where userId = #{userId} and friendId = #{friendId};
+    </select>
+
+    <delete id="delStickFriend" parameterType="com.example.server.entity.StickEntity">
+        delete from stick_info where userId=#{userId} and targetId=#{targetId} and targetType=#{targetType};
     </delete>
 
+    <insert id="addFriendFolder" parameterType="com.example.server.entity.FriendFolderEntity">
+        insert into friend_folder(uuid, name, index) values (#{uuid}, #{name}, #{index});
+    </insert>
+
+    <update id="updateFriendFolder" parameterType="list">
+        <foreach collection="folderList" item="folder">
+            update friend_folder set name=#{folder.name} and index=#{folder.index} where uuid=#{folder.uuid} and
+            id=#{folder.id};
+        </foreach>
+    </update>
+
+    <delete id="delFriendFolder">
+        delete from friend_folder where uuid=#{uuid} and id=#{id}
+    </delete>
+
+    <select id="friendFolderList" resultType="com.example.server.entity.FriendFolderEntity">
+        select * from friend_folder where uuid = #{uuid};
+    </select>
 
     <!-- xia -->
     <select id="getGroupMembers" resultType="com.example.server.entity.GroupMemberEntity"

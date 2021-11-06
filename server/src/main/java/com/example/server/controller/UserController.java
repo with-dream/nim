@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import user.BaseEntity;
+import user.CodeInfo;
 import utils.*;
-import com.example.server.entity.UserCheckEntity;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -22,8 +22,8 @@ import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.*;
+
 /**
- *
  * 1 注册
  * 2 登录
  * 3 登出
@@ -52,7 +52,7 @@ import java.util.*;
  * 1 剔除成员
  * 2 禁言
  * 3 加群请求处理
- * */
+ */
 
 @RestController
 @RequestMapping("/user")
@@ -78,17 +78,14 @@ public class UserController {
 
     @PassToken
     @RequestMapping(value = "/login")
-    public BaseEntity<UserCheckEntity> login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
+    public BaseEntity<UserResEntity> login(@RequestParam(value = "name") String name, @RequestParam(value = "pwd") String pwd
             , @RequestParam(value = "clientToken") long clientToken) {
         UserEntity userEntity = new UserEntity();
         userEntity.name = name;
         userEntity.pwd = pwd;
-        UserCheckEntity res = userService.login(userEntity);
+        UserResEntity res = userService.login(userEntity);
         boolean loginSuccess = res != null && StringUtils.isNotEmpty(res.uuid);
         if (loginSuccess) {
-            res.serviceList = Constant.SERVER_LIST;
-            //返回token
-            res.token = AuthUtil.createToken(res.uuid);
             //返回rsa公钥
             AESEntity re = new AESEntity();
             KeyPair pair = RSAUtil.getKeyPair();
@@ -99,13 +96,17 @@ public class UserController {
             rsaMap.put(clientToken, re);
             //1 将公钥传给客户端
             res.rsaPublicKey = re.publicRSAServerKey;
+            //返回token
+            res.token = AuthUtil.createToken(res.uuid);
         }
+
         L.p("login res==>" + res);
         return loginSuccess ? BaseEntity.succ(res) : BaseEntity.fail();
     }
 
     @RequestMapping(value = "/encrypt")
-    public BaseEntity<String> encrypt(@RequestParam(value = "clientToken") long clientToken, @RequestParam(value = "key") String key) {
+    public BaseEntity<UserResEntity> encrypt(@RequestParam(value = "clientToken") long clientToken, @RequestParam(value = "key") String key, HttpServletRequest request) {
+        String uuid = (String) request.getAttribute("uuid");
         RMap<Long, AESEntity> rsaMap = redisson.getMap(RConst.AES_MAP);
         AESEntity re = rsaMap.get(clientToken);
 
@@ -120,7 +121,12 @@ public class UserController {
         PublicKey publicKey = RSAUtil.string2PublicKey(re.publicRSAClientKey);
         byte[] aesByte = RSAUtil.publicEncrytype(re.aesKey.getBytes(), publicKey);
         String aes = Base64.getEncoder().encodeToString(aesByte);
-        return BaseEntity.succ(aes);
+
+        UserResEntity res = new UserResEntity();
+        res.serviceList = Constant.SERVER_LIST;
+        res.uuid = uuid;
+        res.aesPublicKey = aes;
+        return BaseEntity.succ(res);
     }
 
     @RequestMapping(value = "/logout")
@@ -129,22 +135,152 @@ public class UserController {
         return "";
     }
 
-    @RequestMapping(value = "/addFriend")
+    @RequestMapping(value = "/userInfo")
     @ResponseBody
-    public BaseEntity<List<FriendEntity>> addFriend(HttpServletRequest request) {
+    public BaseEntity<UserInfoEntity> userInfo(@RequestParam(value = "uuid") String uuid) {
+        UserInfoEntity ui = userService.userInfo(uuid);
+        return BaseEntity.succ(ui);
+    }
+
+    @RequestMapping(value = "/friendList")
+    @ResponseBody
+    public BaseEntity<List<FriendInfoEntity>> friendList(HttpServletRequest request) {
         String uuid = (String) request.getAttribute("uuid");
-        L.e("getAttribute==>" + uuid);
-        List<FriendEntity> res = userService.getAllFriend(uuid);
+        List<FriendInfoEntity> res = userService.friendList(uuid);
         return BaseEntity.succ(res);
     }
 
-    @RequestMapping(value = "/getFriendList")
+    @RequestMapping(value = "/addFriendReq")
     @ResponseBody
-    public BaseEntity<List<FriendEntity>> getFriendList(HttpServletRequest request) {
+    public BaseEntity<List<FriendInfoEntity>> addFriendReq(FriendReqEntity reqEntity, HttpServletRequest request) {
+        //只有当前请求用户的uuid可以操作
         String uuid = (String) request.getAttribute("uuid");
-        L.e("getAttribute==>" + uuid);
-        List<FriendEntity> res = userService.getAllFriend(uuid);
+        FriendInfoEntity infoEntity = new FriendInfoEntity();
+        infoEntity.userId = uuid;
+        reqEntity.userId = uuid;
+        infoEntity.friendId = reqEntity.friendId;
+
+        if (userService.isFriend(infoEntity))
+            return BaseEntity.fail(CodeInfo.FRIEND_FRIEND);
+        if (userService.isBlockAny(infoEntity))
+            return BaseEntity.fail(CodeInfo.FRIEND_BLOCK);
+        reqEntity.status = CodeInfo.FRIEND_REQ_STATE_REQ;
+        int ret = userService.addFriendReq(reqEntity);
+        //TODO 推送消息
+        return ret == 1 ? BaseEntity.succ() : BaseEntity.failServer();
+    }
+
+    @RequestMapping(value = "/friendReqList")
+    @ResponseBody
+    public BaseEntity<List<FriendReqEntity>> friendReqList(HttpServletRequest request) {
+        String uuid = (String) request.getAttribute("uuid");
+        List<FriendReqEntity> res = userService.friendReqList(uuid);
         return BaseEntity.succ(res);
     }
 
+    @RequestMapping(value = "/addFriendAffirm")
+    @ResponseBody
+    public BaseEntity<FriendInfoEntity> addFriendAffirm(@RequestParam(value = "userId") String userId, @RequestParam(value = "friendId") String friendId) {
+        FriendInfoEntity infoEntity = new FriendInfoEntity();
+        infoEntity.userId = userId;
+        infoEntity.friendId = friendId;
+        infoEntity.isFriend = true;
+        infoEntity.insertTime = new Date();
+
+        int ret = userService.addFriendAffirm(infoEntity);
+        if (ret == 1) {
+            //TODO 推送消息
+            return BaseEntity.succ(infoEntity);
+        }
+        return BaseEntity.failServer();
+    }
+
+    @RequestMapping(value = "/delFriend")
+    @ResponseBody
+    public BaseEntity delFriend(@RequestParam(value = "userId") String userId, @RequestParam(value = "friendId") String friendId) {
+        FriendInfoEntity infoEntity = new FriendInfoEntity();
+        infoEntity.userId = userId;
+        infoEntity.friendId = friendId;
+        infoEntity.isFriend = false;
+        infoEntity.insertTime = new Date();
+        int ret = userService.delFriend(infoEntity);
+        if (ret == 1) {
+            return BaseEntity.succ();
+        }
+        return BaseEntity.failServer();
+    }
+
+    @RequestMapping(value = "/blockFriend")
+    @ResponseBody
+    public BaseEntity blockFriend(@RequestParam(value = "userId") String userId, @RequestParam(value = "friendId") String friendId) {
+        FriendInfoEntity infoEntity = new FriendInfoEntity();
+        infoEntity.userId = userId;
+        infoEntity.friendId = friendId;
+        int ret = userService.blockFriend(infoEntity);
+        if (ret == 1) {
+            return BaseEntity.succ();
+        }
+        return BaseEntity.failServer();
+    }
+
+    @RequestMapping(value = "/delBlockFriend")
+    @ResponseBody
+    public BaseEntity delBlockFriend(@RequestParam(value = "userId") String userId, @RequestParam(value = "friendId") String friendId) {
+        FriendInfoEntity infoEntity = new FriendInfoEntity();
+        infoEntity.userId = userId;
+        infoEntity.friendId = friendId;
+        int ret = userService.delBlockFriend(infoEntity);
+        if (ret == 1) {
+            return BaseEntity.succ();
+        }
+        return BaseEntity.failServer();
+    }
+
+    @RequestMapping(value = "/stickFriend")
+    @ResponseBody
+    public BaseEntity stickFriend(StickEntity stickEntity) {
+        int ret = userService.stickFriend(stickEntity);
+        if (ret == 1) {
+            return BaseEntity.succ();
+        }
+        return BaseEntity.failServer();
+    }
+
+    @RequestMapping(value = "/delStickFriend")
+    @ResponseBody
+    public BaseEntity delStickFriend(StickEntity stickEntity) {
+        int ret = userService.delStickFriend(stickEntity);
+        if (ret == 1) {
+            return BaseEntity.succ();
+        }
+        return BaseEntity.failServer();
+    }
+
+    @RequestMapping(value = "/addFriendFolder")
+    @ResponseBody
+    public BaseEntity addFriendFolder(FriendFolderEntity folderEntity) {
+        int ret = userService.addFriendFolder(folderEntity);
+        return ret == 1 ? BaseEntity.succ() : BaseEntity.failServer();
+    }
+
+    @RequestMapping(value = "/updateFriendFolder")
+    @ResponseBody
+    public BaseEntity updateFriendFolder(List<FriendFolderEntity> folderEntityList) {
+        int ret = userService.updateFriendFolder(folderEntityList);
+        return ret == 1 ? BaseEntity.succ() : BaseEntity.failServer();
+    }
+
+    @RequestMapping(value = "/delStickFriend")
+    @ResponseBody
+    public BaseEntity delFriendFolder(@RequestParam(value = "uuid") String uuid, @RequestParam(value = "id") int id) {
+        int ret = userService.delFriendFolder(uuid, id);
+        return ret == 1 ? BaseEntity.succ() : BaseEntity.failServer();
+    }
+
+    @RequestMapping(value = "/friendFolderList")
+    @ResponseBody
+    public BaseEntity<List<FriendFolderEntity>> friendFolderList(@RequestParam(value = "uuid") String uuid) {
+        List<FriendFolderEntity> res = userService.friendFolderList(uuid);
+        return BaseEntity.succ(res);
+    }
 }

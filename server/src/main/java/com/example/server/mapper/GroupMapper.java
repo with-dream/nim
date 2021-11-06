@@ -8,6 +8,12 @@ import java.util.List;
 
 @Repository
 public interface GroupMapper {
+    List<GroupInfoEntity> groupList(@Param(value = "uuid") String uuid);
+
+    int createGroup(GroupInfoEntity groupEntity);
+
+    int delGroup(@Param(value = "groupId") String groupId);
+
     int addGroupMember(GroupMemberEntity memberEntity);
 
     int delGroupMember(GroupMemberEntity memberEntity);
@@ -17,12 +23,6 @@ public interface GroupMapper {
     int checkGroupRole(GroupMemberEntity memberEntity);
 
     GroupInfoEntity getGroupInfo(@Param(value = "groupId") String groupId);
-
-    int createGroup(GroupInfoEntity groupEntity);
-
-    int delGroup(GroupInfoEntity groupEntity);
-
-    List<GroupInfoEntity> getAllGroup(@Param(value = "uuid") String uuid);
 
     UserEntity userInfo(@Param(value = "uuid") String uuid);
 }

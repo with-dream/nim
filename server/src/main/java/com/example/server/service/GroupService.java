@@ -29,8 +29,8 @@ public class GroupService {
         });
     }
 
-    public List<GroupInfoEntity> getAllGroup(String uuid) {
-        return groupMapper.getAllGroup(uuid);
+    public List<GroupInfoEntity> groupList(String uuid) {
+        return groupMapper.groupList(uuid);
     }
 
     public GroupInfoEntity getGroupInfo(String groupId) {

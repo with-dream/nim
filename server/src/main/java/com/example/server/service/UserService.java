@@ -37,25 +37,27 @@ public class UserService {
         return userMapper.userInfo(uuid);
     }
 
-    public FriendEntity checkFriend(String userId, String friendId) {
-        StrUtil.UuidCompare compare = StrUtil.uuidCompare(userId, friendId);
-        FriendEntity model = userMapper.checkFriend(compare.low, compare.high);
-        if (model == null) return null;
-
-        model.isBlock = model.block == FriendEntity.FRIEND_BLOCK_EACH || model.block == (compare.invert ? FriendEntity.FRIEND_BLOCK_OTHER : FriendEntity.FRIEND_BLOCK_SELF);
-        model.isFriend = model.friend == FriendEntity.FRIEND_NORMAL || model.friend == (compare.invert ? FriendEntity.FRIEND_OTHER : FriendEntity.FRIEND_SELF);
-        return model;
+    public List<FriendInfoEntity> friendList(String uuid) {
+        return userMapper.friendList(uuid);
     }
 
-    public int addFriend(FriendEntity friendEntity) {
+    boolean isFriend(FriendInfoEntity friendEntity) {
+        return userMapper.isFriend(friendEntity);
+    }
+
+    public int addFriend(FriendInfoEntity friendEntity) {
         return userMapper.addFriend(friendEntity);
     }
 
-    public int delFriend(FriendEntity friendEntity) {
+    public int delFriend(FriendInfoEntity friendEntity) {
         return userMapper.delFriend(friendEntity);
     }
 
-    public List<FriendEntity> getAllFriend(String uuid) {
-        return userMapper.getAllFriend(uuid);
+    public int blockFriend(FriendInfoEntity friendEntity) {
+        return blockFriend(friendEntity);
+    }
+
+    public int delBlockFriend(FriendInfoEntity friendEntity) {
+        return delBlockFriend(friendEntity);
     }
 }

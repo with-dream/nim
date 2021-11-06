@@ -22,8 +22,8 @@
         SELECT * FROM friend_info where userId = #{uuid} and isBlock = false;
     </select>
 
-    <select id="isFriend" resultType="boolean">
-        SELECT isFriend FROM friend_info where userId = #{userId} and friendId = #{friendId};
+    <select id="isFriend" resultType="boolean" parameterType="com.example.server.entity.FriendInfoEntity">
+        select isFriend from friend_info where userId = #{userId} and friendId = #{friendId};
     </select>
 
     <insert id="addFriend" parameterType="com.example.server.entity.FriendInfoEntity">
@@ -35,24 +35,24 @@
         update friend_info set isFriend=false where user_id = #{userId} and friend_id = #{friendId};
     </update>
 
-    <update id="blockFriend" parameterType="com.example.server.entity.FriendInfoEntity">
-        update friend_info set isBlock=true where user_id = #{userId} and friend_id = #{friendId};
-    </update>
+    <insert id="blockFriend" parameterType="com.example.server.entity.FriendInfoEntity">
+        insert into block_info(userId, friendId) value(#{userId}, #{friendId});
+    </insert>
 
-    <update id="delBlockFriend" parameterType="com.example.server.entity.FriendInfoEntity">
-        update friend_info set isBlock=false where user_id = #{userId} and friend_id = #{friendId};
-    </update>
+    <delete id="delBlockFriend" parameterType="com.example.server.entity.FriendInfoEntity">
+        delete from block_info where userId=#{userId} and friendId=#{friendId}
+    </delete>
+
+    <insert id="stickFriend" parameterType="com.example.server.entity.FriendInfoEntity">
+        insert into stick_info where userId=#{userId} and friendId=#{friendId}
+    </insert>
+
+    <delete id="delStickFriend" parameterType="com.example.server.entity.FriendInfoEntity">
+        delete from stick_info where userId=#{userId} and friendId=#{friendId}
+    </delete>
 
 
-
-
-
-
-
-
-
-
-
+    <!-- xia -->
     <select id="getGroupMembers" resultType="com.example.server.entity.GroupMemberEntity"
             parameterType="java.lang.String">
         SELECT * FROM group_member where groupId= #{groupId};

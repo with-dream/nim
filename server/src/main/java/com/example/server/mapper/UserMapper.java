@@ -13,11 +13,9 @@ public interface UserMapper {
 
     UserCheckEntity login(UserEntity userEntity);
 
-    int checkUser(String uuid);
+    int checkUser(@Param(value = "uuid") String uuid);
 
-    UserEntity userInfo(String uuid);
-
-    FriendEntity checkFriend(FriendEntity friendEntity);
+    UserEntity userInfo(@Param(value = "uuid") String uuid);
 
     List<FriendInfoEntity> friendList(@Param(value = "uuid") String uuid);
 

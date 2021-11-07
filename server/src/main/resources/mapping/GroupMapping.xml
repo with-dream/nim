@@ -39,10 +39,13 @@
         values(#{uuid}, #{groupId}, #{folder}, #{role}, #{level}, #{groupRemark}, #{nickName}, #{noticeType}, #{insertTime}, #{lastTime});
     </insert>
 
-    <select id="checkGroupRole" resultType="int" parameterType="com.example.server.entity.GroupMemberEntity">
-        SELECT role FROM group_member where group_id = #{groupId} and uuid=#{uuid};
+    <select id="checkRole" resultType="int" parameterType="com.example.server.entity.GroupMemberEntity">
+        select role from group_member where group_id = #{groupId} and uuid=#{uuid};
     </select>
 
+    <update id="updateRole" parameterType="com.example.server.entity.GroupMemberEntity">
+        update group_member set role=#{role}  where group_id = #{groupId} and uuid=#{uuid};
+    </update>
 </mapper>
 
 

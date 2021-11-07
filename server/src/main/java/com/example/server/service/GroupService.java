@@ -33,8 +33,16 @@ public class GroupService {
         return groupMapper.groupList(uuid);
     }
 
-    public GroupInfoEntity getGroupInfo(String groupId) {
-        return groupMapper.getGroupInfo(groupId);
+    @Transactional
+    public int createGroup(String uuid, GroupInfoEntity groupEntity) {
+        int res = groupMapper.createGroup(groupEntity);
+        GroupMemberEntity memberEntity = new GroupMemberEntity();
+        memberEntity.groupId = groupEntity.groupId;
+        memberEntity.uuid = uuid;
+        memberEntity.role = GroupMemberEntity.OWNER;
+        memberEntity.level = 0;
+        addGroupMember(memberEntity);
+        return res;
     }
 
     //TODO 需要更新群成员数量
@@ -59,19 +67,6 @@ public class GroupService {
 
     public List<GroupMemberEntity> getGroupMembers(String groupId) {
         return groupMapper.getGroupMembers(groupId);
-    }
-
-    @Transactional
-    public int createGroup(GroupInfoEntity groupEntity) {
-        int res = groupMapper.createGroup(groupEntity);
-
-        GroupMemberEntity memberEntity = new GroupMemberEntity();
-        memberEntity.groupId = groupEntity.groupId;
-        memberEntity.uuid = groupEntity.uuid;
-        memberEntity.role = GroupMemberEntity.OWNER;
-        memberEntity.level = 0;
-        addGroupMember(memberEntity);
-        return res;
     }
 
     /**

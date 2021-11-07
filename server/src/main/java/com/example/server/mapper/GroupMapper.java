@@ -14,15 +14,19 @@ public interface GroupMapper {
 
     int delGroup(@Param(value = "groupId") String groupId);
 
-    int addGroupMember(GroupMemberEntity memberEntity);
-
-    int delGroupMember(GroupMemberEntity memberEntity);
+    GroupInfoEntity getGroupInfo(@Param(value = "groupId") String groupId);
 
     List<GroupMemberEntity> getGroupMembers(@Param(value = "groupId") String groupId);
 
-    int checkGroupRole(GroupMemberEntity memberEntity);
+    int addMember(GroupMemberEntity memberEntity);
 
-    GroupInfoEntity getGroupInfo(@Param(value = "groupId") String groupId);
+    int delMember(GroupMemberEntity memberEntity);
 
-    UserEntity userInfo(@Param(value = "uuid") String uuid);
+    RequestEntity getMemberReq(@Param(value = "groupId") String groupId);
+
+    int addMemberReq(RequestEntity requestEntity);
+
+    int checkGroupRole(@Param(value = "groupId") String groupId, @Param(value = "uuid") String uuid);
+
+    int updateRole(@Param(value = "groupId") String groupId, @Param(value = "uuid") String uuid);
 }

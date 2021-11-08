@@ -10,7 +10,7 @@ import com.example.sdk_nim.netty.IMContext
 
 import com.example.sdk_nim.entity.BaseEntity
 import com.google.gson.reflect.TypeToken
-import com.example.sdk_nim.entity.UserCheckEntity
+import com.example.sdk_nim.entity.UserResEntity
 
 import com.google.gson.Gson
 import okhttp3.*
@@ -23,7 +23,7 @@ import com.example.sdk_nim.utils.*
 
 class LoginActivity : AppCompatActivity() {
     val gson = Gson()
-    var userEntity: UserCheckEntity? = null
+    var userEntity: UserResEntity? = null
     lateinit var binding: ActivityLoginBinding
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,13 +72,12 @@ class LoginActivity : AppCompatActivity() {
             override fun onResponse(call: Call, response: Response) {
                 val str: String? = response.body?.string()
                 System.err.println("resEntity  1111==>$str")
-                val res: BaseEntity<UserCheckEntity> =
-                    gson.fromJson(str, object : TypeToken<BaseEntity<UserCheckEntity?>?>() {}.type)
+                val res: BaseEntity<UserResEntity> =
+                    gson.fromJson(str, object : TypeToken<BaseEntity<UserResEntity?>?>() {}.type)
                 if (res.success()) {
                     userEntity = res.data
                     App.app.entity = userEntity;
                     L.p("resEntity==>" + userEntity.toString())
-                    IMContext.instance().setIpList(userEntity?.serviceList);
 //                    IMContext.instance().setIpList(Arrays.asList(Constant.NETTY_IP))
                     IMContext.instance().uuid = userEntity?.uuid
                     val pair: KeyPair = RSAUtil.getKeyPair()
@@ -122,14 +121,15 @@ class LoginActivity : AppCompatActivity() {
             override fun onResponse(call: Call, response: Response) {
                 val str: String? = response.body?.string()
                 L.p("resEntity  1111==>$str")
-                val res: BaseEntity<String> =
-                    gson.fromJson(str, object : TypeToken<BaseEntity<String?>?>() {}.type)
+                val res: BaseEntity<UserResEntity> =
+                    gson.fromJson(str, object : TypeToken<BaseEntity<UserResEntity?>?>() {}.type)
                 if (res.success()) {
-                    val key = res.data
+                    val entity = res.data
+                    IMContext.instance().setIpList(userEntity?.serviceList);
                     val privateKey: PrivateKey =
                         RSAUtil.string2Privatekey(IMContext.instance().encrypt.privateRSAClientKey)
                     val aesKeyB: ByteArray =
-                        RSAUtil.privateDecrypt(JBase64.getDecoder().decode(key), privateKey)
+                        RSAUtil.privateDecrypt(JBase64.getDecoder().decode(entity.aesPublicKey), privateKey)
                     IMContext.instance().encrypt.aesKey = String(aesKeyB)
                     L.p("c aesKey==>" + IMContext.instance().encrypt.aesKey)
                     Thread { IMContext.instance().connect() }.start()

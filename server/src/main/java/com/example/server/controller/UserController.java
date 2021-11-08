@@ -152,7 +152,7 @@ public class UserController {
 
     @RequestMapping(value = "/addFriendReq")
     @ResponseBody
-    public BaseEntity<List<FriendInfoEntity>> addFriendReq(FriendReqEntity reqEntity, HttpServletRequest request) {
+    public BaseEntity<List<FriendInfoEntity>> addFriendReq(RequestEntity reqEntity, HttpServletRequest request) {
         //只有当前请求用户的uuid可以操作
         String uuid = (String) request.getAttribute("uuid");
         FriendInfoEntity infoEntity = new FriendInfoEntity();
@@ -172,9 +172,9 @@ public class UserController {
 
     @RequestMapping(value = "/friendReqList")
     @ResponseBody
-    public BaseEntity<List<FriendReqEntity>> friendReqList(HttpServletRequest request) {
+    public BaseEntity<List<RequestEntity>> friendReqList(HttpServletRequest request) {
         String uuid = (String) request.getAttribute("uuid");
-        List<FriendReqEntity> res = userService.friendReqList(uuid);
+        List<RequestEntity> res = userService.friendReqList(uuid);
         return BaseEntity.succ(res);
     }
 
@@ -270,7 +270,7 @@ public class UserController {
         return ret == 1 ? BaseEntity.succ() : BaseEntity.failServer();
     }
 
-    @RequestMapping(value = "/delStickFriend")
+    @RequestMapping(value = "/delFriendFolder")
     @ResponseBody
     public BaseEntity delFriendFolder(@RequestParam(value = "uuid") String uuid, @RequestParam(value = "id") int id) {
         int ret = userService.delFriendFolder(uuid, id);

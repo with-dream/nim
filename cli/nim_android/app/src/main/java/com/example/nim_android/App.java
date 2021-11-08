@@ -1,7 +1,7 @@
 package com.example.nim_android;
 
 import com.example.sdk_nim.BaseApp;
-import com.example.sdk_nim.entity.UserCheckEntity;
+import com.example.sdk_nim.entity.UserResEntity;
 
 import okhttp3.OkHttpClient;
 
@@ -9,7 +9,7 @@ public class App extends BaseApp {
     public static App app;
     public OkHttpClient okHttpClient = new OkHttpClient();
 
-    public UserCheckEntity entity;
+    public UserResEntity entity;
 
     @Override
     public void onCreate() {

@@ -29,8 +29,8 @@ public class MsgService {
     @Resource
     MsgCacheHolder cacheHolder;
 
-    @Resource
-    RequestService reqService;
+//    @Resource
+//    RequestService reqService;
 
     @Resource
     SendHolder sendHolder;
@@ -61,7 +61,7 @@ public class MsgService {
             case MsgType.TYPE_CMD:
                 int cmd = NullUtil.isInt(msg.msgMap().get(MsgType.KEY_CMD));
                 if (cmd > 1000 && cmd < 3000) {
-                    ret = reqService.requestMsg(msg);
+//                    ret = reqService.requestMsg(msg);
                 } else {
                     switch (cmd) {
                         case MsgCmd.LOGIN:

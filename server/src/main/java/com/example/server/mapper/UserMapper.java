@@ -21,9 +21,9 @@ public interface UserMapper {
 
     boolean isFriend(FriendInfoEntity friendEntity);
 
-    int addFriendReq(FriendReqEntity reqEntity);
+    int addFriendReq(RequestEntity reqEntity);
 
-    List<FriendReqEntity> friendReqList(@Param(value = "userId") String userId);
+    List<RequestEntity> friendReqList(@Param(value = "userId") String userId);
 
     int addFriendAffirm(FriendInfoEntity friendEntity);
 

@@ -41,11 +41,11 @@ public class UserService {
         return userMapper.isFriend(friendEntity);
     }
 
-    public int addFriendReq(FriendReqEntity reqEntity) {
+    public int addFriendReq(RequestEntity reqEntity) {
         return userMapper.addFriendReq(reqEntity);
     }
 
-    public List<FriendReqEntity> friendReqList(String userId) {
+    public List<RequestEntity> friendReqList(String userId) {
         return userMapper.friendReqList(userId);
     }
 

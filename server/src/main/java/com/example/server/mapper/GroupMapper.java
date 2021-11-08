@@ -22,11 +22,13 @@ public interface GroupMapper {
 
     int delMember(GroupMemberEntity memberEntity);
 
-    RequestEntity getMemberReq(@Param(value = "groupId") String groupId);
+    int delMemberList(List<GroupMemberEntity> memberList);
+
+    List<RequestEntity> getMemberReq(@Param(value = "groupId") String groupId);
 
     int addMemberReq(RequestEntity requestEntity);
 
     int checkGroupRole(@Param(value = "groupId") String groupId, @Param(value = "uuid") String uuid);
 
-    int updateRole(@Param(value = "groupId") String groupId, @Param(value = "uuid") String uuid);
+    int updateRole(GroupMemberEntity memberEntity);
 }

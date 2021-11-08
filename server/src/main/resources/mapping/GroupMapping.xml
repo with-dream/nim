@@ -24,10 +24,20 @@
     <insert id="addMember" parameterType="com.example.server.entity.GroupMemberEntity">
         insert into group_member(uuid, groupId, folder, role, level, groupRemark, nickName, noticeType, insertTime, lastTime)
         values(#{uuid}, #{groupId}, #{folder}, #{role}, #{level}, #{groupRemark}, #{nickName}, #{noticeType}, #{insertTime}, #{lastTime});
+        update group_info set memberCount=memberCount+1 where groupId=#{groupId};
     </insert>
 
     <delete id="delMember" parameterType="com.example.server.entity.GroupMemberEntity">
         delete from group_member where uuid=#{uuid} and groupId=#{groupId};
+        update group_info set memberCount=memberCount-1 where groupId=#{groupId};
+    </delete>
+
+    <delete id="delMemberList" parameterType="list">
+        delete from group_member where groupId=#{groupId} and uuid in
+        <foreach collection="list" item="item" open="("
+                 separator="," close=")">
+            #{item}
+        </foreach>
     </delete>
 
     <select id="getMemberReq" resultType="com.example.server.entity.RequestEntity">

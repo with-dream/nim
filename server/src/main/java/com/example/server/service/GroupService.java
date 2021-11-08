@@ -4,8 +4,10 @@ import com.example.server.entity.*;
 import com.example.server.mapper.GroupMapper;
 import com.example.server.mapper.UserMapper;
 import com.example.server.netty.SendHolder;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import utils.L;
 import utils.StrUtil;
 
 import javax.annotation.Resource;
@@ -41,50 +43,51 @@ public class GroupService {
         memberEntity.uuid = uuid;
         memberEntity.role = GroupMemberEntity.OWNER;
         memberEntity.level = 0;
-        addGroupMember(memberEntity);
+        addMember(memberEntity);
         return res;
     }
 
-    //TODO 需要更新群成员数量
-    public int addGroupMember(GroupMemberEntity memberEntity) {
-        int res = groupMapper.addGroupMember(memberEntity);
-        return res;
+    @Transactional
+    public int delGroup(String groupId) {
+        List<GroupMemberEntity> memList = getGroupMembers(groupId);
+        int delCount = groupMapper.delMemberList(memList);
+        L.p("delGroup delMemberList delCount==>" + delCount);
+        return groupMapper.delGroup(groupId);
     }
 
-    /**
-     * @param type 退群 踢出群
-     */
-    public int delGroupMember(GroupMemberEntity memberEntity, int type) {
-        int role = groupMapper.checkGroupRole(memberEntity);
-        if (role == GroupMemberEntity.OWNER) {
-            return -1;
-        }
-        int res = 0;
-        if (type == 1)
-            res = groupMapper.delGroupMember(memberEntity);
-        return res;
+    public GroupInfoEntity getGroupInfo(String groupId) {
+        return groupMapper.getGroupInfo(groupId);
     }
 
     public List<GroupMemberEntity> getGroupMembers(String groupId) {
         return groupMapper.getGroupMembers(groupId);
     }
 
-    /**
-     * TODO 需要回滚操作 不完善
-     */
-    @Transactional
-    public int delGroup(GroupInfoEntity groupEntity) {
-        List<GroupMemberEntity> memList = getGroupMembers(groupEntity.groupId);
-        for (GroupMemberEntity gmm : memList) {
-            int res = groupMapper.delGroupMember(gmm);
-            if (res != 1) {
-                return -1;
-            }
-        }
-        return groupMapper.delGroup(groupEntity);
+    public int addMember(GroupMemberEntity memberEntity) {
+        return groupMapper.addMember(memberEntity);
     }
 
-    public boolean checkGroup(String groupId) {
-        return true;
+    public int delMember(GroupMemberEntity memberEntity) {
+        return groupMapper.delMember(memberEntity);
+    }
+
+    public int delMemberList(List<GroupMemberEntity> memberList) {
+        return groupMapper.delMemberList(memberList);
+    }
+
+    public List<RequestEntity> getMemberReq(String groupId) {
+        return groupMapper.getMemberReq(groupId);
+    }
+
+    public int addMemberReq(RequestEntity requestEntity) {
+        return groupMapper.addMemberReq(requestEntity);
+    }
+
+    public int checkRole(String groupId, String uuid) {
+        return groupMapper.checkGroupRole(groupId, uuid);
+    }
+
+    public int updateRole(GroupMemberEntity memberEntity) {
+        return groupMapper.updateRole(memberEntity);
     }
 }

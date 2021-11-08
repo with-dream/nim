@@ -26,13 +26,13 @@
         select isFriend from friend_info where userId = #{userId} and friendId = #{friendId};
     </select>
 
-    <insert id="addFriendReq" parameterType="com.example.server.entity.FriendReqEntity">
+    <insert id="addFriendReq" parameterType="com.example.server.entity.RequestEntity">
         insert into friend_req_info(userId, friendId, status, folder, targetType, extra, source)
         values(#{userId}, #{friendId}, #{status}, #{folder}, #{targetType}, #{extra}, #{source});
     </insert>
 
-    <select id="friendReqList" resultType="com.example.server.entity.FriendInfoEntity">
-        select count(*) from friend_req_info where userId = #{userId} or friendId = #{userId};
+    <select id="friendReqList" resultType="com.example.server.entity.RequestEntity">
+        select * from friend_req_info where userId = #{userId} or friendId = #{userId};
     </select>
 
     <insert id="addFriendAffirm" parameterType="com.example.server.entity.FriendInfoEntity">

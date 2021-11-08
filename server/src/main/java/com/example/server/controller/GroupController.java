@@ -7,6 +7,7 @@ import com.example.server.service.UserService;
 import com.example.server.utils.auth.AuthUtil;
 import com.example.server.utils.auth.PassToken;
 import org.apache.commons.lang.StringUtils;
+import org.apache.ibatis.annotations.Param;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import user.BaseEntity;
+import user.CodeInfo;
 import utils.*;
 
 import javax.annotation.Resource;
@@ -27,7 +29,6 @@ import java.util.Date;
 import java.util.List;
 
 /**
- *
  * 二、群成员
  * 1 群列表
  * 2 加群
@@ -45,7 +46,7 @@ import java.util.List;
  * 1 剔除成员
  * 2 禁言
  * 3 加群请求处理
- * */
+ */
 
 @RestController
 @RequestMapping("/group")
@@ -57,7 +58,6 @@ public class GroupController {
     RedissonClient redisson;
 
     @RequestMapping(value = "/groupList")
-    @ResponseBody
     public BaseEntity<List<GroupInfoEntity>> groupList(HttpServletRequest request) {
         String uuid = (String) request.getAttribute("uuid");
         List<GroupInfoEntity> res = groupService.groupList(uuid);
@@ -66,14 +66,40 @@ public class GroupController {
 
     @RequestMapping(value = "/createGroup")
     @ResponseBody
-    @Transactional
     public BaseEntity<GroupInfoEntity> createGroup(@RequestParam(value = "groupName") String groupName, HttpServletRequest request) {
         String uuid = (String) request.getAttribute("uuid");
         GroupInfoEntity groupEntity = new GroupInfoEntity();
         groupEntity.groupId = UUIDUtil.getUid();
         groupEntity.name = groupName;
         groupEntity.memberCount = 1;
-        int res = groupService.createGroup(groupEntity);
+        int res = groupService.createGroup(uuid, groupEntity);
         return res == 1 ? BaseEntity.succ(groupEntity) : BaseEntity.fail();
+    }
+
+    @RequestMapping(value = "/delGroup")
+    @ResponseBody
+    public BaseEntity<GroupInfoEntity> delGroup(@Param(value = "groupId") String groupId, HttpServletRequest request) {
+        String uuid = (String) request.getAttribute("uuid");
+        int role = groupService.checkRole(groupId, uuid);
+        if (role != GroupMemberEntity.OWNER) {
+            return BaseEntity.fail(CodeInfo.GROUP_AUTH);
+        }
+        int res = groupService.delGroup(groupId);
+        //TODO 推送消息
+        return res == 1 ? BaseEntity.succ() : BaseEntity.fail();
+    }
+
+    @RequestMapping(value = "/getGroupInfo")
+    @ResponseBody
+    public BaseEntity<GroupInfoEntity> getGroupInfo(@Param(value = "groupId") String groupId, HttpServletRequest request) {
+        GroupInfoEntity gie = groupService.getGroupInfo(groupId);
+        return BaseEntity.succ(gie);
+    }
+
+    @RequestMapping(value = "/getGroupMembers")
+    @ResponseBody
+    public BaseEntity<List<GroupMemberEntity>> getGroupMembers(@Param(value = "groupId") String groupId, HttpServletRequest request) {
+        List<GroupMemberEntity> res = groupService.getGroupMembers(groupId);
+        return BaseEntity.succ(res);
     }
 }

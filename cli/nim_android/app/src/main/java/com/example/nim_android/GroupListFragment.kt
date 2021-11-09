@@ -32,12 +32,16 @@ class GroupListFragment : Fragment() {
         super.onCreateView(inflater, container, savedInstanceState)
         binding = FragmentFriendListBinding.inflate(layoutInflater)
         getGroupList()
+
+        adapter.setOnItemClickListener { _, view, position ->
+
+        }
         return binding.root
     }
 
     private fun getGroupList() {
         val request: Request = Request.Builder()
-            .url(String.format("http://%s/user/getGroupList", Constant.LOCAL_IP))
+            .url(String.format("http://%s/user/groupList", Constant.LOCAL_IP))
             .get()
             .addHeader("token", App.app.entity.token)
             .build()

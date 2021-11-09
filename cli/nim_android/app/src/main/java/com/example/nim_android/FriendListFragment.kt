@@ -37,7 +37,7 @@ class FriendListFragment : Fragment() {
 
     private fun getFriedList() {
         val request: Request = Request.Builder()
-            .url(String.format("http://%s/user/getFriendList", Constant.LOCAL_IP))
+            .url(String.format("http://%s/user/friendList", Constant.LOCAL_IP))
             .get()
             .addHeader("token", App.app.entity.token)
             .build()

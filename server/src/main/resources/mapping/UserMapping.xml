@@ -19,7 +19,7 @@
     </select>
 
     <select id="friendList" resultType="com.example.server.entity.FriendInfoEntity" parameterType="java.lang.String">
-        SELECT * FROM friend_info where userId = #{uuid} and isBlock = false;
+        SELECT * FROM friend_info where userId = #{uuid};
     </select>
 
     <select id="isFriend" resultType="boolean" parameterType="com.example.server.entity.FriendInfoEntity">

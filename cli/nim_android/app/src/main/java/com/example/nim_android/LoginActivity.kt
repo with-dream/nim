@@ -23,7 +23,6 @@ import com.example.sdk_nim.utils.*
 
 class LoginActivity : AppCompatActivity() {
     val gson = Gson()
-    var userEntity: UserResEntity? = null
     lateinit var binding: ActivityLoginBinding
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,8 +74,8 @@ class LoginActivity : AppCompatActivity() {
                 val res: BaseEntity<UserResEntity> =
                     gson.fromJson(str, object : TypeToken<BaseEntity<UserResEntity?>?>() {}.type)
                 if (res.success()) {
-                    userEntity = res.data
-                    App.app.entity = userEntity;
+                    val userEntity = res.data
+                    App.app.entity = res.data
                     L.p("resEntity==>" + userEntity.toString())
 //                    IMContext.instance().setIpList(Arrays.asList(Constant.NETTY_IP))
                     IMContext.instance().uuid = userEntity?.uuid
@@ -105,12 +104,12 @@ class LoginActivity : AppCompatActivity() {
     private fun encrypt1(key: String) {
         L.p("encrypt1 ct==>" + IMContext.instance().clientToken)
         val body = FormBody.Builder()
-            .add("uuid", userEntity!!.uuid)
+            .add("uuid", App.app.entity!!.uuid)
             .add("clientToken", IMContext.instance().clientToken.toString())
             .add("key", key).build()
         val request: Request = Request.Builder()
-            .url("http://${Constant.LOCAL_IP}/user/encrypt1")
-            .addHeader("token", userEntity!!.token)
+            .url("http://${Constant.LOCAL_IP}/user/encrypt")
+            .addHeader("token", App.app.entity!!.token)
             .post(body)
             .build()
         App.app.okHttpClient.newCall(request).enqueue(object : Callback {
@@ -125,11 +124,15 @@ class LoginActivity : AppCompatActivity() {
                     gson.fromJson(str, object : TypeToken<BaseEntity<UserResEntity?>?>() {}.type)
                 if (res.success()) {
                     val entity = res.data
-                    IMContext.instance().setIpList(userEntity?.serviceList);
+                    App.app.entity.serviceList = entity.serviceList
+                    IMContext.instance().setIpList(App.app.entity?.serviceList);
                     val privateKey: PrivateKey =
                         RSAUtil.string2Privatekey(IMContext.instance().encrypt.privateRSAClientKey)
                     val aesKeyB: ByteArray =
-                        RSAUtil.privateDecrypt(JBase64.getDecoder().decode(entity.aesPublicKey), privateKey)
+                        RSAUtil.privateDecrypt(
+                            JBase64.getDecoder().decode(entity.aesPublicKey),
+                            privateKey
+                        )
                     IMContext.instance().encrypt.aesKey = String(aesKeyB)
                     L.p("c aesKey==>" + IMContext.instance().encrypt.aesKey)
                     Thread { IMContext.instance().connect() }.start()

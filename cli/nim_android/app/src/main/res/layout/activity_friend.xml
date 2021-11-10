@@ -6,20 +6,46 @@
     <LinearLayout
         android:id="@+id/head"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:orientation="horizontal">
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
-        <TextView
-            android:layout_width="100dp"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="朋友" />
+        <EditText
+            android:id="@+id/uuidET"
+            android:layout_width="match_parent"
+            android:layout_height="50dp" />
 
-        <TextView
-            android:layout_width="100dp"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="群" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="50dp">
+
+            <TextView
+                android:id="@+id/friend"
+                android:layout_width="100dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="朋友" />
+
+            <TextView
+                android:id="@+id/group"
+                android:layout_width="100dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="群" />
+
+            <TextView
+                android:id="@+id/addF"
+                android:layout_width="100dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="加好友" />
+
+            <TextView
+                android:id="@+id/addG"
+                android:layout_width="100dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="加群" />
+        </LinearLayout>
     </LinearLayout>
 
     <androidx.viewpager.widget.ViewPager

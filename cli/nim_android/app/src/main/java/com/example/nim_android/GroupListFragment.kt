@@ -59,7 +59,8 @@ class GroupListFragment : Fragment() {
                 )
                 if (res.success()) {
                     L.p("getAllFriend==>" + res.data)
-                    adapter.addData(res.data)
+                    if (res.data != null && res.data.isNotEmpty())
+                        adapter.addData(res.data)
                 }
             }
         })

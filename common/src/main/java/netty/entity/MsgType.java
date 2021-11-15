@@ -21,6 +21,8 @@ public class MsgType {
     public static final String CACHE_CMD = "cmd";
     public static final int KEY_CMD = 101; //cmd命令 参照MsgCmd
     public static final int KEY_EXTRA = 102; //cmd命令的附加信息
+    public static final int KEY_M_REQ_EXTRA = 110; //请求好友数据 见RequestEntity
+    public static final int KEY_M_USER_INFO_EXTRA = 111; //好友申请确认数据 见UserInfoEntity
 
     /**
      * 请求的群命令消息

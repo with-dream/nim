@@ -1,9 +1,15 @@
 package com.example.server.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.example.server.entity.*;
+import com.example.server.netty.MsgBuild;
+import com.example.server.netty.SendHolder;
 import com.example.server.redis.RConst;
 import com.example.server.utils.auth.AuthUtil;
 import com.example.server.utils.auth.PassToken;
+import netty.entity.MsgType;
+import netty.entity.NimMsg;
+import netty.entity.NimMsgWrap;
 import org.apache.commons.lang.StringUtils;
 import com.example.server.service.UserService;
 import org.redisson.api.RMap;
@@ -62,6 +68,9 @@ public class UserController {
 
     @Resource
     RedissonClient redisson;
+
+    @Resource
+    SendHolder sendHolder;
 
     @PassToken
     @RequestMapping(value = "/register")
@@ -166,7 +175,11 @@ public class UserController {
             return BaseEntity.fail(CodeInfo.FRIEND_BLOCK);
         reqEntity.status = CodeInfo.FRIEND_REQ_STATE_REQ;
         int ret = userService.addFriendReq(reqEntity);
-        //TODO 推送消息
+
+        NimMsg msg = MsgBuild.serverMsg(reqEntity.friendId, MsgType.TYPE_CMD);
+        msg.msgMap().put(MsgType.KEY_M_REQ_EXTRA, JSON.toJSONString(reqEntity));
+        sendHolder.sendMsg(msg);
+
         return ret == 1 ? BaseEntity.succ() : BaseEntity.failServer();
     }
 
@@ -189,7 +202,13 @@ public class UserController {
 
         int ret = userService.addFriendAffirm(infoEntity);
         if (ret == 1) {
-            //TODO 推送消息
+
+            UserInfoEntity uie = userService.userInfo(userId);
+
+            NimMsg msg = MsgBuild.serverMsg(userId, MsgType.TYPE_CMD);
+            msg.msgMap().put(MsgType.KEY_M_USER_INFO_EXTRA, JSON.toJSONString(uie));
+            sendHolder.sendMsg(msg);
+
             return BaseEntity.succ(infoEntity);
         }
         return BaseEntity.failServer();
@@ -197,14 +216,19 @@ public class UserController {
 
     @RequestMapping(value = "/delFriend")
     @ResponseBody
-    public BaseEntity delFriend(@RequestParam(value = "userId") String userId, @RequestParam(value = "friendId") String friendId) {
-        FriendInfoEntity infoEntity = new FriendInfoEntity();
-        infoEntity.userId = userId;
-        infoEntity.friendId = friendId;
-        infoEntity.isFriend = false;
-        infoEntity.insertTime = new Date();
-        int ret = userService.delFriend(infoEntity);
+    public BaseEntity delFriend(@RequestParam(value = "userId") String userId, @RequestParam(value = "friendId") String friendId, @RequestParam(value = "delEach") int delEach) {
+//        FriendInfoEntity infoEntity = new FriendInfoEntity();
+//        infoEntity.userId = userId;
+//        infoEntity.friendId = friendId;
+//        infoEntity.isFriend = false;
+//        infoEntity.insertTime = new Date();
+        int ret = userService.delFriend(userId, friendId, new Date(), delEach);
         if (ret == 1) {
+            //TODO 如果需要互相删除 则操作完数据库 推送消息到对面
+            if(delEach == 1) {
+
+            }
+
             return BaseEntity.succ();
         }
         return BaseEntity.failServer();

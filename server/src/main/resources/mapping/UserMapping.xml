@@ -40,8 +40,13 @@
         values(#{userId}, #{friendId}, #{isFriend}, #{remark}, #{stick}, #{insertTime});
     </insert>
 
-    <update id="delFriend" parameterType="com.example.server.entity.FriendInfoEntity">
-        update friend_info set isFriend=false and insertTime=#{insertTime} where user_id = #{userId} and friend_id = #{friendId};
+    <update id="delFriend">
+        update friend_info set isFriend=false and insertTime=#{insertTime} where userId = #{userId} and friendId =
+        #{friendId};
+        <if test="each=1">
+            update friend_info set isFriend=false and insertTime=#{insertTime} where userId = #{friendId} and friendId =
+            #{userId};
+        </if>
     </update>
 
     <insert id="blockFriend" parameterType="com.example.server.entity.FriendInfoEntity">

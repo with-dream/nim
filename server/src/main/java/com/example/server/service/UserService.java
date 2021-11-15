@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.annotation.Resource;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -53,8 +54,8 @@ public class UserService {
         return userMapper.addFriendAffirm(friendEntity);
     }
 
-    public int delFriend(FriendInfoEntity friendEntity) {
-        return userMapper.delFriend(friendEntity);
+    public int delFriend(String userId, String friendId, Date insertTime, int each) {
+        return userMapper.delFriend(userId, friendId, insertTime, each);
     }
 
     public int blockFriend(FriendInfoEntity friendEntity) {

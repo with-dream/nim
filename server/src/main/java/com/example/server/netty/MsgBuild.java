@@ -1,7 +1,9 @@
 package com.example.server.netty;
 
+import com.example.server.utils.Const;
 import netty.entity.MsgType;
 import netty.entity.NimMsg;
+import utils.Constant;
 import utils.UUIDUtil;
 
 public class MsgBuild {
@@ -14,6 +16,10 @@ public class MsgBuild {
         msg.to = to;
         msg.msgType = msgType;
         return msg;
+    }
+
+    public static NimMsg serverMsg(String to, int msgType) {
+        return build(Constant.SERVER_UID, to, msgType);
     }
 
     public static NimMsg recMsg(String from, String to) {

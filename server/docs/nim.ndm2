@@ -1963,7 +1963,7 @@
                 "defaultValue": "",
                 "isOnUpdateCurrentTimestamp": false,
                 "isAutoInc": false,
-                "comment": "",
+                "comment": "目录id",
                 "columnFormat": "",
                 "storage": "",
                 "isVirtual": false,

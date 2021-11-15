@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.List;
 
 @Repository
@@ -27,7 +28,7 @@ public interface UserMapper {
 
     int addFriendAffirm(FriendInfoEntity friendEntity);
 
-    int delFriend(FriendInfoEntity friendEntity);
+    int delFriend(@Param(value = "userId") String userId, @Param(value = "friendId") String friendId, @Param(value = "insertTime") Date insertTime, @Param(value = "each") int each);
 
     int blockFriend(FriendInfoEntity friendEntity);
 

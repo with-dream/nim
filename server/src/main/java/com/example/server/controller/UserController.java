@@ -176,7 +176,7 @@ public class UserController {
         reqEntity.status = CodeInfo.FRIEND_REQ_STATE_REQ;
         int ret = userService.addFriendReq(reqEntity);
 
-        NimMsg msg = MsgBuild.serverMsg(reqEntity.friendId, MsgType.TYPE_CMD);
+        NimMsg msg = MsgBuild.build(reqEntity.userId, reqEntity.friendId, MsgType.TYPE_CMD).self();
         msg.msgMap().put(MsgType.KEY_M_REQ_EXTRA, JSON.toJSONString(reqEntity));
         sendHolder.sendMsg(msg);
 
@@ -205,8 +205,8 @@ public class UserController {
 
             UserInfoEntity uie = userService.userInfo(userId);
 
-            NimMsg msg = MsgBuild.serverMsg(userId, MsgType.TYPE_CMD);
-            msg.msgMap().put(MsgType.KEY_M_USER_INFO_EXTRA, JSON.toJSONString(uie));
+            NimMsg msg = MsgBuild.build(userId, friendId, MsgType.TYPE_CMD).self();
+            msg.msgMap().put(MsgType.KEY_M_REQ_USER_INFO_EXTRA, JSON.toJSONString(uie));
             sendHolder.sendMsg(msg);
 
             return BaseEntity.succ(infoEntity);
@@ -217,16 +217,12 @@ public class UserController {
     @RequestMapping(value = "/delFriend")
     @ResponseBody
     public BaseEntity delFriend(@RequestParam(value = "userId") String userId, @RequestParam(value = "friendId") String friendId, @RequestParam(value = "delEach") int delEach) {
-//        FriendInfoEntity infoEntity = new FriendInfoEntity();
-//        infoEntity.userId = userId;
-//        infoEntity.friendId = friendId;
-//        infoEntity.isFriend = false;
-//        infoEntity.insertTime = new Date();
         int ret = userService.delFriend(userId, friendId, new Date(), delEach);
         if (ret == 1) {
-            //TODO 如果需要互相删除 则操作完数据库 推送消息到对面
-            if(delEach == 1) {
-
+            if (delEach == 1) {
+                NimMsg msg = MsgBuild.build(userId, friendId, MsgType.TYPE_CMD).self();
+                msg.msgMap().put(MsgType.KEY_M_REQ_DEL_EXTRA, friendId);
+                sendHolder.sendMsg(msg);
             }
 
             return BaseEntity.succ();
@@ -242,6 +238,10 @@ public class UserController {
         infoEntity.friendId = friendId;
         int ret = userService.blockFriend(infoEntity);
         if (ret == 1) {
+            NimMsg msg = MsgBuild.serverMsg(userId, MsgType.TYPE_CMD);
+            msg.msgMap().put(MsgType.KEY_M_REQ_BLOG_EXTRA, friendId);
+            sendHolder.sendMsg(msg);
+
             return BaseEntity.succ();
         }
         return BaseEntity.failServer();
@@ -255,6 +255,10 @@ public class UserController {
         infoEntity.friendId = friendId;
         int ret = userService.delBlockFriend(infoEntity);
         if (ret == 1) {
+            NimMsg msg = MsgBuild.serverMsg(userId, MsgType.TYPE_CMD);
+            msg.msgMap().put(MsgType.KEY_M_REQ_UNBLOG_EXTRA, friendId);
+            sendHolder.sendMsg(msg);
+
             return BaseEntity.succ();
         }
         return BaseEntity.failServer();
@@ -265,6 +269,10 @@ public class UserController {
     public BaseEntity stickFriend(StickEntity stickEntity) {
         int ret = userService.stickFriend(stickEntity);
         if (ret == 1) {
+            NimMsg msg = MsgBuild.serverMsg(stickEntity.userId, MsgType.TYPE_CMD);
+            msg.msgMap().put(MsgType.KEY_M_STICK_EXTRA, JSON.toJSON(stickEntity));
+            sendHolder.sendMsg(msg);
+
             return BaseEntity.succ();
         }
         return BaseEntity.failServer();
@@ -275,6 +283,10 @@ public class UserController {
     public BaseEntity delStickFriend(StickEntity stickEntity) {
         int ret = userService.delStickFriend(stickEntity);
         if (ret == 1) {
+            NimMsg msg = MsgBuild.serverMsg(stickEntity.userId, MsgType.TYPE_CMD);
+            msg.msgMap().put(MsgType.KEY_M_UNSTICK_EXTRA, JSON.toJSON(stickEntity));
+            sendHolder.sendMsg(msg);
+
             return BaseEntity.succ();
         }
         return BaseEntity.failServer();
@@ -284,7 +296,11 @@ public class UserController {
     @ResponseBody
     public BaseEntity addFriendFolder(FriendFolderEntity folderEntity) {
         int ret = userService.addFriendFolder(folderEntity);
-        return ret == 1 ? BaseEntity.succ() : BaseEntity.failServer();
+        if(ret == 1) {
+
+            return BaseEntity.succ();
+        }
+        return BaseEntity.failServer();
     }
 
     @RequestMapping(value = "/updateFriendFolder")

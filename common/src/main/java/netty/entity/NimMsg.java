@@ -132,6 +132,14 @@ public class NimMsg implements Cloneable, Serializable {
     }
 
     /**
+     * 发送给自己的其他客户端
+     * */
+    public NimMsg self() {
+        msgMap().put(MsgType.KEY_UNIFY_M_CLIENT_SEND_SELF, true);
+        return this;
+    }
+
+    /**
      * 是否需要直接回执
      */
     public boolean isRecDirect() {

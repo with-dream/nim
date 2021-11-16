@@ -22,7 +22,12 @@ public class MsgType {
     public static final int KEY_CMD = 101; //cmd命令 参照MsgCmd
     public static final int KEY_EXTRA = 102; //cmd命令的附加信息
     public static final int KEY_M_REQ_EXTRA = 110; //请求好友数据 见RequestEntity
-    public static final int KEY_M_USER_INFO_EXTRA = 111; //好友申请确认数据 见UserInfoEntity
+    public static final int KEY_M_REQ_USER_INFO_EXTRA = 111; //好友申请确认数据 见UserInfoEntity
+    public static final int KEY_M_REQ_DEL_EXTRA = 112; //删除好友 参数为friendId
+    public static final int KEY_M_REQ_BLOG_EXTRA = 113; //拉黑好友 参数为friendId
+    public static final int KEY_M_REQ_UNBLOG_EXTRA = 114; //取消拉黑好友 参数为friendId
+    public static final int KEY_M_STICK_EXTRA = 115; //置顶好友 StickEntity
+    public static final int KEY_M_UNSTICK_EXTRA = 116; //置顶好友 StickEntity
 
     /**
      * 请求的群命令消息
